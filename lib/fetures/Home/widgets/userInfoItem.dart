@@ -25,7 +25,7 @@ class UserInfoItem extends StatelessWidget {
           title ?? '',
           style: GoogleFonts.cairo(
             fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 16,
           ),
         ).tr(),
         subtitle: GestureDetector(

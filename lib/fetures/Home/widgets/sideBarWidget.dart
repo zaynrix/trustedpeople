@@ -12,7 +12,8 @@ class SideBarInformation extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // المستخدم المحدد من خلال Riverpod
+    double screenWidth = MediaQuery.sizeOf(context).width;
+
     final selectedUser = ref.watch(selectedUserProvider);
 
     return Container(
@@ -44,15 +45,22 @@ class SideBarInformation extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  ChipWidget(
-                    isTrusted: selectedUser?.isTrusted ?? false,
+                  SizedBox(
+                    width: screenWidth * 0.1,
+                    height: screenWidth * 0.1,
+                    child: ChipWidget(
+                      isTrusted: selectedUser?.isTrusted ?? false,
+                    ),
                   ),
+                  // ChipWidget(
+                  //   isTrusted: selectedUser?.isTrusted ?? false,
+                  // ),
                 ],
               ),
               const Divider(thickness: 2, color: Colors.black54),
               UserInfoItem(
                 iconData: Icons.person,
-                title: "الاسم المستعار",
+                title: "الاسم ",
                 subtitle: selectedUser?.aliasName ?? '',
               ),
               UserInfoItem(

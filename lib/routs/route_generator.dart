@@ -1,98 +1,34 @@
-// import 'package:flutter/material.dart';
-// import 'package:go_router/go_router.dart';
-// import 'package:trustedtallentsvalley/fetures%20/Home/uis/blackList_screen.dart';
-// import 'package:trustedtallentsvalley/fetures%20/Home/uis/contactUs_screen.dart';
-// import 'package:trustedtallentsvalley/fetures%20/Home/uis/trade_screen.dart';
-// import 'package:trustedtallentsvalley/routs/screens_name.dart';
-//
-// import '../fetures /Home/uis/home_screen.dart';
-// import 'package:flutter/material.dart';
-// import 'package:go_router/go_router.dart';
-// import 'package:trustedtallentsvalley/routs/screens_name.dart';
-//
-// final GoRouter router = GoRouter(
-//   initialLocation: '/trusted',
-//   routes: [
-//     GoRoute(
-//       name: ScreensNames.trusted,
-//       path: '/trusted',
-//       builder: (context, state) => const HomeScreen(),
-//     ),
-//     // Add more routes here as needed
-//   ],
-//   errorBuilder: (context, state) => const Scaffold(
-//     body: Center(
-//       child: Text(
-//         'Wrong path',
-//         style: TextStyle(color: Colors.black, fontSize: 25),
-//       ),
-//     ),
-//   ),
-//
-//   // Wrapper Methods
-//   void goTo(String path, {Object? extra}) {
-//     goRouter.go(path, extra: extra);
-//   }
-//
-//   void goToNamed(String name, {Object? extra}) {
-//     goRouter.goNamed(name, extra: extra);
-//   }
-//
-//   void pushTo(String path, {Object? extra}) {
-//     goRouter.push(path, extra: extra);
-//   }
-//
-//   void pushToNamed(String name, {Object? extra}) {
-//     goRouter.pushNamed(name, extra: extra);
-//   }
-//
-//   void removeAllAndGo(String name, {Object? extra}) {
-//     goRouter.goNamed(name, extra: extra);
-//   }
-//
-//   void back<T extends Object?>([T? result]) {
-//     goRouter.pop(result);
-//   }
-//
-//   void maybeBack<T extends Object?>([T? result]) {
-//     if (goRouter.canPop()) {
-//       goRouter.pop(result);
-//     }
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trustedtallentsvalley/fetures/Home/uis/blackList_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
-
-import '../routs/screens_name.dart';
+import 'package:trustedtallentsvalley/fetures/Home/uis/trade_screen.dart'; // assuming this is the instruction screen
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-// GoRouter configuration
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: ScreensNames.home,
+  initialLocation: ScreensNames.homePath, // use the path not the name
   routes: [
     GoRoute(
-      path: ScreensNames.home,
-      name: 'home',
-      builder: (context, state) => HomeScreen(),
+      path: ScreensNames.homePath,
+      name: ScreensNames.home,
+      builder: (context, state) => const HomeScreen(),
     ),
-    // GoRoute(
-    //   path: ScreensNames.untrusted,
-    //   name: 'blacklist',
-    //   builder: (context, state) => const UntrustedScreen(),
-    // ),
-    // GoRoute(
-    //   path: ScreensNames.instruction,
-    //   name: 'instruction',
-    //   builder: (context, state) => const InstructionScreen(),
-    // ),
     GoRoute(
-      path: ScreensNames.contactUs,
-      name: 'contactUs',
+      path: ScreensNames.untrustedPath,
+      name: ScreensNames.untrusted,
+      builder: (context, state) => const BlackListUsersScreen(),
+    ),
+    GoRoute(
+      path: ScreensNames.instructionPath,
+      name: ScreensNames.instruction,
+      builder: (context, state) => const TransactionsGuideScreen(),
+    ),
+    GoRoute(
+      path: ScreensNames.contactUsPath,
+      name: ScreensNames.contactUs,
       builder: (context, state) => ContactUsScreen(),
     ),
   ],
@@ -105,7 +41,7 @@ final GoRouter appRouter = GoRouter(
           const Text('The page you were looking for does not exist.'),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () => context.go(ScreensNames.home),
+            onPressed: () => context.go(ScreensNames.homePath),
             child: const Text('Go to Home'),
           ),
         ],
@@ -113,3 +49,17 @@ final GoRouter appRouter = GoRouter(
     ),
   ),
 );
+
+class ScreensNames {
+  // route names
+  static const String home = 'home';
+  static const String untrusted = 'untrusted';
+  static const String instruction = 'instruction';
+  static const String contactUs = 'contactUs';
+
+  // paths (must start with "/")
+  static const String homePath = '/home';
+  static const String untrustedPath = '/untrusted';
+  static const String instructionPath = '/instruction';
+  static const String contactUsPath = '/contact-us';
+}

@@ -27,10 +27,10 @@ class ScreensNames {
   static const String mealPlanDetails = '/mealPlanDetails';
   static const String notificationTest = '/notificationTest';
   static const String articlesDetailsScreen = '/articlesDetailsScreen';
-  static const String trusted = '/trusted';
-  static const String untrusted = '/untrusted';
-  static const String contactUs = '/contactUs';
-  static const String instruction = '/instruction';
-  static const String ort = '/ort';
+  static const String trusted = 'trusted';
+  static const String untrusted = 'untrusted';
+  static const String contactUs = 'contactuns';
+  static const String instruction = 'instruction';
+  static const String ort = 'ort';
   static const String home = '/'; // corrected from 'contactUs'
 }
