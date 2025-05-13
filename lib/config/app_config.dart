@@ -11,14 +11,14 @@ import 'package:trustedtallentsvalley/service_locator.dart';
 
 class AppConfig {
   // var pef = sl<SharedPrefController>();
-  var nav = sl<AppRouter>();
-
-  void onBoardingStatue() {
-    Timer(const Duration(seconds: 3), () {
-      // checkFirstSeen();
-      nav.goTo(ScreensNames.BNBUser);
-    });
-  }
+  // var nav = sl<AppRouter>();
+  //
+  // void onBoardingStatue() {
+  //   Timer(const Duration(seconds: 3), () {
+  //     // checkFirstSeen();
+  //     nav.goTo(ScreensNames.BNBUser);
+  //   });
+  // }
 
 // Future<void> checkFirstSeen() async {
 //   bool seen = await pef.getShowOnce();
