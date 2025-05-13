@@ -9,7 +9,7 @@ Future<void> init() async {
   // Registering the services and dependencies
 
   // Registering AppRouter
-  sl.registerLazySingleton<AppRouter>(() => AppRouter());
+  // sl.registerLazySingleton<AppRouter>(() => AppRouter());
 
   // Registering Firebase services
   sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);

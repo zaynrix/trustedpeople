@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ChipWidget extends StatelessWidget {
@@ -14,13 +15,13 @@ class ChipWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: isTrusted == true
               ? Colors.green.shade50
-              : Colors.red.shade50, // تغيير اللون حسب الثقة
-          borderRadius: BorderRadius.circular(8.0), // جعل الزوايا دائرية
+              : Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8.0),
           border: Border.all(
             color: isTrusted == true
                 ? Colors.green
                 : Colors.red, // إضافة حدود بلون مطابق
-            width: 2.0, // عرض الحدود
+            width: 1.0, // عرض الحدود
           ),
         ),
         child: Text(
@@ -31,7 +32,7 @@ class ChipWidget extends StatelessWidget {
                   ? Colors.green
                   : Colors.red, // تغيير لون النص بناءً على الثقة
               fontWeight: FontWeight.bold,
-              fontSize: 14, // حجم الخط
+              fontSize: 12,
             ),
           ),
         ),

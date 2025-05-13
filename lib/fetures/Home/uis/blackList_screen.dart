@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'home_screen.dart';
+import 'trusted_screen.dart';
 
 final untrustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance

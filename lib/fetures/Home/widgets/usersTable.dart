@@ -43,6 +43,18 @@ class UsersTable extends ConsumerWidget {
             style: GoogleFonts.cairo(),
           ),
         ),
+        DataColumn(
+          label: Text(
+            'الموقع',
+            style: GoogleFonts.cairo(),
+          ),
+        ),
+        DataColumn(
+          label: Text(
+            'التقييمات',
+            style: GoogleFonts.cairo(),
+          ),
+        ),
         const DataColumn(label: Text('')),
       ],
       decoration: BoxDecoration(
@@ -75,7 +87,7 @@ class UsersTable extends ConsumerWidget {
             DataCell(
               SizedBox(
                 width: screenWidth * 0.1,
-                height: screenWidth * 0.1,
+                // height: screenWidth * 0.1,
                 child: ChipWidget(isTrusted: user["isTrusted"]),
               ),
             ),
@@ -101,6 +113,26 @@ class UsersTable extends ConsumerWidget {
               ),
             ),
 
+            DataCell(
+              SizedBox(
+                width: screenWidth * 0.1,
+                child: Text(
+                  user['location'] ?? '',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cairo(), // ✅ خط عربي
+                ),
+              ),
+            ),
+            DataCell(
+              SizedBox(
+                width: screenWidth * 0.1,
+                child: Text(
+                  user['reviews'] ?? '',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cairo(), // ✅ خط عربي
+                ),
+              ),
+            ),
             // زر "المزيد"
             DataCell(
               GestureDetector(
