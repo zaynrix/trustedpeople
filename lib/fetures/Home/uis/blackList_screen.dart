@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:trustedtallentsvalley/fetures/Home/widgets/usersTable.dart';
 
 import 'trusted_screen.dart';
 
@@ -85,10 +86,11 @@ class BlackListUsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usersStream = ref.watch(untrustedUsersStreamProvider);
 
-    return UsersListScreen(
+    return
+      UsersListScreen(
       title: "قائمة النصابين",
       usersStream: usersStream,
-      appBarColor: Colors.red,
+      // appBarColor: Colors.red,
     );
   }
 }
