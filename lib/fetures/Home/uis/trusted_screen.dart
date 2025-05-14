@@ -3,12 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/sideBarWidget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/usersTable.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/usersTableVerticalLayout.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
-import 'package:trustedtallentsvalley/routs/screens_name.dart';
+import 'package:trustedtallentsvalley/services/auth_service.dart';
 
 // Provider for trusted users stream
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
@@ -42,45 +39,110 @@ class AppDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return isPermanent
-        ? _buildPermanentDrawer(context)
-        : Drawer(child: _buildDrawerContent(context));
+        ? _buildPermanentDrawer(context, ref)
+        : Drawer(child: _buildDrawerContent(context, ref));
   }
 
-  Widget _buildDrawerContent(BuildContext context) {
+  Widget _buildDrawerContent(BuildContext context, WidgetRef ref) {
+    // Get admin status
+    final isAdmin = ref.watch(isAdminProvider);
+
     return ListView(
       padding: EdgeInsets.zero,
       children: <Widget>[
         if (!isPermanent)
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Colors.black12,
+            decoration: BoxDecoration(
+              color: isAdmin
+                  ? Colors.green
+                      .withOpacity(0.15) // Subtle green tint for admins
+                  : Colors.black12,
             ),
-            child: Center(
-              child: Text(
-                'ترست فالي',
-                style: GoogleFonts.cairo(
-                  textStyle: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+            child: Stack(
+              children: [
+                Center(
+                  child: Text(
+                    'ترست فالي',
+                    style: GoogleFonts.cairo(
+                      textStyle: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                // Admin indicator - only visible to admins
+                if (isAdmin)
+                  Positioned(
+                    top: 5,
+                    right: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        'وضع المشرف',
+                        style: GoogleFonts.cairo(
+                          fontSize: 10,
+                          color: Colors.green.shade800,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         if (isPermanent)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            child: Text(
-              'ترست فالي',
-              style: GoogleFonts.cairo(
-                textStyle: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+            decoration: BoxDecoration(
+              color: isAdmin ? Colors.green.withOpacity(0.15) : null,
+            ),
+            child: Stack(
+              children: [
+                Text(
+                  'ترست فالي',
+                  style: GoogleFonts.cairo(
+                    textStyle: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
+                // Admin indicator - only visible to admins
+                if (isAdmin)
+                  Positioned(
+                    top: 0,
+                    right: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        'وضع المشرف',
+                        style: GoogleFonts.cairo(
+                          fontSize: 10,
+                          color: Colors.green.shade800,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        // Add Home navigation item
+        // Regular navigation items - shown to everyone
         _buildNavigationItem(
           context,
           icon: Icons.home,
@@ -123,27 +185,46 @@ class AppDrawer extends ConsumerWidget {
           route: ScreensNames.contactUs,
           isPermanent: isPermanent,
         ),
+        // Only add a divider and admin options for admins
+        if (isAdmin) ...[
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.logout, color: Colors.red.shade400),
+            title: Text(
+              'تسجيل الخروج',
+              style: GoogleFonts.cairo(
+                color: Colors.red.shade400,
+              ),
+            ),
+            onTap: () {
+              if (!isPermanent) Navigator.pop(context);
+              ref.read(authProvider.notifier).signOut();
+              context.go(ScreensNames.homePath);
+            },
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildPermanentDrawer(BuildContext context) {
+  Widget _buildPermanentDrawer(BuildContext context, WidgetRef ref) {
     return Container(
       width: 250,
       height: double.infinity,
       color: Colors.grey.shade200,
-      child: _buildDrawerContent(context),
+      child: _buildDrawerContent(context, ref),
     );
   }
 
   Widget _buildNavigationItem(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required String route,
-        required bool isPermanent,
-      }) {
-    final bool isActive = GoRouterState.of(context).uri.toString() == route;
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String route,
+    required bool isPermanent,
+  }) {
+    final location = GoRouterState.of(context).matchedLocation;
+    final bool isActive = location == route || location.startsWith(route);
 
     return ListTile(
       leading: Icon(icon, color: isActive ? Colors.green : null),
@@ -165,7 +246,6 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 }
-
 // class UsersListScreen extends ConsumerWidget {
 //   final String title;
 //   final AsyncValue<QuerySnapshot> usersStream;

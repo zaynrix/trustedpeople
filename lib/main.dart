@@ -3,13 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:google_fonts/google_fonts.dart'; // Added missing import
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase for web
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -24,22 +25,21 @@ void main() async {
   await ScreenUtil.ensureScreenSize();
   await init(); // Initializes service locator
 
-  runApp(ProviderScope(child: TrustedGazianApp()));
+  runApp(const ProviderScope(child: TrustedGazianApp()));
 }
 
-class TrustedGazianApp extends StatelessWidget {
+class TrustedGazianApp extends ConsumerWidget {
   const TrustedGazianApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // Initialize the AppRouter
-    // final appRouter = sl<AppRouter>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Use the router from the provider instead of creating a new one
+    final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
       builder: (context, child) =>
           Directionality(textDirection: TextDirection.rtl, child: child!),
-      routerConfig: appRouter,
-      // routerConfig: appRouter.goRouter, // Using the GoRouter configuration
+      routerConfig: router, // Using the GoRouter from our provider
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -102,8 +102,7 @@ class TrustedGazianApp extends StatelessWidget {
         textTheme: GoogleFonts.cairoTextTheme(),
       ),
       scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
-      locale: const Locale('ar', 'AR'), // Set your app's default locale here
-      // supportedLocales: const [Locale('en', 'US'), Locale('ar', 'AR')],
+      locale: const Locale('ar', 'AR'),
     );
   }
 }
