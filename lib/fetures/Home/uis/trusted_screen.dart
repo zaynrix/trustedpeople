@@ -58,40 +58,39 @@ class AppDrawer extends ConsumerWidget {
                       .withOpacity(0.15) // Subtle green tint for admins
                   : Colors.black12,
             ),
-            child: Stack(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Center(
-                  child: Text(
-                    'ترست فالي',
-                    style: GoogleFonts.cairo(
-                      textStyle: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                // Main title
+                Text(
+                  'ترست فالي',
+                  style: GoogleFonts.cairo(
+                    textStyle: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
+
+                // Add spacing between elements
+                const SizedBox(height: 8),
+
                 // Admin indicator - only visible to admins
                 if (isAdmin)
-                  Positioned(
-                    top: 5,
-                    right: 5,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border:
-                            Border.all(color: Colors.green.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        'وضع المشرف',
-                        style: GoogleFonts.cairo(
-                          fontSize: 10,
-                          color: Colors.green.shade800,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      'وضع المشرف',
+                      style: GoogleFonts.cairo(
+                        fontSize: 10,
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -104,8 +103,10 @@ class AppDrawer extends ConsumerWidget {
             decoration: BoxDecoration(
               color: isAdmin ? Colors.green.withOpacity(0.15) : null,
             ),
-            child: Stack(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // Main title
                 Text(
                   'ترست فالي',
                   style: GoogleFonts.cairo(
@@ -115,27 +116,26 @@ class AppDrawer extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+                // Add spacing between elements
+                const SizedBox(height: 8),
+
                 // Admin indicator - only visible to admins
                 if (isAdmin)
-                  Positioned(
-                    top: 0,
-                    right: 5,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border:
-                            Border.all(color: Colors.green.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        'وضع المشرف',
-                        style: GoogleFonts.cairo(
-                          fontSize: 10,
-                          color: Colors.green.shade800,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      'وضع المشرف',
+                      style: GoogleFonts.cairo(
+                        fontSize: 10,
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),

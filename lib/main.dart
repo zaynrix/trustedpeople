@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart'; // Added missing import
+import 'package:trustedtallentsvalley/providers/analytics_provider.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 
@@ -24,6 +25,11 @@ void main() async {
 
   await ScreenUtil.ensureScreenSize();
   await init(); // Initializes service locator
+// Setup service provider
+  final container = ProviderContainer();
+
+  // Record unique visit (will only count once per day)
+  await container.read(visitorAnalyticsProvider).recordUniqueVisit();
 
   runApp(const ProviderScope(child: TrustedGazianApp()));
 }
