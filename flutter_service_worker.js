@@ -3,31 +3,26 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-//<<<<<<< HEAD
-//const RESOURCES = {"flutter_bootstrap.js": "c3a98e523d9b41f67f81f050f3ec6164",
-//=======
-const RESOURCES = {"flutter_bootstrap.js": "550c08ec62c00bb40f4221184a1ca1c1",
-//>>>>>>> dev_abdalrhman
+const RESOURCES = {"flutter_bootstrap.js": "b6cef98a89c441cc91361214bda9e5c9",
 "version.json": "e07ed4f68c55e2c161d560df9b103319",
-"index.html": "d23111c323f84901ece2500d6c01c937",
-"/": "d23111c323f84901ece2500d6c01c937",
-"main.dart.js": "d2234747493ed7d2e7e5b7da889a1f73",
+"index.html": "de0118db31548e9d949a8b5ab00bcdc4",
+"/": "de0118db31548e9d949a8b5ab00bcdc4",
+"main.dart.js": "d405ee7b5ea5de1bfbe764fbfa0b21db",
 "flutter.js": "76f08d47ff9f5715220992f993002504",
-"favicon.png": "960980d81f8d47371ff550e35f44ee8b",
+"favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
-"icons/favicon.png": "960980d81f8d47371ff550e35f44ee8b",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "manifest.json": "e98073aa7abfc934e166921290768bc2",
 "assets/AssetManifest.json": "2efbb41d7877d10aac9d091f58ccd7b9",
-"assets/NOTICES": "8e7fdb79cbb400098a9e3c81c8f4950a",
+"assets/NOTICES": "f09e310b73339a04b5beec09c0ad435c",
 "assets/FontManifest.json": "dc3d03800ccca4601324923c0b1d6d57",
 "assets/AssetManifest.bin.json": "69a99f98c8b1fb8111c5fb961769fcd8",
 "assets/packages/cupertino_icons/assets/CupertinoIcons.ttf": "33b7d9392238c04c131b6ce224e13711",
 "assets/shaders/ink_sparkle.frag": "ecc85a2e95f5e9f53123dcaf8cb9b6ce",
 "assets/AssetManifest.bin": "693635b5258fe5f1cda720cf224f158c",
-"assets/fonts/MaterialIcons-Regular.otf": "28a8c232394ac4ea792e9079f6800448",
+"assets/fonts/MaterialIcons-Regular.otf": "82643c5fca1d88c0b49630ae574fbf1d",
 "canvaskit/skwasm_st.js": "d1326ceef381ad382ab492ba5d96f04d",
 "canvaskit/skwasm.js": "f2ad9363618c5f62e813740099a80e63",
 "canvaskit/skwasm.js.symbols": "80806576fa1056b43dd6d0b445b4b6f7",
