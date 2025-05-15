@@ -5,14 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/app/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/status_chip.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_card.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/user_info_card.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/users_data_table.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/presentation/dialogs/add_user_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/presentation/dialogs/edit_user_dialog.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/presentation/dialogs/export_dialog.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/presentation/dialogs/show_delete_confirmation.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/presentation/widgets/user_detail_slidebar.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 
@@ -59,7 +58,7 @@ class UsersListScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.download_rounded),
               onPressed: () {
-                _showExportDialog(context, ref);
+                showExportDialog(context, ref);
               },
               tooltip: 'تصدير البيانات',
             ),
@@ -342,7 +341,7 @@ class UsersListScreen extends ConsumerWidget {
                               },
                               onEdit: () => showEditUserDialog(
                                   context, ref, selectedUser),
-                              onDelete: () => _showDeleteConfirmation(
+                              onDelete: () => showDeleteConfirmation(
                                   context, ref, selectedUser),
                             ),
                           ],
@@ -411,7 +410,7 @@ class UsersListScreen extends ConsumerWidget {
                               },
                               onEdit: () => showEditUserDialog(
                                   context, ref, selectedUser),
-                              onDelete: () => _showDeleteConfirmation(
+                              onDelete: () => showDeleteConfirmation(
                                   context, ref, selectedUser),
                             ),
                           ],
@@ -919,7 +918,7 @@ class UsersListScreen extends ConsumerWidget {
                       onDelete: isAdmin
                           ? () {
                               Navigator.pop(context);
-                              _showDeleteConfirmation(context, ref, user);
+                              showDeleteConfirmation(context, ref, user);
                             }
                           : null,
                     ),
@@ -1168,258 +1167,5 @@ class UsersListScreen extends ConsumerWidget {
     );
   }
 
-  // Dialog for exporting data
-  void _showExportDialog(BuildContext context, WidgetRef ref) {
-    final homeNotifier = ref.read(homeProvider.notifier);
-    if (!ref.read(isAdminProvider)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'عذراً، فقط المشرفين يمكنهم تصدير البيانات',
-            style: GoogleFonts.cairo(),
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.download_rounded, color: primaryColor),
-            const SizedBox(width: 8),
-            Text(
-              'تصدير البيانات',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'اختر صيغة التصدير:',
-              style: GoogleFonts.cairo(),
-            ),
-            const SizedBox(height: 16),
-            _buildExportOption(
-              context,
-              title: 'Excel (XLSX)',
-              icon: Icons.table_chart,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await homeNotifier.exportData('xlsx');
-                if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم تصدير البيانات بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-            _buildExportOption(
-              context,
-              title: 'CSV',
-              icon: Icons.description,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await homeNotifier.exportData('csv');
-                if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم تصدير البيانات بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-            _buildExportOption(
-              context,
-              title: 'PDF',
-              icon: Icons.picture_as_pdf,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await homeNotifier.exportData('pdf');
-                if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم تصدير البيانات بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.cairo(),
-            ),
-          ),
-        ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
-
-  // Export option item
-  Widget _buildExportOption(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: primaryColor),
-      title: Text(title, style: GoogleFonts.cairo()),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      onTap: onTap,
-      hoverColor: primaryColor.withOpacity(0.1),
-    );
-  }
-
-
-  // Confirmation dialog for deleting a user
-  void _showDeleteConfirmation(
-      BuildContext context, WidgetRef ref, UserModel user) {
-    final homeNotifier = ref.read(homeProvider.notifier);
-    if (!ref.read(isAdminProvider)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'عذراً، فقط المشرفين يمكنهم حذف المستخدمين',
-            style: GoogleFonts.cairo(),
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.delete, color: Colors.red),
-            const SizedBox(width: 8),
-            Text(
-              'حذف مستخدم',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'هل أنت متأكد من أنك تريد حذف هذا المستخدم؟',
-              style: GoogleFonts.cairo(),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.person, color: Colors.grey),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.aliasName,
-                          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          user.mobileNumber,
-                          style: GoogleFonts.cairo(color: Colors.grey.shade700),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'هذا الإجراء لا يمكن التراجع عنه.',
-              style: GoogleFonts.cairo(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.cairo(),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await homeNotifier.deleteUser(user.id);
-              if (success) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'تم حذف المستخدم بنجاح',
-                      style: GoogleFonts.cairo(),
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: Text(
-              'حذف',
-              style: GoogleFonts.cairo(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
 }
 
