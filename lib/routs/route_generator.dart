@@ -7,6 +7,7 @@ import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trade_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_screen.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
@@ -73,6 +74,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: ScreensNames.adminDashboardPath,
+        name: ScreensNames.adminDashboard,
+        builder: (context, state) {
+          // Only allow admins to access admin page
+          if (authState.isAdmin) {
+            return const AdminDashboard();
+          } else {
+            return const UnauthorizedScreen();
+          }
+        },
+      ),
+      GoRoute(
         path: '/secure-admin-784512/login',
         name: 'adminLogin',
         builder: (context, state) {
@@ -125,6 +138,7 @@ class ScreensNames {
   static const String ort = 'ort';
   static const String login = 'login'; // Add this
   static const String admin = 'admin'; // Add this
+  static const String adminDashboard = 'admin_dashboard'; // Add this
 
   // paths (must start with "/")
   static const String homePath = '/';
@@ -135,4 +149,5 @@ class ScreensNames {
   static const String ortPath = '/bank-payment-locations';
   static const String loginPath = '/login'; // Add this
   static const String adminPath = '/admin'; // Add this
+  static const String adminDashboardPath = '/admin_dashboard'; // Add this
 }

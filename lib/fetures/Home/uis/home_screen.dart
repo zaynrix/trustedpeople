@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,16 +17,6 @@ class HomeScreen extends ConsumerWidget {
     final size = MediaQuery.of(context).size;
     final isMobile = size.width <= 768;
     final isAdmin = ref.watch(isAdminProvider);
-
-    // Track page view
-    // final analyticsService = ref.read(visitorAnalyticsProvider);
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   analyticsService.trackPageView('home_screen');
-    //   // OR possibly one of these:
-    //   // analyticsService.logVisit('home_screen');
-    //   // analyticsService.recordVisit('home_screen');
-    //   // analyticsService.trackScreen('home_screen');
-    // });
 
     return Scaffold(
       appBar: AppBar(
@@ -144,51 +135,129 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _showAddUpdateDialog(BuildContext context) {
-    // This is a placeholder - you would implement a dialog to add a new update
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('إضافة تحديث جديد',
-            style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'عنوان التحديث',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('إضافة تحديث جديد',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'عنوان التحديث',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال عنوان التحديث';
+                    }
+                    return null;
+                  },
                 ),
-              ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'وصف التحديث',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال وصف التحديث';
+                    }
+                    return null;
+                  },
+                ),
+                if (isLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: CircularProgressIndicator(),
+                  ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'وصف التحديث',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo()),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (formKey.currentState!.validate()) {
+                        try {
+                          setState(() {
+                            isLoading = true;
+                          });
+
+                          // Get a reference to Firestore
+                          final FirebaseFirestore firestore =
+                              FirebaseFirestore.instance;
+
+                          // Create the update object
+                          final Map<String, dynamic> updateData = {
+                            'title': titleController.text.trim(),
+                            'description': descriptionController.text.trim(),
+                            'date': FieldValue.serverTimestamp(),
+                            'version':
+                                '1.0.${DateTime.now().millisecondsSinceEpoch % 1000}', // Generate a simple version number
+                          };
+
+                          // Add the update to Firestore
+                          await firestore
+                              .collection('app_updates')
+                              .add(updateData);
+
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('تم إضافة التحديث بنجاح',
+                                  style: GoogleFonts.cairo()),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
+                          // Close the dialog
+                          Navigator.pop(context);
+                        } catch (e) {
+                          // Show error message
+                          setState(() {
+                            isLoading = false;
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('حدث خطأ: ${e.toString()}',
+                                  style: GoogleFonts.cairo()),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
               ),
+              child: Text('حفظ', style: GoogleFonts.cairo(color: Colors.white)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Implement save logic
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade700,
-            ),
-            child: Text('حفظ', style: GoogleFonts.cairo(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -298,8 +367,8 @@ class HomeScreen extends ConsumerWidget {
                 analyticsData.when(
                   data: (data) {
                     return constraints.maxWidth > 768
-                        ? _buildAnalyticsRowWithData(data)
-                        : _buildAnalyticsColumnWithData(data);
+                        ? _buildAnalyticsRowWithData(data, context)
+                        : _buildAnalyticsRowWithData(data, context);
                   },
                   loading: () => const Center(
                     child: Padding(
@@ -466,38 +535,154 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnalyticsColumn() {
-    return Column(
-      children: [
-        _buildAnalyticItem(
-          '1,245',
-          'زيارة اليوم',
-          Icons.trending_up,
-          Colors.green,
-          '+12% عن أمس',
-        ),
-        const SizedBox(height: 16),
-        _buildAnalyticItem(
-          '32,567',
-          'إجمالي الزيارات',
-          Icons.people,
-          Colors.blue,
-          '8.5K زيارة هذا الشهر',
-        ),
-        const SizedBox(height: 16),
-        _buildAnalyticItem(
-          '3:42',
-          'متوسط مدة الزيارة',
-          Icons.timer,
-          Colors.orange,
-          '+1:15 عن المتوسط',
-        ),
-      ],
-    );
-  }
+  // Widget _buildAnalyticsColumn() {
+  //   return Column(
+  //     children: [
+  //       _buildAnalyticItem(
+  //         '1,245',
+  //         'زيارة اليوم',
+  //         Icons.trending_up,
+  //         Colors.green,
+  //         '+12% عن أمس',
+  //       ),
+  //       const SizedBox(height: 16),
+  //       _buildAnalyticItem(
+  //         '32,567',
+  //         'إجمالي الزيارات',
+  //         Icons.people,
+  //         Colors.blue,
+  //         '8.5K زيارة هذا الشهر',
+  //       ),
+  //       const SizedBox(height: 16),
+  //       _buildAnalyticItem(
+  //         '3:42',
+  //         'متوسط مدة الزيارة',
+  //         Icons.timer,
+  //         Colors.orange,
+  //         '+1:15 عن المتوسط',
+  //       ),
+  //     ],
+  //   );
+  // }
 
+  // Widget _buildAnalyticItem(
+  //     String value, String label, IconData icon, Color color, String subtext) {
+  //   return Container(
+  //     padding: const EdgeInsets.all(16),
+  //     decoration: BoxDecoration(
+  //       color: color.withOpacity(0.1),
+  //       borderRadius: BorderRadius.circular(8),
+  //       border: Border.all(color: color.withOpacity(0.3)),
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           children: [
+  //             Icon(icon, color: color, size: 24),
+  //             const SizedBox(width: 12),
+  //             Text(
+  //               label,
+  //               style: GoogleFonts.cairo(
+  //                 fontSize: 14,
+  //                 color: Colors.grey.shade700,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 12),
+  //         Text(
+  //           value,
+  //           style: GoogleFonts.cairo(
+  //             fontSize: 24,
+  //             fontWeight: FontWeight.bold,
+  //             color: Colors.black87,
+  //           ),
+  //         ),
+  //         const SizedBox(height: 4),
+  //         Text(
+  //           subtext,
+  //           style: GoogleFonts.cairo(
+  //             fontSize: 12,
+  //             color: color,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+  // Widget _buildAnalyticItem(
+  //   String value,
+  //   String label,
+  //   IconData icon,
+  //   Color color,
+  //   String subtext, {
+  //   VoidCallback? onTap, // Navigation callback function
+  // }) {
+  //   return GestureDetector(
+  //     onTap: onTap, // Use the callback directly
+  //     child: Container(
+  //       padding: const EdgeInsets.all(16),
+  //       decoration: BoxDecoration(
+  //         color: color.withOpacity(0.1),
+  //         borderRadius: BorderRadius.circular(8),
+  //         border: Border.all(color: color.withOpacity(0.3)),
+  //       ),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               Icon(icon, color: color, size: 24),
+  //               const SizedBox(width: 12),
+  //               Expanded(
+  //                 child: Text(
+  //                   label,
+  //                   style: GoogleFonts.cairo(
+  //                     fontSize: 14,
+  //                     color: Colors.grey.shade700,
+  //                   ),
+  //                 ),
+  //               ),
+  //               // Show arrow icon only if onTap is provided
+  //               if (onTap != null)
+  //                 Icon(
+  //                   Icons.chevron_right,
+  //                   size: 16,
+  //                   color: color.withOpacity(0.7),
+  //                 ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 12),
+  //           Text(
+  //             value,
+  //             style: GoogleFonts.cairo(
+  //               fontSize: 24,
+  //               fontWeight: FontWeight.bold,
+  //               color: Colors.black87,
+  //             ),
+  //           ),
+  //           const SizedBox(height: 4),
+  //           Text(
+  //             subtext,
+  //             style: GoogleFonts.cairo(
+  //               fontSize: 12,
+  //               color: color,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
   Widget _buildAnalyticItem(
-      String value, String label, IconData icon, Color color, String subtext) {
+    String value,
+    String label,
+    IconData icon,
+    Color color,
+    String subtext, {
+    VoidCallback? onTap, // Optional callback function
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -519,6 +704,13 @@ class HomeScreen extends ConsumerWidget {
                   color: Colors.grey.shade700,
                 ),
               ),
+              // Show arrow icon only if onTap is provided
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: color.withOpacity(0.7),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -619,37 +811,302 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildAdminActivityList() {
-    return Column(
-      children: [
-        _buildAdminActivityItem(
-          'تم إضافة 5 مستخدمين جدد إلى قائمة الموثوقين',
-          '12 مايو 2025',
-          true,
-        ),
-        const Divider(),
-        _buildAdminActivityItem(
-          'تم تحديث معايير التوثيق والتحقق من الهوية',
-          '10 مايو 2025',
-          true,
-        ),
-        const Divider(),
-        _buildAdminActivityItem(
-          'إضافة خاصية البحث المتقدم للمستخدمين',
-          '5 مايو 2025',
-          true,
-        ),
-      ],
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('app_updates')
+          .orderBy('date', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'حدث خطأ في تحميل البيانات: ${snapshot.error}',
+                style: GoogleFonts.cairo(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final updates = snapshot.data?.docs ?? [];
+
+        if (updates.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'لا توجد تحديثات حتى الآن',
+                    style: GoogleFonts.cairo(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: updates.length,
+          separatorBuilder: (context, index) => const Divider(),
+          itemBuilder: (context, index) {
+            final update = updates[index].data() as Map<String, dynamic>;
+            final updateId = updates[index].id;
+
+            // Format date
+            String formattedDate = 'تاريخ غير محدد';
+            if (update['date'] != null) {
+              final timestamp = update['date'] as Timestamp;
+              final date = timestamp.toDate();
+              formattedDate =
+                  '${date.day} ${_getArabicMonth(date.month)} ${date.year}';
+            }
+
+            return _buildAdminActivityItem(
+              update['title'] ?? 'بدون عنوان',
+              formattedDate,
+              true,
+              onEdit: () => _editUpdate(context, updateId, update),
+              onDelete: () => _confirmDeleteUpdate(context, updateId),
+            );
+          },
+        );
+      },
     );
   }
 
-  Widget _buildAdminActivityItem(String title, String date, bool isVisible) {
+// Helper method to get Arabic month names
+  String _getArabicMonth(int month) {
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر'
+    ];
+    return months[month - 1];
+  }
+
+// Add these methods to handle edit and delete functionality
+  void _editUpdate(
+      BuildContext context, String updateId, Map<String, dynamic> updateData) {
+    final titleController = TextEditingController(text: updateData['title']);
+    final descriptionController =
+        TextEditingController(text: updateData['description']);
+    bool isLoading = false;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('تعديل التحديث',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'عنوان التحديث',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال عنوان التحديث';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'وصف التحديث',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'الرجاء إدخال وصف التحديث';
+                    }
+                    return null;
+                  },
+                ),
+                if (isLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: CircularProgressIndicator(),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo()),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (formKey.currentState!.validate()) {
+                        try {
+                          setState(() {
+                            isLoading = true;
+                          });
+
+                          await FirebaseFirestore.instance
+                              .collection('app_updates')
+                              .doc(updateId)
+                              .update({
+                            'title': titleController.text.trim(),
+                            'description': descriptionController.text.trim(),
+                            'lastEdited': FieldValue.serverTimestamp(),
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('تم تحديث البيانات بنجاح',
+                                  style: GoogleFonts.cairo()),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
+                          Navigator.pop(context);
+                        } catch (e) {
+                          setState(() {
+                            isLoading = false;
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('حدث خطأ: ${e.toString()}',
+                                  style: GoogleFonts.cairo()),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+              ),
+              child: Text('حفظ التغييرات',
+                  style: GoogleFonts.cairo(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteUpdate(BuildContext context, String updateId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('تأكيد الحذف',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Text(
+          'هل أنت متأكد من حذف هذا التحديث؟ لا يمكن التراجع عن هذه العملية.',
+          style: GoogleFonts.cairo(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance
+                    .collection('app_updates')
+                    .doc(updateId)
+                    .delete();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم حذف التحديث بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('حدث خطأ أثناء الحذف: ${e.toString()}',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: Text('حذف', style: GoogleFonts.cairo(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Update the _buildAdminActivityItem to include edit and delete options
+  Widget _buildAdminActivityItem(
+    String title,
+    String date,
+    bool isActive, {
+    VoidCallback? onEdit,
+    VoidCallback? onDelete,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.circle, size: 12, color: Colors.green.shade700),
-          const SizedBox(width: 12),
+          Container(
+            width: 12,
+            height: 12,
+            margin: const EdgeInsets.only(top: 5, left: 12),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive ? Colors.green : Colors.grey,
+            ),
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -657,68 +1114,42 @@ class HomeScreen extends ConsumerWidget {
                 Text(
                   title,
                   style: GoogleFonts.cairo(
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
                   ),
                 ),
                 Text(
                   date,
                   style: GoogleFonts.cairo(
-                    textStyle: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
-          // Admin controls
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  isVisible ? Icons.visibility : Icons.visibility_off,
-                  color: isVisible ? Colors.green : Colors.grey,
-                  size: 20,
+          if (onEdit != null && onDelete != null)
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit, color: Colors.blue),
+                  onPressed: onEdit,
+                  tooltip: 'تعديل',
+                  iconSize: 20,
                 ),
-                tooltip: isVisible ? 'إخفاء' : 'إظهار',
-                onPressed: () {
-                  // Toggle visibility
-                },
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit,
-                  color: Colors.blue,
-                  size: 20,
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: onDelete,
+                  tooltip: 'حذف',
+                  iconSize: 20,
                 ),
-                tooltip: 'تعديل',
-                onPressed: () {
-                  // Edit update
-                },
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete,
-                  color: Colors.red,
-                  size: 20,
-                ),
-                tooltip: 'حذف',
-                onPressed: () {
-                  // Delete update
-                },
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  // Regular user home content (your existing method)
   Widget _buildHomeContent(BuildContext context, BoxConstraints constraints) {
     // This is your existing _buildHomeContent method unchanged
     final isLargeScreen = constraints.maxWidth > 900;
@@ -1056,71 +1487,137 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnalyticsRowWithData(Map<String, dynamic> data) {
+  // Widget _buildAnalyticsColumnWithData(
+  // , Map<String, dynamic> data,BuildContext context) {
+  //   // Get auth state to check if user is admin
+  //   final authState = ref.watch(authProvider);
+  //
+  //   return Column(
+  //     children: [
+  //       _buildAnalyticItem(
+  //         context,
+  //         data['todayVisits'].toString(),
+  //         'زيارة اليوم',
+  //         Icons.trending_up,
+  //         Colors.green,
+  //         '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+  //         routeName: authState.isAdmin
+  //             ? 'adminDashboard'
+  //             : null, // Only provide route if admin
+  //       ),
+  //       const SizedBox(height: 16),
+  //       _buildAnalyticItem(
+  //         context,
+  //         data['totalVisitors'].toString(),
+  //         'إجمالي الزيارات',
+  //         Icons.people,
+  //         Colors.blue,
+  //         '${data['monthlyVisitors']} زيارة هذا الشهر',
+  //         routeName: authState.isAdmin ? 'adminDashboard' : null,
+  //       ),
+  //       const SizedBox(height: 16),
+  //       _buildAnalyticItem(
+  //         context,
+  //         data['avgSessionDuration'],
+  //         'متوسط مدة الزيارة',
+  //         Icons.timer,
+  //         Colors.orange,
+  //         'تحديث لحظي',
+  //         routeName: authState.isAdmin ? 'adminDashboard' : null,
+  //       ),
+  //     ],
+  //   );
+  // }
+
+  Widget _buildAnalyticsRowWithData(
+      Map<String, dynamic> data, BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: _buildAnalyticItem(
-            data['todayVisits'].toString(),
-            'زيارة اليوم',
-            Icons.trending_up,
-            Colors.green,
-            '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+          child: InkWell(
+            onTap: () {
+              // Use GoRouter.of(context) instead of context extension
+              GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+            },
+            child: _buildAnalyticItem(
+              data['todayVisits'].toString(),
+              'زيارة اليوم',
+              Icons.trending_up,
+              Colors.green,
+              '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+            ),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: _buildAnalyticItem(
-            data['totalVisitors'].toString(),
-            'إجمالي الزيارات',
-            Icons.people,
-            Colors.blue,
-            '${data['monthlyVisits']} زيارة هذا الشهر',
+          child: InkWell(
+            onTap: () {
+              GoRouter.of(context).goNamed('adminDashboard');
+            },
+            child: _buildAnalyticItem(
+              data['totalVisitors'].toString(),
+              'إجمالي الزيارات',
+              Icons.people,
+              Colors.blue,
+              '${data['monthlyVisits']} زيارة هذا الشهر',
+            ),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: _buildAnalyticItem(
-            data['avgSessionDuration'],
-            'متوسط مدة الزيارة',
-            Icons.timer,
-            Colors.orange,
-            'تحديث لحظي',
+          child: InkWell(
+            onTap: () {
+              GoRouter.of(context).goNamed('adminDashboard');
+            },
+            child: _buildAnalyticItem(
+              data['avgSessionDuration'],
+              'متوسط مدة الزيارة',
+              Icons.timer,
+              Colors.orange,
+              'تحديث لحظي',
+            ),
           ),
         ),
       ],
     );
   }
-
-  Widget _buildAnalyticsColumnWithData(Map<String, dynamic> data) {
-    return Column(
-      children: [
-        _buildAnalyticItem(
-          data['todayVisits'].toString(),
-          'زيارة اليوم',
-          Icons.trending_up,
-          Colors.green,
-          '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
-        ),
-        const SizedBox(height: 16),
-        _buildAnalyticItem(
-          data['totalVisitors'].toString(),
-          'إجمالي الزيارات',
-          Icons.people,
-          Colors.blue,
-          '${data['monthlyVisits']} زيارة هذا الشهر',
-        ),
-        const SizedBox(height: 16),
-        _buildAnalyticItem(
-          data['avgSessionDuration'],
-          'متوسط مدة الزيارة',
-          Icons.timer,
-          Colors.orange,
-          'تحديث لحظي',
-        ),
-      ],
-    );
-  }
+  // Widget _buildAnalyticsColumnWithData(Map<String, dynamic> data, context) {
+  //   return Column(
+  //     children: [
+  //       InkWell(
+  //         onTap: () => context.goNamed('admin_dashboard'),
+  //         child: _buildAnalyticItem(
+  //           onTap: () {
+  //             print("clicked");
+  //             context.goNamed('admin_dashboard');
+  //           }, // Use context from the build method
+  //
+  //           data['todayVisits'].toString(),
+  //           'زيارة اليوم',
+  //           Icons.trending_up,
+  //           Colors.green,
+  //           '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+  //         ),
+  //       ),
+  //       const SizedBox(height: 16),
+  //       _buildAnalyticItem(
+  //         data['totalVisitors'].toString(),
+  //         'إجمالي الزيارات',
+  //         Icons.people,
+  //         Colors.blue,
+  //         '${data['monthlyVisits']} زيارة هذا الشهر',
+  //       ),
+  //       const SizedBox(height: 16),
+  //       _buildAnalyticItem(
+  //         data['avgSessionDuration'],
+  //         'متوسط مدة الزيارة',
+  //         Icons.timer,
+  //         Colors.orange,
+  //         'تحديث لحظي',
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildVisitsChart(List<Map<String, dynamic>> chartData) {
     return VisitorChart(chartData: chartData);
