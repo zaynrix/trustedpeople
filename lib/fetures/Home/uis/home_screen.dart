@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:trustedtallentsvalley/app/core/theme/theme_notifier.dart';
+import 'package:trustedtallentsvalley/app/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/app/core/widgets/theme_toggle_button.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/adminActivitiesWidget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/userRecentUpdatesWidget.dart';
@@ -40,6 +43,7 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          // Admin settings button only for admins
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.settings),
@@ -74,16 +78,16 @@ class HomeScreen extends ConsumerWidget {
       // Show quick action FAB for admins
       floatingActionButton: isAdmin
           ? FloatingActionButton.extended(
-              onPressed: () {
-                _showQuickActionsMenu(context);
-              },
-              backgroundColor: Colors.green.shade700,
-              icon: const Icon(Icons.add),
-              label: Text(
-                'إضافة سريعة',
-                style: GoogleFonts.cairo(),
-              ),
-            )
+        onPressed: () {
+          _showQuickActionsMenu(context);
+        },
+        backgroundColor: Colors.green.shade700,
+        icon: const Icon(Icons.add),
+        label: Text(
+          'إضافة سريعة',
+          style: GoogleFonts.cairo(),
+        ),
+      )
           : null,
     );
   }
@@ -689,7 +693,7 @@ class HomeScreen extends ConsumerWidget {
                   Icon(icon, size: 32, color: color),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -1137,8 +1141,8 @@ class HomeScreen extends ConsumerWidget {
           isLargeScreen
               ? _buildFeatureCardsRow()
               : (isMediumScreen
-                  ? _buildFeatureCardsMediumGrid()
-                  : _buildFeatureCardsColumn()),
+              ? _buildFeatureCardsMediumGrid()
+              : _buildFeatureCardsColumn()),
 
           const SizedBox(height: 32),
 
@@ -1507,9 +1511,9 @@ class VisitorChart extends StatelessWidget {
     }
 
     return SfCartesianChart(
-      primaryXAxis: CategoryAxis(),
-      primaryYAxis: NumericAxis(
-        majorGridLines: const MajorGridLines(width: 0.5, color: Colors.grey),
+      primaryXAxis: const CategoryAxis(),
+      primaryYAxis: const NumericAxis(
+        majorGridLines: MajorGridLines(width: 0.5, color: Colors.grey),
       ),
       series: <CartesianSeries>[
         ColumnSeries<Map<String, dynamic>, String>(

@@ -1,5 +1,5 @@
-class FirebaseConstant {
-  FirebaseConstant._();
+class FirebaseConstants {
+  FirebaseConstants._();
 
   static const usersCollection = 'users';
   static const goalsCollection = 'goals';
