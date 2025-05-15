@@ -26,7 +26,7 @@ dependencies:
   flutter_screenutil: ^5.8.4  # Added specific version
   shared_preferences: ^2.1.1  # Added specific version
   easy_localization: ^3.0.0-nullsafety
-  syncfusion_flutter_charts: ^29.2.4  # Updated version
+  syncfusion_flutter_charts:   # Updated version
 
   cupertino_icons: ^1.0.2
   google_sign_in: ^6.1.4
@@ -38,6 +38,8 @@ dependencies:
 #  go_provider: ^0.2.2  # Added specific version
   flutter_riverpod: ^2.6.1
   google_fonts: ^6.2.1
+  hive:
+  hive_flutter:
 
 dev_dependencies:
   flutter_test:
