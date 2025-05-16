@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,9 +12,6 @@ import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
-
-//
-import '../fetures/auth/admin_dashboard_screen.dart'; // Add this
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -61,18 +59,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: ScreensNames.login,
         builder: (context, state) => const AdminLoginScreen(),
       ),
-      GoRoute(
-        path: ScreensNames.adminPath,
-        name: ScreensNames.admin,
-        builder: (context, state) {
-          // Only allow admins to access admin page
-          if (authState.isAdmin) {
-            return const AdminDashboardScreen();
-          } else {
-            return const UnauthorizedScreen();
-          }
-        },
-      ),
+      // GoRoute(
+      //   path: ScreensNames.adminPath,
+      //   name: ScreensNames.admin,
+      //   builder: (context, state) {
+      //     // Only allow admins to access admin page
+      //     if (authState.isAdmin) {
+      //       return const AdminDashboardScreen();
+      //     } else {
+      //       return const UnauthorizedScreen();
+      //     }
+      //   },
+      // ),
       GoRoute(
         path: ScreensNames.adminDashboardPath,
         name: ScreensNames.adminDashboard,
@@ -89,25 +87,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/secure-admin-784512/login',
         name: 'adminLogin',
         builder: (context, state) {
-          print("🔐 Admin login route matched! Path: ${state.uri.toString()}");
+          if (kDebugMode) {
+            print(
+                "🔐 Admin login route matched! Path: ${state.uri.toString()}");
+          }
           return const AdminLoginScreen();
         },
       ),
-      GoRoute(
-        path: '/secure-admin-784512/dashboard', // Obscure path
-        name: 'adminDashboard', // No constant reference in ScreensNames
-        builder: (context, state) {
-          // Only allow authenticated admins
-          if (authState.isAdmin) {
-            return const AdminDashboardScreen();
-          } else {
-            return const Scaffold(
-              body: Center(
-                  child: Text('Page not found')), // Generic error for security
-            );
-          }
-        },
-      ),
+      // GoRoute(
+      //   path: '/secure-admin-784512/dashboard', // Obscure path
+      //   name: 'adminDashboard', // No constant reference in ScreensNames
+      //   builder: (context, state) {
+      //     // Only allow authenticated admins
+      //     if (authState.isAdmin) {
+      //       return const AdminDashboardScreen();
+      //     } else {
+      //       return const Scaffold(
+      //         body: Center(
+      //             child: Text('Page not found')), // Generic error for security
+      //       );
+      //     }
+      //   },
+      // ),
     ],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),

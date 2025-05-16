@@ -4,26 +4,73 @@ import 'package:google_fonts/google_fonts.dart';
 class StatusChip extends StatelessWidget {
   final bool isTrusted;
   final bool compact;
+  final int? role; // Add role parameter
 
   const StatusChip({
     Key? key,
     required this.isTrusted,
     this.compact = false,
+    this.role, // Pass the role
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final Color bgColor = isTrusted
-        ? Colors.green.shade50
-        : Colors.red.shade50;
+    // Set defaults based on role
+    Color bgColor;
+    Color textColor;
+    Color borderColor;
+    String statusText;
+    IconData iconData;
 
-    final Color textColor = isTrusted
-        ? Colors.green.shade700
-        : Colors.red.shade700;
+    // Determine styling based on role
+    switch (role) {
+      case 0: // Admin
+        bgColor = Colors.purple.shade50;
+        textColor = Colors.purple.shade700;
+        borderColor = Colors.purple.shade300;
+        statusText = "مشرف"; // Admin
+        iconData = Icons.admin_panel_settings;
+        break;
 
-    final Color borderColor = isTrusted
-        ? Colors.green.shade300
-        : Colors.red.shade300;
+      case 1: // Trusted
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+        borderColor = Colors.green.shade300;
+        statusText = "موثوق"; // Trusted
+        iconData = Icons.verified_user;
+        break;
+
+      case 2: // Known person
+        bgColor = Colors.blue.shade50;
+        textColor = Colors.blue.shade700;
+        borderColor = Colors.blue.shade300;
+        statusText = "معروف"; // Known person
+        iconData = Icons.person;
+        break;
+
+      case 3: // Fraud
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        borderColor = Colors.red.shade300;
+        statusText = "نصاب"; // Fraud
+        iconData = Icons.warning;
+        break;
+
+      default: // Fallback to the original logic for backward compatibility
+        if (isTrusted) {
+          bgColor = Colors.green.shade50;
+          textColor = Colors.green.shade700;
+          borderColor = Colors.green.shade300;
+          statusText = "موثوق"; // Trusted
+          iconData = Icons.verified_user;
+        } else {
+          bgColor = Colors.red.shade50;
+          textColor = Colors.red.shade700;
+          borderColor = Colors.red.shade300;
+          statusText = "نصاب"; // Fraud
+          iconData = Icons.warning;
+        }
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -47,13 +94,13 @@ class StatusChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isTrusted ? Icons.verified_user : Icons.warning,
+            iconData,
             color: textColor,
             size: compact ? 14 : 18,
           ),
           const SizedBox(width: 6),
           Text(
-            isTrusted ? "موثوق" : "نصاب",
+            statusText,
             style: GoogleFonts.cairo(
               color: textColor,
               fontWeight: FontWeight.bold,

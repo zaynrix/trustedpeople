@@ -188,44 +188,49 @@ class AdminDashboard extends ConsumerWidget {
     if (screenWidth > 1200) {
       crossAxisCount = 3; // Large screens - 3 cards in a row
     } else if (screenWidth > 600) {
-      crossAxisCount = 2; // Medium screens - 2 cards in a row
+      crossAxisCount = 3; // Medium screens - 2 cards in a row
     } else {
-      crossAxisCount = 1; // Small screens - 1 card per row
+      crossAxisCount = 2; // Small screens - 1 card per row
     }
 
-    return GridView.count(
-      crossAxisCount: crossAxisCount,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: isSmallScreen ? 10 : 16,
-      mainAxisSpacing: isSmallScreen ? 10 : 16,
-      childAspectRatio: isSmallScreen ? 1.4 : 1.5,
-      children: [
-        _buildAnalyticItem(
-          analyticsData['todayVisitors']?.toString() ?? '0',
-          'زيارة اليوم',
-          Icons.trending_up,
-          Colors.green,
-          '${analyticsData['percentChange']?.toStringAsFixed(1) ?? '0'}% عن أمس',
-          isSmallScreen: isSmallScreen,
-        ),
-        _buildAnalyticItem(
-          analyticsData['totalVisitors']?.toString() ?? '0',
-          'إجمالي الزيارات',
-          Icons.people,
-          Colors.blue,
-          '${analyticsData['monthlyVisitors'] ?? '0'} زيارة هذا الشهر',
-          isSmallScreen: isSmallScreen,
-        ),
-        _buildAnalyticItem(
-          analyticsData['avgSessionDuration'] ?? '0:00',
-          'متوسط مدة الزيارة',
-          Icons.timer,
-          Colors.orange,
-          'تحديث لحظي',
-          isSmallScreen: isSmallScreen,
-        ),
-      ],
+    return Padding(
+      padding: EdgeInsets.all(
+          isSmallScreen ? 8.0 : 12.0), // Add padding around the grid
+      child: GridView.count(
+        crossAxisCount: crossAxisCount,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: isSmallScreen ? 6 : 10, // Reduced spacing
+        mainAxisSpacing: isSmallScreen ? 6 : 10, // Reduced spacing
+        childAspectRatio:
+            isSmallScreen ? 1.8 : 2.0, // Increased ratio makes items shorter
+        children: [
+          _buildAnalyticItem(
+            analyticsData['todayVisitors']?.toString() ?? '0',
+            'زيارة اليوم',
+            Icons.trending_up,
+            Colors.green,
+            '${analyticsData['percentChange']?.toStringAsFixed(1) ?? '0'}% عن أمس',
+            isSmallScreen: isSmallScreen,
+          ),
+          _buildAnalyticItem(
+            analyticsData['totalVisitors']?.toString() ?? '0',
+            'إجمالي الزيارات',
+            Icons.people,
+            Colors.blue,
+            '${analyticsData['monthlyVisitors'] ?? '0'} زيارة هذا الشهر',
+            isSmallScreen: isSmallScreen,
+          ),
+          _buildAnalyticItem(
+            analyticsData['avgSessionDuration'] ?? '0:00',
+            'متوسط مدة الزيارة',
+            Icons.timer,
+            Colors.orange,
+            'تحديث لحظي',
+            isSmallScreen: isSmallScreen,
+          ),
+        ],
+      ),
     );
   }
 

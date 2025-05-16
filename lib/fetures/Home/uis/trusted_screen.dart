@@ -46,6 +46,7 @@ class AppDrawer extends ConsumerWidget {
   Widget _buildDrawerContent(BuildContext context, WidgetRef ref) {
     // Get admin status
     final isAdmin = ref.watch(isAdminProvider);
+    final authState = ref.watch(authProvider);
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -94,6 +95,20 @@ class AppDrawer extends ConsumerWidget {
                       ),
                     ),
                   ),
+                if (isAdmin)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      'البريد الإلكتروني: ${authState.user?.email}',
+                      style: GoogleFonts.cairo(color: Colors.black),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -137,6 +152,22 @@ class AppDrawer extends ConsumerWidget {
                         color: Colors.green.shade800,
                         fontWeight: FontWeight.bold,
                       ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+
+                if (isAdmin)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      'البريد الإلكتروني: ${authState.user?.email}',
+                      style: GoogleFonts.cairo(color: Colors.black),
                     ),
                   ),
               ],

@@ -2050,7 +2050,12 @@ class UserDetailSidebar extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                StatusChip(isTrusted: user.isTrusted),
+                StatusChip(
+                  isTrusted: user.isTrusted,
+                  role: (user.role as num?)
+                      ?.toInt(), // Convert to int if it exists
+                  compact: true,
+                ),
               ],
             ),
           ),

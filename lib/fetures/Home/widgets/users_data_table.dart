@@ -33,7 +33,7 @@ class UsersDataTable extends ConsumerWidget {
         child: DataTable(
           dataRowMaxHeight: 64,
           headingRowColor: MaterialStateColor.resolveWith(
-                (states) => Colors.grey.shade100,
+            (states) => Colors.grey.shade100,
           ),
           headingRowHeight: 56,
           horizontalMargin: 24,
@@ -46,7 +46,7 @@ class UsersDataTable extends ConsumerWidget {
           columns: [
             DataColumn(
               label: Text(
-                'الاسم',
+                'الاسمsss',
                 style: GoogleFonts.cairo(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey.shade800,
@@ -91,9 +91,9 @@ class UsersDataTable extends ConsumerWidget {
             ),
             const DataColumn(label: Text('')),
           ],
-          rows: users.map((user) {
-            final isSelected = user.id == selectedUser?.id;
-            final userData = UserModel.fromFirestore(user);
+          rows: users.map((usern) {
+            final isSelected = usern.id == selectedUser?.id;
+            final userData = UserModel.fromFirestore(usern);
 
             return DataRow(
               selected: isSelected,
@@ -106,9 +106,10 @@ class UsersDataTable extends ConsumerWidget {
               cells: [
                 DataCell(
                   Text(
-                    user['aliasName'] ?? '',
+                    userData.aliasName ?? '',
                     style: GoogleFonts.cairo(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                       color: isSelected ? theme.primaryColor : Colors.black87,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -116,14 +117,20 @@ class UsersDataTable extends ConsumerWidget {
                 ),
                 DataCell(
                   StatusChip(
-                    isTrusted: user["isTrusted"] ?? false,
+                    isTrusted: usern["isTrusted"],
+                    role: userData.role, // Convert to int if it exists
                     compact: true,
                   ),
+                  // StatusChip(
+                  //   isTrusted: user["isTrusted"] ?? false,
+                  //   role: user["role"],
+                  //   compact: true,
+                  // ),
                 ),
                 DataCell(
                   GestureDetector(
                     onTap: () {
-                      final phone = user['mobileNumber'] ?? '';
+                      final phone = usern['mobileNumber'] ?? '';
                       if (phone.isNotEmpty) {
                         Clipboard.setData(ClipboardData(text: phone));
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,7 +151,7 @@ class UsersDataTable extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          user['mobileNumber'] ?? '',
+                          usern['mobileNumber'] ?? '',
                           style: GoogleFonts.cairo(
                             color: Colors.grey.shade800,
                           ),
@@ -161,7 +168,7 @@ class UsersDataTable extends ConsumerWidget {
                 ),
                 DataCell(
                   Text(
-                    user['location'] ?? '',
+                    usern['location'] ?? '',
                     style: GoogleFonts.cairo(),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -177,7 +184,7 @@ class UsersDataTable extends ConsumerWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        user['reviews'] ?? '',
+                        usern['reviews'] ?? '',
                         style: GoogleFonts.cairo(),
                         overflow: TextOverflow.ellipsis,
                       ),

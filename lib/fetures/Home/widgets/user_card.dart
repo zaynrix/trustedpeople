@@ -16,11 +16,19 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAdmin = user.role == 0;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        // Just add a subtle border for admins
+        side: isAdmin
+            ? BorderSide(color: Colors.purple.shade300, width: 1.5)
+            : BorderSide.none,
       ),
+      // Subtle background for admins
+      color: isAdmin ? Colors.purple.shade50 : null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -28,28 +36,37 @@ class UserCard extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
             child: Container(
-              constraints:
-                  BoxConstraints(maxHeight: 200), // Remove fixed height
-
+              constraints: BoxConstraints(maxHeight: 180),
               child: Column(
-                mainAxisSize: MainAxisSize.min, // Add this line
-
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(
-                          user.aliasName,
-                          style: GoogleFonts.cairo(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                user.aliasName,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      isAdmin ? Colors.purple.shade700 : null,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      StatusChip(isTrusted: user.isTrusted),
+                      StatusChip(
+                        isTrusted: user.isTrusted,
+                        role: user.role,
+                        compact: true,
+                      ),
                     ],
                   ),
                   const Divider(height: 24),
@@ -83,7 +100,9 @@ class UserCard extends StatelessWidget {
                         style: GoogleFonts.cairo(),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: isAdmin
+                            ? Colors.purple.shade600
+                            : Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),

@@ -265,8 +265,8 @@ class HomeScreen extends ConsumerWidget {
   // Admin dashboard with analytics
   Widget _buildAdminDashboard(
       BuildContext context, BoxConstraints constraints, WidgetRef ref) {
-    final analyticsData = ref.watch(analyticsDataProvider);
     final analyticsChartData = ref.watch(analyticsChartDataProvider);
+    final analyticsData = ref.watch(analyticsDataProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -368,7 +368,7 @@ class HomeScreen extends ConsumerWidget {
                   data: (data) {
                     return constraints.maxWidth > 768
                         ? _buildAnalyticsRowWithData(data, context)
-                        : _buildAnalyticsRowWithData(data, context);
+                        : _buildAnalyticsColumnWithData(data, context);
                   },
                   loading: () => const Center(
                     child: Padding(
@@ -1540,11 +1540,12 @@ class HomeScreen extends ConsumerWidget {
               GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
             },
             child: _buildAnalyticItem(
-              data['todayVisits'].toString(),
+              data['todayVisitors']?.toString() ?? '0',
               'زيارة اليوم',
               Icons.trending_up,
               Colors.green,
-              '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+              '${data['percentChange']?.toStringAsFixed(1) ?? '0'}% عن أمس',
+              // isSmallScreen: isSmallScreen,
             ),
           ),
         ),
@@ -1581,43 +1582,99 @@ class HomeScreen extends ConsumerWidget {
       ],
     );
   }
-  // Widget _buildAnalyticsColumnWithData(Map<String, dynamic> data, context) {
-  //   return Column(
-  //     children: [
-  //       InkWell(
-  //         onTap: () => context.goNamed('admin_dashboard'),
-  //         child: _buildAnalyticItem(
-  //           onTap: () {
-  //             print("clicked");
-  //             context.goNamed('admin_dashboard');
-  //           }, // Use context from the build method
-  //
-  //           data['todayVisits'].toString(),
-  //           'زيارة اليوم',
-  //           Icons.trending_up,
-  //           Colors.green,
-  //           '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
-  //         ),
-  //       ),
-  //       const SizedBox(height: 16),
-  //       _buildAnalyticItem(
-  //         data['totalVisitors'].toString(),
-  //         'إجمالي الزيارات',
-  //         Icons.people,
-  //         Colors.blue,
-  //         '${data['monthlyVisits']} زيارة هذا الشهر',
-  //       ),
-  //       const SizedBox(height: 16),
-  //       _buildAnalyticItem(
-  //         data['avgSessionDuration'],
-  //         'متوسط مدة الزيارة',
-  //         Icons.timer,
-  //         Colors.orange,
-  //         'تحديث لحظي',
-  //       ),
-  //     ],
-  //   );
-  // }
+
+  Widget _buildAnalyticsCards(Map<String, dynamic> analyticsData,
+      bool isSmallScreen, BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine grid columns based on screen size
+    int crossAxisCount;
+    if (screenWidth > 1200) {
+      crossAxisCount = 3; // Large screens - 3 cards in a row
+    } else if (screenWidth > 600) {
+      crossAxisCount = 3; // Medium screens - 2 cards in a row
+    } else {
+      crossAxisCount = 2; // Small screens - 1 card per row
+    }
+
+    return Padding(
+      padding: EdgeInsets.all(
+          isSmallScreen ? 8.0 : 12.0), // Add padding around the grid
+      child: GridView.count(
+        crossAxisCount: crossAxisCount,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: isSmallScreen ? 6 : 10, // Reduced spacing
+        mainAxisSpacing: isSmallScreen ? 6 : 10, // Reduced spacing
+        childAspectRatio:
+            isSmallScreen ? 1.8 : 2.0, // Increased ratio makes items shorter
+        children: [
+          _buildAnalyticItem(
+            analyticsData['todayVisitors']?.toString() ?? '0',
+            'زيارة اليوم',
+            Icons.trending_up,
+            Colors.green,
+            '${analyticsData['percentChange']?.toStringAsFixed(1) ?? '0'}% عن أمس',
+            // isSmallScreen: isSmallScreen,
+          ),
+          _buildAnalyticItem(
+            analyticsData['totalVisitors']?.toString() ?? '0',
+            'إجمالي الزيارات',
+            Icons.people,
+            Colors.blue,
+            '${analyticsData['monthlyVisitors'] ?? '0'} زيارة هذا الشهر',
+            // isSmallScreen: isSmallScreen,
+          ),
+          _buildAnalyticItem(
+            analyticsData['avgSessionDuration'] ?? '0:00',
+            'متوسط مدة الزيارة',
+            Icons.timer,
+            Colors.orange,
+            'تحديث لحظي',
+            // isSmallScreen: isSmallScreen,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsColumnWithData(Map<String, dynamic> data, context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => context.goNamed('admin_dashboard'),
+          child: _buildAnalyticItem(
+            onTap: () {
+              print("clicked");
+              context.goNamed('admin_dashboard');
+            }, // Use context from the build method
+
+            data['todayVisits'].toString(),
+            'زيارة اليوم',
+            Icons.trending_up,
+            Colors.green,
+            '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildAnalyticItem(
+          data['totalVisitors'].toString(),
+          'إجمالي الزيارات',
+          Icons.people,
+          Colors.blue,
+          '${data['monthlyVisits']} زيارة هذا الشهر',
+        ),
+        const SizedBox(height: 16),
+        _buildAnalyticItem(
+          data['avgSessionDuration'],
+          'متوسط مدة الزيارة',
+          Icons.timer,
+          Colors.orange,
+          'تحديث لحظي',
+        ),
+      ],
+    );
+  }
 
   Widget _buildVisitsChart(List<Map<String, dynamic>> chartData) {
     return VisitorChart(chartData: chartData);
