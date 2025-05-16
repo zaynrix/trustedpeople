@@ -3,13 +3,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart'; // Added missing import
-import 'package:trustedtallentsvalley/providers/analytics_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
+import 'package:trustedtallentsvalley/services/block_service2.dart';
+
+import 'fetures/auth/blocked_screen.dart';
+
+// Add a state provider for blocked status
+final isUserBlockedProvider = StateProvider<bool>((ref) => false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ar', null);
 
   // Initialize Firebase for web
   if (kIsWeb) {
@@ -25,27 +34,107 @@ void main() async {
 
   await ScreenUtil.ensureScreenSize();
   await init(); // Initializes service locator
-// Setup service provider
+
+  // Setup provider container
   final container = ProviderContainer();
 
-  // Record unique visit (will only count once per day)
-  await container.read(visitorAnalyticsProvider).recordUniqueVisit();
+  // Check if user is blocked
+  bool isBlocked = false;
+  try {
+    isBlocked = await BlockService.isUserBlocked();
+    container.read(isUserBlockedProvider.notifier).state = isBlocked;
+  } catch (e) {
+    debugPrint('Error checking if user is blocked: $e');
+  }
 
-  runApp(const ProviderScope(child: TrustedGazianApp()));
+  // Only record analytics if user is not blocked
+  if (!isBlocked) {
+    try {
+      // Important: Record visit for ALL users (not just admins)
+      final analyticsService = container.read(visitorAnalyticsProvider);
+      final success = await analyticsService.recordUniqueVisit();
+      debugPrint('Visit recording success: $success');
+    } catch (e) {
+      debugPrint('Error recording visit: $e');
+    }
+  }
+
+  runApp(ProviderScope(parent: container, child: const TrustedGazianApp()));
 }
 
-class TrustedGazianApp extends ConsumerWidget {
+class TrustedGazianApp extends ConsumerStatefulWidget {
   const TrustedGazianApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Use the router from the provider instead of creating a new one
-    final router = ref.watch(routerProvider);
+  ConsumerState<TrustedGazianApp> createState() => _TrustedGazianAppState();
+}
+
+class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Set up analytics tracking after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupAnalyticsTracking();
+    });
+  }
+
+  void _setupAnalyticsTracking() {
+    // Only track if user is not blocked
+    final isBlocked = ref.read(isUserBlockedProvider);
+    if (isBlocked) return;
+
+    // Get the router and set up tracking
+    final router = ref.read(routerProvider);
+
+    // Add listener to track route changes for ALL users
+    router.routerDelegate.addListener(() {
+      final location = router.routeInformationProvider.value.location;
+      if (location != null) {
+        // Extract page title from path
+        final segments = location.split('/');
+        final title =
+            segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
+
+        // Record page view for analytics
+        ref.read(visitorAnalyticsProvider).recordPageView(location, title);
+        debugPrint('Page view recorded: $location, title: $title');
+      }
+    });
+
+    // Record the initial page view
+    final initialLocation = router.routeInformationProvider.value.location;
+    if (initialLocation != null) {
+      final segments = initialLocation.split('/');
+      final title =
+          segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
+      ref.read(visitorAnalyticsProvider).recordPageView(initialLocation, title);
+      debugPrint('Initial page view recorded: $initialLocation');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Check if user is blocked
+    final isBlocked = ref.watch(isUserBlockedProvider);
+
+    // Use the appropriate router
+    final router = isBlocked
+        ? GoRouter(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const BlockedScreen(),
+              ),
+            ],
+          )
+        : ref.watch(routerProvider);
 
     return MaterialApp.router(
       builder: (context, child) =>
           Directionality(textDirection: TextDirection.rtl, child: child!),
-      routerConfig: router, // Using the GoRouter from our provider
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
