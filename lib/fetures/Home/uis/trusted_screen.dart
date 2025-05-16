@@ -255,7 +255,21 @@ class AppDrawer extends ConsumerWidget {
     required bool isPermanent,
   }) {
     final location = GoRouterState.of(context).matchedLocation;
-    final bool isActive = location == route || location.startsWith(route);
+
+    // Improved route matching
+    bool isActive;
+
+    if (route == ScreensNames.home && location == '/') {
+      isActive = true;
+    } else if (location == route) {
+      isActive = true;
+    } else if (route != '/' && location.startsWith('$route/')) {
+      isActive = true;
+    } else if (location.startsWith('$route?')) {
+      isActive = true;
+    } else {
+      isActive = false;
+    }
 
     return ListTile(
       leading: Icon(icon, color: isActive ? Colors.green : null),
@@ -277,118 +291,3 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 }
-// class UsersListScreen extends ConsumerWidget {
-//   final String title;
-//   final AsyncValue<QuerySnapshot> usersStream;
-//   final Color appBarColor;
-//
-//   const UsersListScreen({
-//     Key? key,
-//     required this.title,
-//     required this.usersStream,
-//     this.appBarColor = Colors.green,
-//   }) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context, WidgetRef ref) {
-//     final isMobile = MediaQuery.of(context).size.width <= 768;
-//
-//     return Scaffold(
-//       appBar: AppBar(
-//         automaticallyImplyLeading: isMobile,
-//         backgroundColor: appBarColor,
-//         title: Text(
-//           title,
-//           style: GoogleFonts.cairo(
-//             textStyle: const TextStyle(
-//               color: Colors.white,
-//               fontSize: 20,
-//               fontWeight: FontWeight.bold,
-//             ),
-//           ),
-//         ),
-//       ),
-//       drawer: isMobile ? const AppDrawer() : null,
-//       body: LayoutBuilder(
-//         builder: (context, constraints) {
-//           return Row(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               if (constraints.maxWidth > 768)
-//                 const AppDrawer(isPermanent: true),
-//               Expanded(
-//                 child: Padding(
-//                   padding: const EdgeInsets.all(16.0),
-//                   child: _buildMainContent(context, ref, constraints),
-//                 ),
-//               ),
-//             ],
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-//   Widget _buildMainContent(
-//       BuildContext context, WidgetRef ref, BoxConstraints constraints) {
-//     final searchQuery = ref.watch(searchQueryProvider);
-//
-//     return usersStream.when(
-//       data: (snapshot) {
-//         final users = snapshot.docs.where((user) {
-//           final aliasName = user['aliasName'] ?? '';
-//           final mobileNumber = user['mobileNumber'] ?? '';
-//           final query = searchQuery.toLowerCase();
-//           return aliasName.toLowerCase().contains(query) ||
-//               mobileNumber.contains(query);
-//         }).toList();
-//
-//         final showSideBar = ref.watch(showSideBarProvider);
-//
-//         if (constraints.maxWidth > 540) {
-//           return SingleChildScrollView(
-//             child: ConstrainedBox(
-//               constraints: BoxConstraints(minWidth: constraints.maxWidth),
-//               child: Column(
-//                 children: [
-//                   Padding(
-//                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-//                     child: TextField(
-//                       decoration: InputDecoration(
-//                         labelText: 'بحث...',
-//                         hintText: 'ابحث بالاسم أو رقم الجوال',
-//                         prefixIcon: const Icon(Icons.search),
-//                         border: OutlineInputBorder(
-//                           borderRadius: BorderRadius.circular(8.0),
-//                         ),
-//                       ),
-//                       onChanged: (value) {
-//                         ref.read(searchQueryProvider.notifier).state = value;
-//                       },
-//                     ),
-//                   ),
-//                   Row(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Expanded(child: UsersTable(users: users)),
-//                       if (showSideBar) const SizedBox(width: 20),
-//                     ],
-//                   ),
-//                   if (showSideBar)
-//                     const Padding(
-//                       padding: EdgeInsets.all(16.0),
-//                       child: UserDetailSidebar(),
-//                     ),
-//                 ],
-//               ),
-//             ),
-//           );
-//         } else {
-//           return VerticalLayout(users: users, constraints: constraints);
-//         }
-//       },
-//       loading: () => const Center(child: CircularProgressIndicator()),
-//       error: (e, _) => Center(child: Text('حدث خطأ: $e')),
-//     );
-//   }
-// }

@@ -1,16 +1,23 @@
+import 'dart:html' as html;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
-import 'package:trustedtallentsvalley/providers/analytics_provider.dart';
+import 'package:trustedtallentsvalley/fetures/Home/widgets/adminActivitiesWidget.dart';
+import 'package:trustedtallentsvalley/fetures/Home/widgets/userRecentUpdatesWidget.dart';
+import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 
+import '../../auth/admin_dashboard.dart';
+
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -216,7 +223,8 @@ class HomeScreen extends ConsumerWidget {
                             'description': descriptionController.text.trim(),
                             'date': FieldValue.serverTimestamp(),
                             'version':
-                                '1.0.${DateTime.now().millisecondsSinceEpoch % 1000}', // Generate a simple version number
+                                '1.0.${DateTime.now().millisecondsSinceEpoch % 1000}',
+                            // Generate a simple version number
                           };
 
                           // Add the update to Firestore
@@ -319,7 +327,79 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 32),
-
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'أدوات تشخيص الزيارات',
+                  style: GoogleFonts.cairo(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.refresh),
+                      label: Text('تحديث البيانات', style: GoogleFonts.cairo()),
+                      onPressed: () {
+                        // Refresh analytics data
+                        ref.refresh(analyticsDataProvider);
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    // ElevatedButton.icon(
+                    //   icon: const Icon(Icons.add),
+                    //   label:
+                    //       Text('تسجيل زيارة جديدة', style: GoogleFonts.cairo()),
+                    //   onPressed: () async {
+                    //     final success = await ref
+                    //         .read(visitorAnalyticsProvider)
+                    //         .();
+                    //
+                    //     ScaffoldMessenger.of(context).showSnackBar(
+                    //       SnackBar(
+                    //         content: Text(
+                    //           success
+                    //               ? 'تم تسجيل زيارة جديدة بنجاح'
+                    //               : 'فشل تسجيل الزيارة الجديدة',
+                    //           style: GoogleFonts.cairo(),
+                    //         ),
+                    //         backgroundColor:
+                    //             success ? Colors.green : Colors.red,
+                    //       ),
+                    //     );
+                    //
+                    //     // Refresh the data
+                    //     ref.refresh(analyticsDataProvider);
+                    //   },
+                    // ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<String?>(
+                  future: Future.value(kIsWeb
+                      ? html.window.localStorage['last_visit_date']
+                      : null),
+                  builder: (context, snapshot) {
+                    return Text(
+                      'آخر زيارة مسجلة: ${snapshot.data ?? 'غير متوفر'}',
+                      style: GoogleFonts.cairo(),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
           // Visitor Analytics Section
           Container(
             width: double.infinity,
@@ -367,7 +447,25 @@ class HomeScreen extends ConsumerWidget {
                 analyticsData.when(
                   data: (data) {
                     return constraints.maxWidth > 768
-                        ? _buildAnalyticsRowWithData(data, context)
+                        ? Consumer(
+                            builder: (context, ref, child) {
+                              final analyticsAsync =
+                                  ref.watch(analyticsDataProvider);
+
+                              return analyticsAsync.when(
+                                data: (data) =>
+                                    _buildAnalyticsRowWithData(data, context),
+                                loading: () => const Center(
+                                    child: CircularProgressIndicator()),
+                                error: (error, stack) => Center(
+                                  child: Text(
+                                    'Error loading analytics: $error',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
                         : _buildAnalyticsColumnWithData(data, context);
                   },
                   loading: () => const Center(
@@ -424,7 +522,19 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 32),
-
+          Card(
+              child: ListTile(
+            leading: Icon(Icons.block, color: Colors.red),
+            title: Text('المستخدمين المحظورين', style: GoogleFonts.cairo()),
+            subtitle: Text(
+              'إدارة المستخدمين المحظورين من الوصول للموقع',
+              style: GoogleFonts.cairo(),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.arrow_forward),
+              onPressed: () => context.pushNamed(ScreensNames.blockedUsers),
+            ),
+          )),
           // Quick CRUD Activities
           Row(
             children: [
@@ -453,45 +563,7 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 32),
-
-          // Recent activity with admin controls
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'آخر النشاطات',
-                      style: GoogleFonts.cairo(
-                        textStyle: TextStyle(
-                          color: Colors.grey.shade800,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      tooltip: 'إضافة نشاط جديد',
-                      onPressed: () {
-                        _showAddUpdateDialog(context);
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildAdminActivityList(),
-              ],
-            ),
-          ),
+          const AdminActivityWidget(),
         ],
       ),
     );
@@ -535,146 +607,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Widget _buildAnalyticsColumn() {
-  //   return Column(
-  //     children: [
-  //       _buildAnalyticItem(
-  //         '1,245',
-  //         'زيارة اليوم',
-  //         Icons.trending_up,
-  //         Colors.green,
-  //         '+12% عن أمس',
-  //       ),
-  //       const SizedBox(height: 16),
-  //       _buildAnalyticItem(
-  //         '32,567',
-  //         'إجمالي الزيارات',
-  //         Icons.people,
-  //         Colors.blue,
-  //         '8.5K زيارة هذا الشهر',
-  //       ),
-  //       const SizedBox(height: 16),
-  //       _buildAnalyticItem(
-  //         '3:42',
-  //         'متوسط مدة الزيارة',
-  //         Icons.timer,
-  //         Colors.orange,
-  //         '+1:15 عن المتوسط',
-  //       ),
-  //     ],
-  //   );
-  // }
-
-  // Widget _buildAnalyticItem(
-  //     String value, String label, IconData icon, Color color, String subtext) {
-  //   return Container(
-  //     padding: const EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       color: color.withOpacity(0.1),
-  //       borderRadius: BorderRadius.circular(8),
-  //       border: Border.all(color: color.withOpacity(0.3)),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Row(
-  //           children: [
-  //             Icon(icon, color: color, size: 24),
-  //             const SizedBox(width: 12),
-  //             Text(
-  //               label,
-  //               style: GoogleFonts.cairo(
-  //                 fontSize: 14,
-  //                 color: Colors.grey.shade700,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         const SizedBox(height: 12),
-  //         Text(
-  //           value,
-  //           style: GoogleFonts.cairo(
-  //             fontSize: 24,
-  //             fontWeight: FontWeight.bold,
-  //             color: Colors.black87,
-  //           ),
-  //         ),
-  //         const SizedBox(height: 4),
-  //         Text(
-  //           subtext,
-  //           style: GoogleFonts.cairo(
-  //             fontSize: 12,
-  //             color: color,
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-  // Widget _buildAnalyticItem(
-  //   String value,
-  //   String label,
-  //   IconData icon,
-  //   Color color,
-  //   String subtext, {
-  //   VoidCallback? onTap, // Navigation callback function
-  // }) {
-  //   return GestureDetector(
-  //     onTap: onTap, // Use the callback directly
-  //     child: Container(
-  //       padding: const EdgeInsets.all(16),
-  //       decoration: BoxDecoration(
-  //         color: color.withOpacity(0.1),
-  //         borderRadius: BorderRadius.circular(8),
-  //         border: Border.all(color: color.withOpacity(0.3)),
-  //       ),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Row(
-  //             children: [
-  //               Icon(icon, color: color, size: 24),
-  //               const SizedBox(width: 12),
-  //               Expanded(
-  //                 child: Text(
-  //                   label,
-  //                   style: GoogleFonts.cairo(
-  //                     fontSize: 14,
-  //                     color: Colors.grey.shade700,
-  //                   ),
-  //                 ),
-  //               ),
-  //               // Show arrow icon only if onTap is provided
-  //               if (onTap != null)
-  //                 Icon(
-  //                   Icons.chevron_right,
-  //                   size: 16,
-  //                   color: color.withOpacity(0.7),
-  //                 ),
-  //             ],
-  //           ),
-  //           const SizedBox(height: 12),
-  //           Text(
-  //             value,
-  //             style: GoogleFonts.cairo(
-  //               fontSize: 24,
-  //               fontWeight: FontWeight.bold,
-  //               color: Colors.black87,
-  //             ),
-  //           ),
-  //           const SizedBox(height: 4),
-  //           Text(
-  //             subtext,
-  //             style: GoogleFonts.cairo(
-  //               fontSize: 12,
-  //               color: color,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
   Widget _buildAnalyticItem(
     String value,
     String label,
@@ -1239,32 +1171,7 @@ class HomeScreen extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
-          // Recent activity
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'آخر التحديثات',
-                  style: GoogleFonts.cairo(
-                    textStyle: TextStyle(
-                      color: Colors.grey.shade800,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildRecentUpdates(),
-              ],
-            ),
-          ),
+          const UserActivityWidget(),
         ],
       ),
     );
@@ -1465,72 +1372,35 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentUpdates() {
-    // Your existing implementation
-    return Column(
-      children: [
-        _buildUpdateItem(
-          'تم إضافة 5 مستخدمين جدد إلى قائمة الموثوقين',
-          '12 مايو 2025',
-        ),
-        const Divider(),
-        _buildUpdateItem(
-          'تم تحديث معايير التوثيق والتحقق من الهوية',
-          '10 مايو 2025',
-        ),
-        const Divider(),
-        _buildUpdateItem(
-          'إضافة خاصية البحث المتقدم للمستخدمين',
-          '5 مايو 2025',
-        ),
-      ],
-    );
-  }
+  final analyticsDataProvider = StreamProvider<Map<String, dynamic>>((ref) {
+    final analytics = ref.watch(visitorAnalyticsProvider);
 
-  // Widget _buildAnalyticsColumnWithData(
-  // , Map<String, dynamic> data,BuildContext context) {
-  //   // Get auth state to check if user is admin
-  //   final authState = ref.watch(authProvider);
-  //
-  //   return Column(
-  //     children: [
-  //       _buildAnalyticItem(
-  //         context,
-  //         data['todayVisits'].toString(),
-  //         'زيارة اليوم',
-  //         Icons.trending_up,
-  //         Colors.green,
-  //         '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
-  //         routeName: authState.isAdmin
-  //             ? 'adminDashboard'
-  //             : null, // Only provide route if admin
-  //       ),
-  //       const SizedBox(height: 16),
-  //       _buildAnalyticItem(
-  //         context,
-  //         data['totalVisitors'].toString(),
-  //         'إجمالي الزيارات',
-  //         Icons.people,
-  //         Colors.blue,
-  //         '${data['monthlyVisitors']} زيارة هذا الشهر',
-  //         routeName: authState.isAdmin ? 'adminDashboard' : null,
-  //       ),
-  //       const SizedBox(height: 16),
-  //       _buildAnalyticItem(
-  //         context,
-  //         data['avgSessionDuration'],
-  //         'متوسط مدة الزيارة',
-  //         Icons.timer,
-  //         Colors.orange,
-  //         'تحديث لحظي',
-  //         routeName: authState.isAdmin ? 'adminDashboard' : null,
-  //       ),
-  //     ],
-  //   );
-  // }
+    // Create a stream that refreshes every 30 seconds
+    return Stream.periodic(const Duration(seconds: 30), (_) async {
+      final data = await analytics.getVisitorStats();
+      return data;
+    }).asyncMap((future) => future);
+  });
 
   Widget _buildAnalyticsRowWithData(
       Map<String, dynamic> data, BuildContext context) {
+    // Add debug print to see what data is being received
+    debugPrint('Analytics data: $data');
+
+    // Handle null or empty data
+    if (data == null || data.isEmpty) {
+      return const Center(child: Text('No data available'));
+    }
+
+    // Fix property name mismatch - monthlyVisits vs monthlyVisitors
+    final monthlyVisits = data['monthlyVisitors'] ?? data['monthlyVisits'] ?? 0;
+
+    // Ensure all values are properly formatted to avoid null errors
+    final todayVisitors = data['todayVisitors'] ?? 0;
+    final percentChange = data['percentChange'] ?? 0.0;
+    final totalVisitors = data['totalVisitors'] ?? 0;
+    final avgSessionDuration = data['avgSessionDuration'] ?? '0:00';
+
     return Row(
       children: [
         Expanded(
@@ -1540,12 +1410,11 @@ class HomeScreen extends ConsumerWidget {
               GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
             },
             child: _buildAnalyticItem(
-              data['todayVisitors']?.toString() ?? '0',
+              todayVisitors.toString(),
               'زيارة اليوم',
               Icons.trending_up,
               Colors.green,
-              '${data['percentChange']?.toStringAsFixed(1) ?? '0'}% عن أمس',
-              // isSmallScreen: isSmallScreen,
+              '${percentChange.toStringAsFixed(1)}% عن أمس',
             ),
           ),
         ),
@@ -1556,11 +1425,11 @@ class HomeScreen extends ConsumerWidget {
               GoRouter.of(context).goNamed('adminDashboard');
             },
             child: _buildAnalyticItem(
-              data['totalVisitors'].toString(),
+              totalVisitors.toString(),
               'إجمالي الزيارات',
               Icons.people,
               Colors.blue,
-              '${data['monthlyVisits']} زيارة هذا الشهر',
+              '$monthlyVisits زيارة هذا الشهر',
             ),
           ),
         ),
@@ -1571,7 +1440,7 @@ class HomeScreen extends ConsumerWidget {
               GoRouter.of(context).goNamed('adminDashboard');
             },
             child: _buildAnalyticItem(
-              data['avgSessionDuration'],
+              avgSessionDuration,
               'متوسط مدة الزيارة',
               Icons.timer,
               Colors.orange,
@@ -1580,61 +1449,6 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildAnalyticsCards(Map<String, dynamic> analyticsData,
-      bool isSmallScreen, BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    // Determine grid columns based on screen size
-    int crossAxisCount;
-    if (screenWidth > 1200) {
-      crossAxisCount = 3; // Large screens - 3 cards in a row
-    } else if (screenWidth > 600) {
-      crossAxisCount = 3; // Medium screens - 2 cards in a row
-    } else {
-      crossAxisCount = 2; // Small screens - 1 card per row
-    }
-
-    return Padding(
-      padding: EdgeInsets.all(
-          isSmallScreen ? 8.0 : 12.0), // Add padding around the grid
-      child: GridView.count(
-        crossAxisCount: crossAxisCount,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: isSmallScreen ? 6 : 10, // Reduced spacing
-        mainAxisSpacing: isSmallScreen ? 6 : 10, // Reduced spacing
-        childAspectRatio:
-            isSmallScreen ? 1.8 : 2.0, // Increased ratio makes items shorter
-        children: [
-          _buildAnalyticItem(
-            analyticsData['todayVisitors']?.toString() ?? '0',
-            'زيارة اليوم',
-            Icons.trending_up,
-            Colors.green,
-            '${analyticsData['percentChange']?.toStringAsFixed(1) ?? '0'}% عن أمس',
-            // isSmallScreen: isSmallScreen,
-          ),
-          _buildAnalyticItem(
-            analyticsData['totalVisitors']?.toString() ?? '0',
-            'إجمالي الزيارات',
-            Icons.people,
-            Colors.blue,
-            '${analyticsData['monthlyVisitors'] ?? '0'} زيارة هذا الشهر',
-            // isSmallScreen: isSmallScreen,
-          ),
-          _buildAnalyticItem(
-            analyticsData['avgSessionDuration'] ?? '0:00',
-            'متوسط مدة الزيارة',
-            Icons.timer,
-            Colors.orange,
-            'تحديث لحظي',
-            // isSmallScreen: isSmallScreen,
-          ),
-        ],
-      ),
     );
   }
 
