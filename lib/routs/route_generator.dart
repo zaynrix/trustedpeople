@@ -93,21 +93,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           return const AdminLoginScreen();
         },
       ),
-      GoRoute(
-        path: '/secure-admin-784512/dashboard', // Obscure path
-        name: 'adminDashboard', // No constant reference in ScreensNames
-        builder: (context, state) {
-          // Only allow authenticated admins
-          if (authState.isAdmin) {
-            return const AdminDashboardScreen();
-          } else {
-            return const Scaffold(
-              body: Center(
-                  child: Text('Page not found')), // Generic error for security
-            );
-          }
-        },
-      ),
+      // GoRoute(
+      //   path: '/secure-admin-784512/dashboard', // Obscure path
+      //   name: 'adminDashboard', // No constant reference in ScreensNames
+      //   builder: (context, state) {
+      //     // Only allow authenticated admins
+      //     if (authState.isAdmin) {
+      //       return const AdminDashboardScreen();
+      //     } else {
+      //       return const Scaffold(
+      //         body: Center(
+      //             child: Text('Page not found')), // Generic error for security
+      //       );
+      //     }
+      //   },
+      // ),
     ],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),

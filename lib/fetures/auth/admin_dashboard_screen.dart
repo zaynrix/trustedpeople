@@ -1,6 +1,8 @@
 // lib/screens/admin_dashboard_screen.dart
+
 import 'dart:js' as js;
 
+// // Change to ConsumerStatefulWidget
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +11,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 
-// Change to ConsumerStatefulWidget
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
 
@@ -26,6 +27,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     // Hide admin pages from browser history
     if (kIsWeb) {
       // This prevents the admin pages from being bookmarked or showing in history
+
       js.context.callMethod('history', ['replaceState', null, '', '/']);
     }
   }
@@ -78,7 +80,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             const SizedBox(height: 24),
             Text(
               'البريد الإلكتروني: ${authState.user?.email}',
-              style: GoogleFonts.cairo(),
+              style: GoogleFonts.cairo(color: Colors.white),
             ),
             const SizedBox(height: 32),
 
