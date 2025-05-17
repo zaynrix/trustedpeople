@@ -103,9 +103,9 @@ class UserActivityWidget extends ConsumerWidget {
       },
       loading: () => const Center(
           child: SizedBox(
-        height: 50,
-        child: CircularProgressIndicator(),
-      )),
+            height: 50,
+            child: CircularProgressIndicator(),
+          )),
       error: (error, stackTrace) {
         // Log the error for debugging
         debugPrint('Error loading activities: $error');
