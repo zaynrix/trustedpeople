@@ -1,26 +1,23 @@
-import 'dart:html' as html;
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:trustedtallentsvalley/app/core/storage/storage_service.dart';
+import 'package:trustedtallentsvalley/app/core/theme/app_theme.dart';
+// Import your theme providers
+import 'package:trustedtallentsvalley/app/core/theme/theme_providers.dart';
+import 'package:trustedtallentsvalley/providers/analytics_provider.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
-import 'package:trustedtallentsvalley/services/block_service2.dart';
-
-import 'fetures/auth/blocked_screen.dart';
-
-// Add a state provider for blocked status
-final isUserBlockedProvider = StateProvider<bool>((ref) => false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ar', null);
+
+  // Initialize storage (Hive)
+  // await StorageService.init();
 
   // Initialize Firebase for web
   if (kIsWeb) {
@@ -37,168 +34,34 @@ void main() async {
   await ScreenUtil.ensureScreenSize();
   await init(); // Initializes service locator
 
-  // Setup provider container
+  // Setup service provider
   final container = ProviderContainer();
 
-  // Check if user is blocked
-  bool isBlocked = false;
-  try {
-    isBlocked = await BlockService.isUserBlocked();
-    container.read(isUserBlockedProvider.notifier).state = isBlocked;
-  } catch (e) {
-    debugPrint('Error checking if user is blocked: $e');
-  }
+  // Record unique visit (will only count once per day)
+  await container.read(visitorAnalyticsProvider).recordUniqueVisit();
 
-  // Only record analytics if user is not blocked
-  if (!isBlocked) {
-    try {
-      // Important: Record visit for ALL users (not just admins)
-      final analyticsService = container.read(visitorAnalyticsProvider);
-      final success = await analyticsService.recordUniqueVisit();
-      debugPrint('Visit recording success: $success');
-    } catch (e) {
-      debugPrint('Error recording visit: $e');
-    }
-  }
-
-  runApp(ProviderScope(parent: container, child: const TrustedGazianApp()));
-  html.window.dispatchEvent(html.Event('flutter-initialized'));
+  runApp(const ProviderScope(child: TrustedGazianApp()));
 }
 
-class TrustedGazianApp extends ConsumerStatefulWidget {
+class TrustedGazianApp extends ConsumerWidget {
   const TrustedGazianApp({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<TrustedGazianApp> createState() => _TrustedGazianAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Use the router from the provider instead of creating a new one
+    final router = ref.watch(routerProvider);
 
-class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Set up analytics tracking after the widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupAnalyticsTracking();
-    });
-  }
-
-  void _setupAnalyticsTracking() {
-    // Only track if user is not blocked
-    final isBlocked = ref.read(isUserBlockedProvider);
-    if (isBlocked) return;
-
-    // Get the router and set up tracking
-    final router = ref.read(routerProvider);
-
-    // Add listener to track route changes for ALL users
-    router.routerDelegate.addListener(() {
-      final location = router.routeInformationProvider.value.location;
-      if (location != null) {
-        // Extract page title from path
-        final segments = location.split('/');
-        final title =
-            segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
-
-        // Record page view for analytics
-        ref.read(visitorAnalyticsProvider).recordPageView(location, title);
-        debugPrint('Page view recorded: $location, title: $title');
-      }
-    });
-
-    // Record the initial page view
-    final initialLocation = router.routeInformationProvider.value.location;
-    if (initialLocation != null) {
-      final segments = initialLocation.split('/');
-      final title =
-          segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
-      ref.read(visitorAnalyticsProvider).recordPageView(initialLocation, title);
-      debugPrint('Initial page view recorded: $initialLocation');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Check if user is blocked
-    final isBlocked = ref.watch(isUserBlockedProvider);
-
-    // Use the appropriate router
-    final router = isBlocked
-        ? GoRouter(
-            routes: [
-              GoRoute(
-                path: '/',
-                builder: (context, state) => const BlockedScreen(),
-              ),
-            ],
-          )
-        : ref.watch(routerProvider);
+    // Use the themeModeProvider to get the current theme mode
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       builder: (context, child) =>
           Directionality(textDirection: TextDirection.rtl, child: child!),
-      routerConfig: router,
+      routerConfig: router, // Using the GoRouter from our provider
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          primary: Colors.green.shade600,
-          secondary: Colors.blue.shade600,
-          background: Colors.grey.shade50,
-        ),
-        scaffoldBackgroundColor: Colors.grey.shade50,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.green.shade600,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        cardTheme: CardTheme(
-          elevation: 2,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.green.shade400, width: 2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        fontFamily: GoogleFonts.cairo().fontFamily,
-        textTheme: GoogleFonts.cairoTextTheme(),
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode, // Using the theme mode from the provider
       scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
       locale: const Locale('ar', 'AR'),
     );

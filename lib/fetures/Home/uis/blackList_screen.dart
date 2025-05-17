@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/users_list_screen.dart';
 
+import 'trusted_screen.dart';
+
 final untrustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
       .collection('userstransed')
@@ -25,7 +27,8 @@ class BlackListUsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usersStream = ref.watch(untrustedUsersStreamProvider);
 
-    return UsersListScreen(
+    return
+      UsersListScreen(
       title: "قائمة النصابين",
       usersStream: usersStream,
       // appBarColor: Colors.red,
