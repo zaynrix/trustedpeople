@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart';
-import 'package:trustedtallentsvalley/config/firebase_constant.dart';
+import 'package:trustedtallentsvalley/app/config/firebase_constant.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/ActivityUpdate.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 
@@ -85,7 +85,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
       DocumentSnapshot doc = await _firestore
-          .collection(FirebaseConstant.trustedUsers)
+          .collection(FirebaseConstants.trustedUsers)
           .doc()
           .get();
 
@@ -192,7 +192,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
       // Generate a new document ID
-      final docRef = _firestore.collection(FirebaseConstant.trustedUsers).doc();
+      final docRef = _firestore.collection(FirebaseConstants.trustedUsers).doc();
 
       await docRef.set({
         'id': docRef.id,
@@ -250,7 +250,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
       updateData['updatedAt'] = FieldValue.serverTimestamp();
 
       await _firestore
-          .collection(FirebaseConstant.trustedUsers)
+          .collection(FirebaseConstants.trustedUsers)
           .doc(id)
           .update(updateData);
 
@@ -258,7 +258,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
       if (state.selectedUser?.id == id) {
         // Fetch the updated user data
         DocumentSnapshot doc = await _firestore
-            .collection(FirebaseConstant.trustedUsers)
+            .collection(FirebaseConstants.trustedUsers)
             .doc(id)
             .get();
 
@@ -287,7 +287,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
       await _firestore
-          .collection(FirebaseConstant.trustedUsers)
+          .collection(FirebaseConstants.trustedUsers)
           .doc(id)
           .delete();
 
@@ -389,7 +389,7 @@ final errorMessageProvider = Provider<String?>((ref) {
 // A provider to get all unique locations for filtering
 final locationsProvider = StreamProvider<List<String>>((ref) {
   return FirebaseFirestore.instance
-      .collection(FirebaseConstant.trustedUsers)
+      .collection(FirebaseConstants.trustedUsers)
       .snapshots()
       .map((snapshot) {
     final locations = snapshot.docs
@@ -405,7 +405,7 @@ final locationsProvider = StreamProvider<List<String>>((ref) {
 // Stream provider for trusted users
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
-      .collection(FirebaseConstant.trustedUsers)
+      .collection(FirebaseConstants.trustedUsers)
       .where("isTrusted", isEqualTo: true)
       .snapshots();
 });
@@ -413,7 +413,7 @@ final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
 // Stream provider for untrusted users
 final untrustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
-      .collection(FirebaseConstant.trustedUsers)
+      .collection(FirebaseConstants.trustedUsers)
       .where("isTrusted", isEqualTo: false)
       .snapshots();
 });
@@ -421,7 +421,7 @@ final untrustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
 // Stream provider for all users
 final allUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
-      .collection(FirebaseConstant.trustedUsers)
+      .collection(FirebaseConstants.trustedUsers)
       .snapshots();
 });
 
