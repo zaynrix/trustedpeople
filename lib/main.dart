@@ -17,7 +17,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize storage (Hive)
-  await StorageService.init();
+  // await StorageService.init();
 
   // Initialize Firebase for web
   if (kIsWeb) {
