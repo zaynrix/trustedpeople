@@ -1,19 +1,32 @@
+<!--<!DOCTYPE html>-->
+<!--<html>-->
+<!--<head>-->
+<!--  <base href="$FLUTTER_BASE_HREF">-->
+
+<!--  <meta charset="UTF-8">-->
+<!--  <meta content="IE=Edge" http-equiv="X-UA-Compatible">-->
+<!--  <meta name="description" content="Trust Valley app">-->
+
+<!--  &lt;!&ndash; iOS meta tags & icons &ndash;&gt;-->
+<!--  <meta name="mobile-web-app-capable" content="yes">-->
+<!--  <meta name="apple-mobile-web-app-status-bar-style" content="black">-->
+<!--  <meta name="apple-mobile-web-app-title" content="Trust Valley">-->
+<!--  <link rel="apple-touch-icon" href="icons/Icon-192.png">-->
+
+<!--  &lt;!&ndash; Favicon &ndash;&gt;-->
+<!--  <link rel="icon" type="image/png" href="favicon.png"/>-->
+
+<!--  <title>trustedtallentsvalley</title>-->
+<!--  <link rel="manifest" href="manifest.json">-->
+<!--</head>-->
+<!--<body>-->
+<!--  <script src="flutter_bootstrap.js" async></script>-->
+<!--</body>-->
+<!--</html>-->
+
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -31,8 +44,87 @@
 
   <title>trustedtallentsvalley</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Add loading screen styles -->
+  <style>
+    body {
+      inset: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      position: fixed;
+      height: 100%;
+      width: 100%;
+      background-color: #ffffff; /* Set to your app's background color */
+    }
+
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 5px solid #42A5F5; /* Change to your brand color */
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    .app-name {
+      margin-top: 20px;
+      font-family: 'Arial', sans-serif;
+      color: #42A5F5; /* Change to your brand color */
+      text-align: center;
+      font-weight: bold;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<!-- Loading screen that shows while Flutter loads -->
+<div id="loading" class="loading-container">
+  <div class="loader"></div>
+  <div class="app-name">Trust Valley</div>
+</div>
+
+<!-- Flutter bootstrap script -->
+<script src="flutter_bootstrap.js" async></script>
+
+<!-- Script to remove loading screen when Flutter is ready -->
+<script>
+    // Listen for a custom event from flutter_bootstrap.js when Flutter is initialized
+    window.addEventListener('flutter-initialized', function() {
+      // Remove the loading screen once Flutter is ready
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement) {
+        // Fade out the loading screen
+        loadingElement.style.transition = 'opacity 0.5s ease';
+        loadingElement.style.opacity = '0';
+
+        // Remove it after the transition is complete
+        setTimeout(function() {
+          loadingElement.remove();
+        }, 500);
+      }
+    });
+
+    // Fallback: If Flutter takes too long, remove loading screen after 5 seconds
+    setTimeout(function() {
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement && loadingElement.parentNode) {
+        loadingElement.remove();
+      }
+    }, 5000);
+  </script>
 </body>
 </html>
