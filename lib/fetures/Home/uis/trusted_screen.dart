@@ -30,4 +30,3 @@ class TrustedUsersScreen extends ConsumerWidget {
     );
   }
 }
-

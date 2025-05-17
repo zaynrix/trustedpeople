@@ -6,11 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:trustedtallentsvalley/app/core/theme/theme_notifier.dart';
 import 'package:trustedtallentsvalley/app/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/app/core/widgets/theme_toggle_button.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
+import 'package:trustedtallentsvalley/features/admin/dashboard/domain/entities/dashboard_stats.dart';
+import 'package:trustedtallentsvalley/features/admin/dashboard/presentation/widgets/visitor_chart.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/adminActivitiesWidget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/userRecentUpdatesWidget.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
@@ -78,16 +76,16 @@ class HomeScreen extends ConsumerWidget {
       // Show quick action FAB for admins
       floatingActionButton: isAdmin
           ? FloatingActionButton.extended(
-        onPressed: () {
-          _showQuickActionsMenu(context);
-        },
-        backgroundColor: Colors.green.shade700,
-        icon: const Icon(Icons.add),
-        label: Text(
-          'إضافة سريعة',
-          style: GoogleFonts.cairo(),
-        ),
-      )
+              onPressed: () {
+                _showQuickActionsMenu(context);
+              },
+              backgroundColor: Colors.green.shade700,
+              icon: const Icon(Icons.add),
+              label: Text(
+                'إضافة سريعة',
+                style: GoogleFonts.cairo(),
+              ),
+            )
           : null,
     );
   }
@@ -489,38 +487,38 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Display chart with loading state handling
-                analyticsChartData.when(
-                  data: (chartData) {
-                    return SizedBox(
-                      height: 200,
-                      width: double.infinity,
-                      child: _buildVisitsChart(chartData),
-                    );
-                  },
-                  loading: () => Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (error, stack) => Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'حدث خطأ في تحميل الرسم البياني',
-                        style: GoogleFonts.cairo(color: Colors.red),
-                      ),
-                    ),
-                  ),
-                ),
+                // analyticsChartData.when(
+                //   data: (chartData) {
+                //     return SizedBox(
+                //       height: 200,
+                //       width: double.infinity,
+                //       child: _buildVisitsChart(chartData),
+                //     );
+                //   },
+                //   loading: () => Container(
+                //     height: 200,
+                //     width: double.infinity,
+                //     decoration: BoxDecoration(
+                //       color: Colors.grey.shade100,
+                //       borderRadius: BorderRadius.circular(8),
+                //     ),
+                //     child: const Center(child: CircularProgressIndicator()),
+                //   ),
+                //   error: (error, stack) => Container(
+                //     height: 200,
+                //     width: double.infinity,
+                //     decoration: BoxDecoration(
+                //       color: Colors.grey.shade100,
+                //       borderRadius: BorderRadius.circular(8),
+                //     ),
+                //     child: Center(
+                //       child: Text(
+                //         'حدث خطأ في تحميل الرسم البياني',
+                //         style: GoogleFonts.cairo(color: Colors.red),
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -693,7 +691,7 @@ class HomeScreen extends ConsumerWidget {
                   Icon(icon, size: 32, color: color),
                   Container(
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -1141,8 +1139,8 @@ class HomeScreen extends ConsumerWidget {
           isLargeScreen
               ? _buildFeatureCardsRow()
               : (isMediumScreen
-              ? _buildFeatureCardsMediumGrid()
-              : _buildFeatureCardsColumn()),
+                  ? _buildFeatureCardsMediumGrid()
+                  : _buildFeatureCardsColumn()),
 
           const SizedBox(height: 32),
 
@@ -1494,45 +1492,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVisitsChart(List<Map<String, dynamic>> chartData) {
+  Widget _buildVisitsChart(List<ChartDataPoint> chartData) {
     return VisitorChart(chartData: chartData);
-  }
-}
-
-class VisitorChart extends StatelessWidget {
-  final List<Map<String, dynamic>> chartData;
-
-  const VisitorChart({Key? key, required this.chartData}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    if (chartData.isEmpty) {
-      return const Center(child: Text('No data available'));
-    }
-
-    return SfCartesianChart(
-      primaryXAxis: const CategoryAxis(),
-      primaryYAxis: const NumericAxis(
-        majorGridLines: MajorGridLines(width: 0.5, color: Colors.grey),
-      ),
-      series: <CartesianSeries>[
-        ColumnSeries<Map<String, dynamic>, String>(
-          dataSource: chartData,
-          xValueMapper: (Map<String, dynamic> data, _) => data['day'] as String,
-          yValueMapper: (Map<String, dynamic> data, _) => data['visits'] as int,
-          borderRadius: BorderRadius.circular(4),
-          gradient: LinearGradient(
-            colors: [Colors.green.shade300, Colors.green.shade600],
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-          ),
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            textStyle: GoogleFonts.cairo(fontSize: 10),
-          ),
-        ),
-      ],
-      tooltipBehavior: TooltipBehavior(enable: true),
-    );
   }
 }

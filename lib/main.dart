@@ -8,8 +8,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:trustedtallentsvalley/app/core/navigation/app_router.dart';
+import 'package:trustedtallentsvalley/features/admin/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
-import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 import 'package:trustedtallentsvalley/services/block_service2.dart';
 
@@ -52,6 +53,11 @@ void main() async {
   // Only record analytics if user is not blocked
   if (!isBlocked) {
     try {
+      final container = ProviderContainer();
+
+      // Record unique visit (will only count once per day)
+      await container.read(recordVisitProvider)();
+
       // Important: Record visit for ALL users (not just admins)
       final analyticsService = container.read(visitorAnalyticsProvider);
       final success = await analyticsService.recordUniqueVisit();
@@ -121,6 +127,7 @@ class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
   Widget build(BuildContext context) {
     // Check if user is blocked
     final isBlocked = ref.watch(isUserBlockedProvider);
+    // final router = ref.watch(routerProvider);
 
     // Use the appropriate router
     final router = isBlocked

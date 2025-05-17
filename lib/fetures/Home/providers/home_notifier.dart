@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:trustedtallentsvalley/app/config/firebase_constant.dart';
+import 'package:trustedtallentsvalley/fetures/Home/models/ActivityUpdate.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 
 // Define filter modes
@@ -191,7 +192,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
       // Generate a new document ID
-      final docRef = _firestore.collection(FirebaseConstants.trustedUsers).doc();
+      final docRef =
+          _firestore.collection(FirebaseConstants.trustedUsers).doc();
 
       await docRef.set({
         'id': docRef.id,
@@ -239,14 +241,19 @@ class HomeNotifier extends StateNotifier<HomeState> {
       if (mobileNumber != null) updateData['mobileNumber'] = mobileNumber;
       if (location != null) updateData['location'] = location;
       if (isTrusted != null) updateData['isTrusted'] = isTrusted;
-      if (servicesProvided != null) updateData['servicesProvided'] = servicesProvided;
-      if (telegramAccount != null) updateData['telegramAccount'] = telegramAccount;
+      if (servicesProvided != null)
+        updateData['servicesProvided'] = servicesProvided;
+      if (telegramAccount != null)
+        updateData['telegramAccount'] = telegramAccount;
       if (otherAccounts != null) updateData['otherAccounts'] = otherAccounts;
       if (reviews != null) updateData['reviews'] = reviews;
 
       updateData['updatedAt'] = FieldValue.serverTimestamp();
 
-      await _firestore.collection(FirebaseConstants.trustedUsers).doc(id).update(updateData);
+      await _firestore
+          .collection(FirebaseConstants.trustedUsers)
+          .doc(id)
+          .update(updateData);
 
       // If we're updating the currently selected user, update it in the state
       if (state.selectedUser?.id == id) {
@@ -280,7 +287,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      await _firestore.collection(FirebaseConstants.trustedUsers).doc(id).delete();
+      await _firestore
+          .collection(FirebaseConstants.trustedUsers)
+          .doc(id)
+          .delete();
 
       // If we're deleting the currently selected user, clear it from the state
       if (state.selectedUser?.id == id) {
@@ -415,3 +425,139 @@ final allUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
       .collection(FirebaseConstants.trustedUsers)
       .snapshots();
 });
+
+// Provider for all activities (admin view)
+final allActivitiesProvider = StreamProvider<List<Activity>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('activities')
+      .orderBy('date', descending: true)
+      .snapshots()
+      .map((snapshot) =>
+          snapshot.docs.map((doc) => Activity.fromFirestore(doc)).toList());
+});
+// Provider for public activities only (user view)
+final publicActivitiesProvider = StreamProvider<List<Activity>>((ref) {
+  try {
+    // First, check if the collection exists
+    return FirebaseFirestore.instance
+        .collection('activities')
+        .where('isPublic', isEqualTo: true)
+        .orderBy('date', descending: true)
+        .limit(5)
+        .snapshots()
+        .map((snapshot) {
+      // Debug information
+      print('Activities snapshot: ${snapshot.docs.length} documents');
+
+      // Map documents to Activity objects with error handling
+      final activities = <Activity>[];
+
+      for (final doc in snapshot.docs) {
+        try {
+          final data = doc.data();
+
+          // Verify required fields exist
+          if (!data.containsKey('title') ||
+              !data.containsKey('description') ||
+              !data.containsKey('date')) {
+            print('Document ${doc.id} missing required fields');
+            continue;
+          }
+
+          // Convert to Activity object
+          activities.add(Activity.fromFirestore(doc));
+        } catch (e) {
+          print('Error parsing document ${doc.id}: $e');
+          // Skip this document but continue processing others
+        }
+      }
+
+      return activities;
+    });
+  } catch (e) {
+    // Fallback to an empty list if collection doesn't exist
+    print('Error setting up activities stream: $e');
+    return Stream.value([]);
+  }
+});
+
+// Activity service for CRUD operations
+class ActivityService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Add a new activity
+  Future<String> addActivity(Activity activity) async {
+    try {
+      final docRef =
+          await _firestore.collection('activities').add(activity.toMap());
+
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to add activity: $e');
+    }
+  }
+
+  // Update an existing activity
+  Future<void> updateActivity(Activity activity) async {
+    try {
+      await _firestore
+          .collection('activities')
+          .doc(activity.id)
+          .update(activity.toMap());
+    } catch (e) {
+      throw Exception('Failed to update activity: $e');
+    }
+  }
+
+  // Delete an activity
+  Future<void> deleteActivity(String id) async {
+    try {
+      await _firestore.collection('activities').doc(id).delete();
+    } catch (e) {
+      throw Exception('Failed to delete activity: $e');
+    }
+  }
+
+  // Toggle activity visibility
+  Future<void> toggleActivityVisibility(String id, bool isPublic) async {
+    try {
+      await _firestore
+          .collection('activities')
+          .doc(id)
+          .update({'isPublic': isPublic});
+    } catch (e) {
+      throw Exception('Failed to toggle activity visibility: $e');
+    }
+  }
+}
+
+// Provider for the activity service
+final activityServiceProvider = Provider<ActivityService>((ref) {
+  return ActivityService();
+});
+
+// Call this at app initialization
+Future<void> ensureActivitiesCollectionExists() async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('activities')
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      // Create an initial activity
+      await FirebaseFirestore.instance.collection('activities').add({
+        'title': 'مرحباً بكم',
+        'description': 'أهلاً بكم في موقعنا. سنقوم بنشر آخر التحديثات هنا.',
+        'date': Timestamp.now(),
+        'type': 'announcement',
+        'createdBy': 'النظام',
+        'isPublic': true,
+      });
+
+      print('Created initial activity');
+    }
+  } catch (e) {
+    print('Error ensuring activities collection exists: $e');
+  }
+}
