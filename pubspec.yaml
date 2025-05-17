@@ -40,6 +40,12 @@ dependencies:
   google_fonts: ^6.2.1
   hive:
   hive_flutter:
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+  fl_chart:
+  device_info_plus:
+  package_info_plus: ^8.3.0
+  file_saver: ^0.2.14
 
 dev_dependencies:
   flutter_test:

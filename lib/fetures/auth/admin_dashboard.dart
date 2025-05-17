@@ -2171,8 +2171,8 @@ class AdminDashboard extends ConsumerWidget {
               },
             ),
           ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         gridData: FlGridData(
           show: true,
@@ -2286,7 +2286,7 @@ class AdminDashboard extends ConsumerWidget {
         .toList(); // Filter out null markers
 
     return FlutterMap(
-      options: MapOptions(
+      options: const MapOptions(
         initialCenter: LatLng(25.0, 10.0),
         initialZoom: 2.0,
       ),

@@ -10,6 +10,7 @@ import 'package:trustedtallentsvalley/app/core/theme/app_theme.dart';
 // Import your theme providers
 import 'package:trustedtallentsvalley/app/core/theme/theme_providers.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider.dart';
+import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 
