@@ -1,7 +1,34 @@
+<!--&lt;!&ndash;<!DOCTYPE html>&ndash;&gt;-->
+<!--&lt;!&ndash;<html>&ndash;&gt;-->
+<!--&lt;!&ndash;<head>&ndash;&gt;-->
+<!--&lt;!&ndash;  <base href="$FLUTTER_BASE_HREF">&ndash;&gt;-->
+
+<!--&lt;!&ndash;  <meta charset="UTF-8">&ndash;&gt;-->
+<!--&lt;!&ndash;  <meta content="IE=Edge" http-equiv="X-UA-Compatible">&ndash;&gt;-->
+<!--&lt;!&ndash;  <meta name="description" content="Trust Valley app">&ndash;&gt;-->
+
+<!--&lt;!&ndash;  &lt;!&ndash; iOS meta tags & icons &ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;  <meta name="mobile-web-app-capable" content="yes">&ndash;&gt;-->
+<!--&lt;!&ndash;  <meta name="apple-mobile-web-app-status-bar-style" content="black">&ndash;&gt;-->
+<!--&lt;!&ndash;  <meta name="apple-mobile-web-app-title" content="Trust Valley">&ndash;&gt;-->
+<!--&lt;!&ndash;  <link rel="apple-touch-icon" href="icons/Icon-192.png">&ndash;&gt;-->
+
+<!--&lt;!&ndash;  &lt;!&ndash; Favicon &ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;  <link rel="icon" type="image/png" href="favicon.png"/>&ndash;&gt;-->
+
+<!--&lt;!&ndash;  <title>trustedtallentsvalley</title>&ndash;&gt;-->
+<!--&lt;!&ndash;  <link rel="manifest" href="manifest.json">&ndash;&gt;-->
+<!--&lt;!&ndash;</head>&ndash;&gt;-->
+<!--&lt;!&ndash;<body>&ndash;&gt;-->
+<!--&lt;!&ndash;  <script src="flutter_bootstrap.js" async></script>&ndash;&gt;-->
+<!--&lt;!&ndash;</body>&ndash;&gt;-->
+<!--&lt;!&ndash;</html>&ndash;&gt;-->
+
 <!--<!DOCTYPE html>-->
 <!--<html>-->
 <!--<head>-->
 <!--  <base href="$FLUTTER_BASE_HREF">-->
+<!--  <meta name="flutter-web-strategy" content="fast">-->
 
 <!--  <meta charset="UTF-8">-->
 <!--  <meta content="IE=Edge" http-equiv="X-UA-Compatible">-->
@@ -10,121 +37,114 @@
 <!--  &lt;!&ndash; iOS meta tags & icons &ndash;&gt;-->
 <!--  <meta name="mobile-web-app-capable" content="yes">-->
 <!--  <meta name="apple-mobile-web-app-status-bar-style" content="black">-->
-<!--  <meta name="apple-mobile-web-app-title" content="Trust Valley">-->
+<!--  <meta name="apple-mobile-web-app-title" content="تعامل بكل امان وموثوقية">-->
 <!--  <link rel="apple-touch-icon" href="icons/Icon-192.png">-->
 
 <!--  &lt;!&ndash; Favicon &ndash;&gt;-->
 <!--  <link rel="icon" type="image/png" href="favicon.png"/>-->
 
-<!--  <title>trustedtallentsvalley</title>-->
+<!--  <title>موثوق</title>-->
 <!--  <link rel="manifest" href="manifest.json">-->
+
+<!--  &lt;!&ndash; Add loading screen styles &ndash;&gt;-->
+<!--  <style>-->
+<!--    body {-->
+<!--      inset: 0;-->
+<!--      overflow: hidden;-->
+<!--      margin: 0;-->
+<!--      padding: 0;-->
+<!--      position: fixed;-->
+<!--      height: 100%;-->
+<!--      width: 100%;-->
+<!--      background-color: #ffffff; /* Set to your app's background color */-->
+<!--    }-->
+
+<!--    .loading-container {-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      justify-content: center;-->
+<!--      align-items: center;-->
+<!--      height: 100%;-->
+<!--      width: 100%;-->
+<!--    }-->
+
+<!--    .loader {-->
+<!--      border: 5px solid #f3f3f3;-->
+<!--      border-radius: 50%;-->
+<!--      border-top: 5px solid #42A5F5; /* Change to your brand color */-->
+<!--      width: 50px;-->
+<!--      height: 50px;-->
+<!--      animation: spin 1s linear infinite;-->
+<!--    }-->
+
+<!--    .app-name {-->
+<!--      margin-top: 20px;-->
+<!--      font-family: 'Arial', sans-serif;-->
+<!--      color: #42A5F5; /* Change to your brand color */-->
+<!--      text-align: center;-->
+<!--      font-weight: bold;-->
+<!--    }-->
+
+<!--    @keyframes spin {-->
+<!--      0% { transform: rotate(0deg); }-->
+<!--      100% { transform: rotate(360deg); }-->
+<!--    }-->
+<!--  </style>-->
 <!--</head>-->
 <!--<body>-->
-<!--  <script src="flutter_bootstrap.js" async></script>-->
+<!--&lt;!&ndash; Loading screen that shows while Flutter loads &ndash;&gt;-->
+<!--&lt;!&ndash;<div id="loading" class="loading-container">&ndash;&gt;-->
+<!--&lt;!&ndash;  <div class="loader"></div>&ndash;&gt;-->
+<!--&lt;!&ndash;  <div class="app-name">Trust Valley</div>&ndash;&gt;-->
+<!--&lt;!&ndash;</div>&ndash;&gt;-->
+
+<!--&lt;!&ndash; Flutter bootstrap script &ndash;&gt;-->
+<!--<script src="flutter_bootstrap.js" async></script>-->
+
+<!--&lt;!&ndash; Script to remove loading screen when Flutter is ready &ndash;&gt;-->
+<!--<script>-->
+<!--    // Listen for a custom event from flutter_bootstrap.js when Flutter is initialized-->
+<!--    window.addEventListener('flutter-initialized', function() {-->
+<!--      // Remove the loading screen once Flutter is ready-->
+<!--      const loadingElement = document.getElementById('loading');-->
+<!--      if (loadingElement) {-->
+<!--        // Fade out the loading screen-->
+<!--        loadingElement.style.transition = 'opacity 0.5s ease';-->
+<!--        loadingElement.style.opacity = '0';-->
+
+<!--        // Remove it after the transition is complete-->
+<!--        setTimeout(function() {-->
+<!--          loadloadingingElement.remove();-->
+<!--        }, 500);-->
+<!--      }-->
+<!--    });-->
+
+<!--    // Fallback: If Flutter takes too long, remove loading screen after 5 seconds-->
+<!--    setTimeout(function() {-->
+<!--      const loadingElement = document.getElementById('loading');-->
+<!--      if (loadingElement && loadingElement.parentNode) {-->
+<!--        loadingElement.remove();-->
+<!--      }-->
+<!--    }, 5000);-->
+<!--  </script>-->
 <!--</body>-->
 <!--</html>-->
+
 
 <!DOCTYPE html>
 <html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Trust Valley app">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Trust Valley">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>trustedtallentsvalley</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="flutter-web-strategy" content="fast">
+  <title>موثوق</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- Add loading screen styles -->
-  <style>
-    body {
-      inset: 0;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-      position: fixed;
-      height: 100%;
-      width: 100%;
-      background-color: #ffffff; /* Set to your app's background color */
-    }
-
-    .loading-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-      width: 100%;
-    }
-
-    .loader {
-      border: 5px solid #f3f3f3;
-      border-radius: 50%;
-      border-top: 5px solid #42A5F5; /* Change to your brand color */
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-    }
-
-    .app-name {
-      margin-top: 20px;
-      font-family: 'Arial', sans-serif;
-      color: #42A5F5; /* Change to your brand color */
-      text-align: center;
-      font-weight: bold;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+  <link rel="icon" type="image/png" href="favicon.png"/>
 </head>
 <body>
-<!-- Loading screen that shows while Flutter loads -->
-<div id="loading" class="loading-container">
-  <div class="loader"></div>
-  <div class="app-name">Trust Valley</div>
-</div>
-
-<!-- Flutter bootstrap script -->
 <script src="flutter_bootstrap.js" async></script>
-
-<!-- Script to remove loading screen when Flutter is ready -->
-<script>
-    // Listen for a custom event from flutter_bootstrap.js when Flutter is initialized
-    window.addEventListener('flutter-initialized', function() {
-      // Remove the loading screen once Flutter is ready
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement) {
-        // Fade out the loading screen
-        loadingElement.style.transition = 'opacity 0.5s ease';
-        loadingElement.style.opacity = '0';
-
-        // Remove it after the transition is complete
-        setTimeout(function() {
-          loadingElement.remove();
-        }, 500);
-      }
-    });
-
-    // Fallback: If Flutter takes too long, remove loading screen after 5 seconds
-    setTimeout(function() {
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement && loadingElement.parentNode) {
-        loadingElement.remove();
-      }
-    }, 5000);
-  </script>
 </body>
 </html>

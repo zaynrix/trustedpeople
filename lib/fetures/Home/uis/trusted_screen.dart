@@ -64,7 +64,7 @@ class AppDrawer extends ConsumerWidget {
               children: [
                 // Main title
                 Text(
-                  'ترست فالي',
+                  'موثوق',
                   style: GoogleFonts.cairo(
                     textStyle: const TextStyle(
                       fontSize: 20,
@@ -123,7 +123,7 @@ class AppDrawer extends ConsumerWidget {
               children: [
                 // Main title
                 Text(
-                  'ترست فالي',
+                  'موثوق',
                   style: GoogleFonts.cairo(
                     textStyle: const TextStyle(
                       fontSize: 20,

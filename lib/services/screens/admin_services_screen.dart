@@ -117,7 +117,7 @@ class AdminServicesScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'إدارة خدمات ترست فالي',
+                    'إدارة خدمات موثوق',
                     style: GoogleFonts.cairo(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

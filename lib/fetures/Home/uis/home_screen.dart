@@ -30,7 +30,7 @@ class HomeScreen extends ConsumerWidget {
         automaticallyImplyLeading: isMobile,
         backgroundColor: isAdmin ? Colors.green.shade700 : Colors.teal,
         title: Text(
-          isAdmin ? 'ترست فالي - لوحة التحكم' : 'ترست فالي - الصفحة الرئيسية',
+          isAdmin ? 'موثوق - لوحة التحكم' : 'موثوق - الصفحة الرئيسية',
           style: GoogleFonts.cairo(
             textStyle: const TextStyle(
               color: Colors.white,
@@ -1108,7 +1108,7 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'مرحباً بك في منصة ترست فالي',
+                  'مرحباً بك في منصة موثوق',
                   style: GoogleFonts.cairo(
                     textStyle: const TextStyle(
                       color: Colors.white,
@@ -1154,7 +1154,7 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'إحصائيات منصة ترست فالي',
+                  'إحصائيات منصة موثوق',
                   style: GoogleFonts.cairo(
                     textStyle: TextStyle(
                       color: Colors.grey.shade800,
