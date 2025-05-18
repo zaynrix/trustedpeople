@@ -61,8 +61,8 @@ class TrustedGazianApp extends ConsumerWidget {
       routerConfig: router, // Using the GoRouter from our provider
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode, // Using the theme mode from the provider
+      // darkTheme: AppTheme.darkTheme,
+      // themeMode: themeMode, // Using the theme mode from the provider
       scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
       locale: const Locale('ar', 'AR'),
     );
