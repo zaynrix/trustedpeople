@@ -1,3 +1,5 @@
+import 'dart:html' as html;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +62,7 @@ void main() async {
   }
 
   runApp(ProviderScope(parent: container, child: const TrustedGazianApp()));
+  html.window.dispatchEvent(html.Event('flutter-initialized'));
 }
 
 class TrustedGazianApp extends ConsumerStatefulWidget {

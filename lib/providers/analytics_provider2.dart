@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:html' as html;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
@@ -44,132 +43,6 @@ class VisitorAnalyticsService {
       debugPrint('Date formatting initialized for Arabic locale');
     });
   }
-
-  // Future<Map<String, dynamic>> getVisitorStats() async {
-  //   try {
-  //     // Get current date
-  //     final now = DateTime.now();
-  //     final today = DateTime(now.year, now.month, now.day);
-  //     final yesterday = today.subtract(const Duration(days: 1));
-  //     final startOfMonth = DateTime(now.year, now.month, 1);
-  //
-  //     // Query for today's visitors
-  //     final todaySnapshot = await _firestore
-  //         .collection('visitors')
-  //         .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
-  //         .get();
-  //
-  //     // Query for yesterday's visitors
-  //     final yesterdaySnapshot = await _firestore
-  //         .collection('visitors')
-  //         .where('timestamp',
-  //             isGreaterThanOrEqualTo: Timestamp.fromDate(yesterday))
-  //         .where('timestamp', isLessThan: Timestamp.fromDate(today))
-  //         .get();
-  //
-  //     // Query for monthly visitors
-  //     final monthlySnapshot = await _firestore
-  //         .collection('visitors')
-  //         .where('timestamp',
-  //             isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-  //         .get();
-  //
-  //     // Query for total visitors
-  //     final totalSnapshot = await _firestore.collection('visitors').get();
-  //
-  //     // Get unique visitors (count distinct IPs)
-  //     final uniqueIPs = <String>{};
-  //     for (final doc in totalSnapshot.docs) {
-  //       final data = doc.data();
-  //       if (data.containsKey('ipAddress')) {
-  //         uniqueIPs.add(data['ipAddress'] as String);
-  //       }
-  //     }
-  //
-  //     // Calculate bounce rate (single page view sessions / total sessions)
-  //     final sessionSnapshot = await _firestore.collection('sessions').get();
-  //
-  //     int singlePageSessions = 0;
-  //     for (final doc in sessionSnapshot.docs) {
-  //       final data = doc.data();
-  //       if (data.containsKey('pageViewCount') && data['pageViewCount'] == 1) {
-  //         singlePageSessions++;
-  //       }
-  //     }
-  //
-  //     final bounceRate = sessionSnapshot.docs.isEmpty
-  //         ? 0.0
-  //         : (singlePageSessions / sessionSnapshot.docs.length * 100);
-  //
-  //     // Get most visited page
-  //     final pageViewsSnapshot = await _firestore.collection('pageViews').get();
-  //
-  //     final pageCounts = <String, int>{};
-  //     for (final doc in pageViewsSnapshot.docs) {
-  //       final data = doc.data();
-  //       if (data.containsKey('path')) {
-  //         final path = data['path'] as String;
-  //         pageCounts[path] = (pageCounts[path] ?? 0) + 1;
-  //       }
-  //     }
-  //
-  //     String mostVisitedPage = 'الرئيسية';
-  //     int mostVisitedPageCount = 0;
-  //
-  //     pageCounts.forEach((path, count) {
-  //       if (count > mostVisitedPageCount) {
-  //         mostVisitedPage = path;
-  //         mostVisitedPageCount = count;
-  //       }
-  //     });
-  //
-  //     // Calculate average session duration
-  //     int totalSessionDuration = 0;
-  //     for (final doc in sessionSnapshot.docs) {
-  //       final data = doc.data();
-  //       if (data.containsKey('duration')) {
-  //         totalSessionDuration += data['duration'] as int;
-  //       }
-  //     }
-  //
-  //     final avgSessionDuration = sessionSnapshot.docs.isEmpty
-  //         ? 0
-  //         : totalSessionDuration ~/ sessionSnapshot.docs.length;
-  //
-  //     // Format avg session duration as MM:SS
-  //     final minutes = avgSessionDuration ~/ 60;
-  //     final seconds = avgSessionDuration % 60;
-  //     final avgSessionDurationFormatted =
-  //         '$minutes:${seconds.toString().padLeft(2, '0')}';
-  //
-  //     // Calculate percent change from yesterday
-  //     final todayCount = todaySnapshot.docs.length;
-  //     final yesterdayCount = yesterdaySnapshot.docs.length;
-  //
-  //     double percentChange = 0;
-  //     if (yesterdayCount > 0) {
-  //       percentChange = ((todayCount - yesterdayCount) / yesterdayCount) * 100;
-  //     }
-  //
-  //     return {
-  //       'todayVisitors': todayCount,
-  //       'yesterdayVisitors': yesterdayCount,
-  //       'monthlyVisitors': monthlySnapshot.docs.length,
-  //       'totalVisitors': totalSnapshot.docs.length,
-  //       'uniqueVisitors': uniqueIPs.length,
-  //       'percentChange': percentChange,
-  //       'bounceRate': bounceRate.toStringAsFixed(1),
-  //       'mostVisitedPage': mostVisitedPage,
-  //       'mostVisitedPageCount': mostVisitedPageCount,
-  //       'avgSessionDuration': avgSessionDurationFormatted,
-  //     };
-  //   } catch (e) {
-  //     debugPrint('Error getting visitor stats: $e');
-  //     return {
-  //       'error': e.toString(),
-  //     };
-  //   }
-  // }
 
   /// Records a unique visitor - call this when the app starts
   Future<bool> recordUniqueVisit() async {
@@ -234,10 +107,10 @@ class VisitorAnalyticsService {
         // Debug
         debugPrint('New visit recorded for visitor: $visitorId');
       } else {
-        // Just update last visit timestamp
-        await _firestore.collection('visitors').doc(visitorId).update({
+        // Just update last visit timestamp - FIXED: using set with merge instead of update
+        await _firestore.collection('visitors').doc(visitorId).set({
           'lastVisit': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
 
         debugPrint('Updated last visit time for visitor: $visitorId');
       }
