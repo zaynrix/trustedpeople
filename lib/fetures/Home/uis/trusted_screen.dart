@@ -211,12 +211,37 @@ class AppDrawer extends ConsumerWidget {
         ),
         _buildNavigationItem(
           context,
+          icon: Icons.shopping_cart, // Changed icon to be more service-related
+          label: 'اطلب خدمتك', // Removed question mark for consistency
+          route: ScreensNames.services,
+          isPermanent: isPermanent,
+        ),
+        // Admin-only navigation items
+        if (isAdmin) ...[
+          _buildNavigationItem(
+            context,
+            icon: Icons.admin_panel_settings,
+            label: 'إدارة الخدمات',
+            route:
+                'admin_services', // Make sure this route is defined in route_generator.dart
+            isPermanent: isPermanent,
+          ),
+          _buildNavigationItem(
+            context,
+            icon: Icons.support_agent,
+            label: 'طلبات الخدمات',
+            route: 'admin_service_requests', // Make sure this route is defined
+            isPermanent: isPermanent,
+          ),
+        ],
+        _buildNavigationItem(
+          context,
           icon: Icons.contact_mail,
           label: 'تواصل للاستفسارات',
           route: ScreensNames.contactUs,
           isPermanent: isPermanent,
         ),
-        // Only add a divider and admin options for admins
+        // Only add a divider and logout option for admins
         if (isAdmin) ...[
           const Divider(),
           ListTile(
@@ -290,4 +315,110 @@ class AppDrawer extends ConsumerWidget {
       },
     );
   }
+
+// Widget _buildPermanentDrawer(BuildContext context, WidgetRef ref) {
+  //   return Container(
+  //     width: 250,
+  //     height: double.infinity,
+  //     color: Colors.grey.shade200,
+  //     child: _buildDrawerContent(context, ref),
+  //   );
+  // }
+  //
+  // Widget _buildNavigationItem(
+  //     BuildContext context, {
+  //       required IconData icon,
+  //       required String label,
+  //       required String route,
+  //       required bool isPermanent,
+  //     }) {
+  //   final location = GoRouterState.of(context).matchedLocation;
+  //
+  //   // Improved route matching
+  //   bool isActive;
+  //
+  //   if (route == ScreensNames.home && location == '/') {
+  //     isActive = true;
+  //   } else if (location == route) {
+  //     isActive = true;
+  //   } else if (route != '/' && location.startsWith('$route/')) {
+  //     isActive = true;
+  //   } else if (location.startsWith('$route?')) {
+  //     isActive = true;
+  //   } else {
+  //     isActive = false;
+  //   }
+  //
+  //   return ListTile(
+  //     leading: Icon(icon, color: isActive ? Colors.green : null),
+  //     title: Text(
+  //       label,
+  //       style: GoogleFonts.cairo(
+  //         textStyle: TextStyle(
+  //           color: isActive ? Colors.green : null,
+  //           fontWeight: isActive ? FontWeight.bold : null,
+  //         ),
+  //       ),
+  //     ),
+  //     tileColor: isActive ? Colors.grey.shade300 : null,
+  //     onTap: () {
+  //       if (!isPermanent) Navigator.pop(context);
+  //       // Use GoRouter for navigation
+  //       context.goNamed(route);
+  //     },
+  //   );
+  // }
 }
+
+// Widget _buildPermanentDrawer(BuildContext context, WidgetRef ref) {
+//   return Container(
+//     width: 250,
+//     height: double.infinity,
+//     color: Colors.grey.shade200,
+//     child: _buildDrawerContent(context, ref),
+//   );
+// }
+//
+// Widget _buildNavigationItem(
+//   BuildContext context, {
+//   required IconData icon,
+//   required String label,
+//   required String route,
+//   required bool isPermanent,
+// }) {
+//   final location = GoRouterState.of(context).matchedLocation;
+//
+//   // Improved route matching
+//   bool isActive;
+//
+//   if (route == ScreensNames.home && location == '/') {
+//     isActive = true;
+//   } else if (location == route) {
+//     isActive = true;
+//   } else if (route != '/' && location.startsWith('$route/')) {
+//     isActive = true;
+//   } else if (location.startsWith('$route?')) {
+//     isActive = true;
+//   } else {
+//     isActive = false;
+//   }
+//
+//   return ListTile(
+//     leading: Icon(icon, color: isActive ? Colors.green : null),
+//     title: Text(
+//       label,
+//       style: GoogleFonts.cairo(
+//         textStyle: TextStyle(
+//           color: isActive ? Colors.green : null,
+//           fontWeight: isActive ? FontWeight.bold : null,
+//         ),
+//       ),
+//     ),
+//     tileColor: isActive ? Colors.grey.shade300 : null,
+//     onTap: () {
+//       if (!isPermanent) Navigator.pop(context);
+//       // Use GoRouter for navigation
+//       context.goNamed(route);
+//     },
+//   );
+// }

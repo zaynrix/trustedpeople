@@ -9,11 +9,16 @@ import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trade_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_screen.dart';
+import 'package:trustedtallentsvalley/fetures/admin/screens/admin_services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/BlockedUsersScreen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
+import 'package:trustedtallentsvalley/services/screens/services_screen.dart';
+
+import '../fetures/admin/screens/admin_service_requests_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -74,6 +79,40 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Service routes
+      GoRoute(
+        path: '/services',
+        name: ScreensNames.services,
+        builder: (context, state) => const ServicesScreen(),
+      ),
+      GoRoute(
+        path: '/service/:id',
+        name: ScreensNames.serviceDetail,
+        builder: (context, state) {
+          final serviceId = state.pathParameters['id']!;
+          return ServiceDetailScreen(serviceId: serviceId);
+        },
+      ),
+      GoRoute(
+        path: '/service-request/:serviceId',
+        name: ScreensNames.serviceRequest,
+        builder: (context, state) {
+          final serviceId = state.pathParameters['serviceId']!;
+          return ServiceRequestScreen(serviceId: serviceId);
+        },
+      ),
+
+      // Admin routes
+      GoRoute(
+        path: '/admin/services',
+        name: ScreensNames.adminServices,
+        builder: (context, state) => const AdminServicesScreen(),
+      ),
+      GoRoute(
+        path: '/admin/service-requests',
+        name: ScreensNames.adminServiceRequests,
+        builder: (context, state) => const AdminServiceRequestsScreen(),
+      ),
       GoRoute(
         path: ScreensNames.updatesPath,
         name: ScreensNames.updates,
@@ -114,21 +153,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           return const AdminLoginScreen();
         },
       ),
-      // GoRoute(
-      //   path: '/secure-admin-784512/dashboard', // Obscure path
-      //   name: 'adminDashboard', // No constant reference in ScreensNames
-      //   builder: (context, state) {
-      //     // Only allow authenticated admins
-      //     if (authState.isAdmin) {
-      //       return const AdminDashboardScreen();
-      //     } else {
-      //       return const Scaffold(
-      //         body: Center(
-      //             child: Text('Page not found')), // Generic error for security
-      //       );
-      //     }
-      //   },
-      // ),
+      GoRoute(
+        path: '/secure-admin-784512/dashboard', // Obscure path
+        name: 'adminDashboard', // No constant reference in ScreensNames
+        builder: (context, state) {
+          // Only allow authenticated admins
+          if (authState.isAdmin) {
+            return const AdminDashboardScreen();
+          } else {
+            return const Scaffold(
+              body: Center(
+                  child: Text('Page not found')), // Generic error for security
+            );
+          }
+        },
+      ),
     ],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),
@@ -165,6 +204,14 @@ class ScreensNames {
   static const String homePath = '/';
   // paths (must start with "/")
 
+  // Add service routes
+  static const String services = 'services';
+  static const String serviceDetail = 'service_detail';
+  static const String serviceRequest = 'service_request';
+
+  // Admin routes
+  static const String adminServices = 'admin_services';
+  static const String adminServiceRequests = 'admin_service_requests';
   static const String updatesPath = '/updates';
   static const String blockedUsersPath = '/blocked-users';
   static const String trustedPath = '/trusted';
