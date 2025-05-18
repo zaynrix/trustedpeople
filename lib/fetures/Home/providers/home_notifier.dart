@@ -192,7 +192,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
       // Generate a new document ID
-      final docRef = _firestore.collection(FirebaseConstants.trustedUsers).doc();
+      final docRef =
+          _firestore.collection(FirebaseConstants.trustedUsers).doc();
 
       await docRef.set({
         'id': docRef.id,

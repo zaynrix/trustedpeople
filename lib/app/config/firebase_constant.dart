@@ -18,4 +18,7 @@ class FirebaseConstants {
   static const notifications = 'notifications';
   static const articles = 'articles';
   static const trustedUsers = 'userstransed';
+  static const appUpdates = 'app_updates';
+  static const paymentPlaces = 'paymentPlaces';
+  static const visitorStats = 'visitor_stats';
 }
