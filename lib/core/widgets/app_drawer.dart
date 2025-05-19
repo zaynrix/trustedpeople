@@ -37,14 +37,25 @@ class AppDrawer extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Main title
-                Text(
-                  'ترست فالي',
-                  style: GoogleFonts.cairo(
-                    textStyle: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/logo.png', // Update with your actual image path
+                      width: 40,
+                      height: 40,
                     ),
-                  ),
+                    const SizedBox(width: 10), // Space between image and text
+                    Text(
+                      'ترست فالي',
+                      style: GoogleFonts.cairo(
+                        textStyle: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 // Add spacing between elements
@@ -60,13 +71,25 @@ class AppDrawer extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.green.withOpacity(0.3)),
                     ),
-                    child: Text(
-                      'وضع المشرف',
-                      style: GoogleFonts.cairo(
-                        fontSize: 10,
-                        color: Colors.green.shade800,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/logo.png', // Update with your actual image path
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10), // Space between image and text
+                        Text(
+                          'ترست فالي',
+                          style: GoogleFonts.cairo(
+                            textStyle: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 if (isAdmin)
