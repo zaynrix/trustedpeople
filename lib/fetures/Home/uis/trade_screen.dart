@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 
@@ -120,8 +121,8 @@ class ProtectionGuideScreen extends ConsumerWidget {
           ? FloatingActionButton(
               onPressed: () => _showAddEditTipDialog(context, ref),
               backgroundColor: Colors.green.shade700,
-              child: const Icon(Icons.add),
               tooltip: 'إضافة نصيحة جديدة',
+              child: const Icon(Icons.add),
             )
           : null,
       body: LayoutBuilder(
