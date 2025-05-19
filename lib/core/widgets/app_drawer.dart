@@ -30,7 +30,7 @@ class AppDrawer extends ConsumerWidget {
             decoration: BoxDecoration(
               color: isAdmin
                   ? Colors.green
-                  .withOpacity(0.15) // Subtle green tint for admins
+                      .withOpacity(0.15) // Subtle green tint for admins
                   : Colors.black12,
             ),
             child: Column(
@@ -41,13 +41,13 @@ class AppDrawer extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'assets/images/logo.png', // Update with your actual image path
+                      'assets/images/logo.jpg', // Update with your actual image path
                       width: 40,
                       height: 40,
                     ),
                     const SizedBox(width: 10), // Space between image and text
                     Text(
-                      'ترست فالي',
+                      'موثوق',
                       style: GoogleFonts.cairo(
                         textStyle: const TextStyle(
                           fontSize: 20,
@@ -65,7 +65,7 @@ class AppDrawer extends ConsumerWidget {
                 if (isAdmin)
                   Container(
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -75,13 +75,14 @@ class AppDrawer extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Image.asset(
-                          'assets/images/logo.png', // Update with your actual image path
+                          'assets/images/logo.jpg', // Update with your actual image path
                           width: 40,
                           height: 40,
                         ),
-                        const SizedBox(width: 10), // Space between image and text
+                        const SizedBox(
+                            width: 10), // Space between image and text
                         Text(
-                          'ترست فالي',
+                          'موثوق',
                           style: GoogleFonts.cairo(
                             textStyle: const TextStyle(
                               fontSize: 20,
@@ -95,7 +96,7 @@ class AppDrawer extends ConsumerWidget {
                 if (isAdmin)
                   Container(
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -119,8 +120,14 @@ class AppDrawer extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Main title
+                Image.asset(
+                  'assets/images/logo.jpg', // Update with your actual image path
+                  width: 60,
+                  height: 60,
+                ),
+                const SizedBox(width: 10), // Space between image and text
                 Text(
-                  'ترست فالي',
+                  'موثوق',
                   style: GoogleFonts.cairo(
                     textStyle: const TextStyle(
                       fontSize: 20,
@@ -136,7 +143,7 @@ class AppDrawer extends ConsumerWidget {
                 if (isAdmin)
                   Container(
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -156,7 +163,7 @@ class AppDrawer extends ConsumerWidget {
                 if (isAdmin)
                   Container(
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -208,12 +215,37 @@ class AppDrawer extends ConsumerWidget {
         ),
         _buildNavigationItem(
           context,
+          icon: Icons.shopping_cart, // Changed icon to be more service-related
+          label: 'اطلب خدمتك', // Removed question mark for consistency
+          route: ScreensNames.services,
+          isPermanent: isPermanent,
+        ),
+        // Admin-only navigation items
+        if (isAdmin) ...[
+          _buildNavigationItem(
+            context,
+            icon: Icons.admin_panel_settings,
+            label: 'إدارة الخدمات',
+            route:
+                'admin_services', // Make sure this route is defined in route_generator.dart
+            isPermanent: isPermanent,
+          ),
+          _buildNavigationItem(
+            context,
+            icon: Icons.support_agent,
+            label: 'طلبات الخدمات',
+            route: 'admin_service_requests', // Make sure this route is defined
+            isPermanent: isPermanent,
+          ),
+        ],
+        _buildNavigationItem(
+          context,
           icon: Icons.contact_mail,
           label: 'تواصل للاستفسارات',
           route: ScreensNames.contactUs,
           isPermanent: isPermanent,
         ),
-        // Only add a divider and admin options for admins
+        // Only add a divider and logout option for admins
         if (isAdmin) ...[
           const Divider(),
           ListTile(
@@ -245,12 +277,12 @@ class AppDrawer extends ConsumerWidget {
   }
 
   Widget _buildNavigationItem(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required String route,
-        required bool isPermanent,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String route,
+    required bool isPermanent,
+  }) {
     // Get both the location path and the current route name
     final location = GoRouterState.of(context).matchedLocation;
     final currentRouteName = GoRouterState.of(context).name;
