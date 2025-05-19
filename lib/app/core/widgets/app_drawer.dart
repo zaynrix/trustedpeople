@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/app/core/navigation/app_router.dart';
 import 'package:trustedtallentsvalley/app/core/navigation/app_routes.dart';
 import 'package:trustedtallentsvalley/features/auth/presentation/providers/auth_provider.dart';
 
@@ -121,7 +122,7 @@ class AppDrawer extends ConsumerWidget {
           context,
           icon: Icons.home,
           label: "الصفحة الرئيسية",
-          route: AppRoutes.homePath,
+          route: AppRouter.homePath,
           isPermanent: isPermanent,
         ),
         _buildNavigationItem(
@@ -142,7 +143,7 @@ class AppDrawer extends ConsumerWidget {
           context,
           icon: Icons.payment_outlined,
           label: 'أماكن تقبل الدفع البنكي',
-          route: AppRoutes.ortPath,
+          route: AppRouter.adminPaymentPlacePath,
           isPermanent: isPermanent,
         ),
         _buildNavigationItem(

@@ -1,15 +1,15 @@
-// lib/fetures/PaymentPlaces/widgets/place_card.dart
+// lib/features/admin/payment_places/presentation/widgets/admin_place_card.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/domain/entities/admin_payment_place.dart';
 import 'package:trustedtallentsvalley/app/core/widgets/payment_places/payment_method_chip.dart';
 
-class PlaceCard extends StatelessWidget {
-  final PaymentPlaceModel place;
+class AdminPlaceCard extends StatelessWidget {
+  final AdminPaymentPlace place;
   final VoidCallback onTap;
 
-  const PlaceCard({
+  const AdminPlaceCard({
     Key? key,
     required this.place,
     required this.onTap,
@@ -39,9 +39,9 @@ class PlaceCard extends StatelessWidget {
                 color: place.imageUrl.isEmpty ? Colors.blue.shade100 : null,
                 image: place.imageUrl.isNotEmpty
                     ? DecorationImage(
-                        image: NetworkImage(place.imageUrl),
-                        fit: BoxFit.cover,
-                      )
+                  image: NetworkImage(place.imageUrl),
+                  fit: BoxFit.cover,
+                )
                     : null,
               ),
               child: Stack(
@@ -81,7 +81,7 @@ class PlaceCard extends StatelessWidget {
                                 : Icons.info_outline_rounded,
                             size: 14,
                             color:
-                                place.isVerified ? Colors.green : Colors.orange,
+                            place.isVerified ? Colors.green : Colors.orange,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -138,7 +138,7 @@ class PlaceCard extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Icon(Icons.star_rounded,
+                          const Icon(Icons.star_rounded,
                               color: Colors.amber, size: 18),
                           const SizedBox(width: 4),
                           Text(
@@ -212,7 +212,7 @@ class PlaceCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Icon(Icons.content_copy, size: 12, color: Colors.blue),
+                        const Icon(Icons.content_copy, size: 12, color: Colors.blue),
                       ],
                     ),
                   ),
@@ -225,36 +225,52 @@ class PlaceCard extends StatelessWidget {
                       child: Row(
                         children: place.paymentMethods
                             .map((method) => PaymentMethodChip(
-                                  method: method,
-                                  compact: true,
-                                ))
+                          method: method,
+                          compact: true,
+                        ))
                             .toList(),
                       ),
                     ),
 
                   const SizedBox(height: 8),
 
-                  // Details button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: ElevatedButton.icon(
-                      onPressed: onTap,
-                      icon: const Icon(Icons.info_outline, size: 16),
-                      label: Text(
-                        'التفاصيل',
-                        style: GoogleFonts.cairo(fontSize: 12),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  // Details and admin buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: onTap,
+                        icon: const Icon(Icons.info_outline, size: 16),
+                        label: Text(
+                          'التفاصيل',
+                          style: GoogleFonts.cairo(fontSize: 12),
                         ),
-                        visualDensity: VisualDensity.compact,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
-                    ),
+                      // Admin-specific: Verification status button
+                      IconButton(
+                        icon: Icon(
+                          place.isVerified
+                              ? Icons.verified_user
+                              : Icons.pending_rounded,
+                          size: 20,
+                          color: place.isVerified ? Colors.green : Colors.orange,
+                        ),
+                        onPressed: onTap, // Navigate to details to change status
+                        tooltip: place.isVerified
+                            ? 'متحقق منه - انقر للتفاصيل'
+                            : 'قيد التحقق - انقر للتفاصيل',
+                      ),
+                    ],
                   ),
                 ],
               ),

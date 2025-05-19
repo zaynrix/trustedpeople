@@ -1,24 +1,26 @@
-// lib/fetures/PaymentPlaces/widgets/places_data_table.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/domain/entities/admin_payment_place.dart';
 import 'package:trustedtallentsvalley/app/core/widgets/payment_places/payment_method_chip.dart';
 
-class PlacesDataTable extends ConsumerWidget {
-  final List<DocumentSnapshot> places;
+class AdminPlacesDataTable extends ConsumerWidget {
+  final List<AdminPaymentPlace> places;
   final Function(String, bool)? onSort;
-  final Function(PaymentPlaceModel)? onPlaceTap;
+  final Function(AdminPaymentPlace)? onPlaceTap;
+  final Function(AdminPaymentPlace)? onVerify;
+  final Function(AdminPaymentPlace)? onUnverify;
   final String currentSortField;
   final bool isAscending;
 
-  const PlacesDataTable({
+  const AdminPlacesDataTable({
     Key? key,
     required this.places,
     this.onSort,
     this.onPlaceTap,
+    this.onVerify,
+    this.onUnverify,
     this.currentSortField = 'name',
     this.isAscending = true,
   }) : super(key: key);
@@ -39,11 +41,11 @@ class PlacesDataTable extends ConsumerWidget {
         child: DataTable(
           dataRowMaxHeight: 80,
           headingRowColor: MaterialStateColor.resolveWith(
-            (states) => Colors.grey.shade100,
+                (states) => Colors.grey.shade100,
           ),
           headingRowHeight: 56,
           horizontalMargin: 24,
-          columnSpacing: 24,
+          columnSpacing: 16,
           dividerThickness: 1,
           showCheckboxColumn: false,
           decoration: const BoxDecoration(
@@ -62,8 +64,8 @@ class PlacesDataTable extends ConsumerWidget {
               ),
               onSort: onSort != null
                   ? (columnIndex, ascending) {
-                      onSort!('name', ascending);
-                    }
+                onSort!('name', ascending);
+              }
                   : null,
             ),
             DataColumn(
@@ -76,8 +78,8 @@ class PlacesDataTable extends ConsumerWidget {
               ),
               onSort: onSort != null
                   ? (columnIndex, ascending) {
-                      onSort!('category', ascending);
-                    }
+                onSort!('category', ascending);
+              }
                   : null,
             ),
             DataColumn(
@@ -90,8 +92,8 @@ class PlacesDataTable extends ConsumerWidget {
               ),
               onSort: onSort != null
                   ? (columnIndex, ascending) {
-                      onSort!('location', ascending);
-                    }
+                onSort!('location', ascending);
+              }
                   : null,
             ),
             DataColumn(
@@ -104,8 +106,8 @@ class PlacesDataTable extends ConsumerWidget {
               ),
               onSort: onSort != null
                   ? (columnIndex, ascending) {
-                      onSort!('phoneNumber', ascending);
-                    }
+                onSort!('phoneNumber', ascending);
+              }
                   : null,
             ),
             DataColumn(
@@ -128,15 +130,23 @@ class PlacesDataTable extends ConsumerWidget {
               ),
               onSort: onSort != null
                   ? (columnIndex, ascending) {
-                      onSort!('rating', ascending);
-                    }
+                onSort!('rating', ascending);
+              }
                   : null,
+            ),
+            DataColumn(
+              label: Text(
+                'الحالة',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              onSort: null, // No sorting for verification status
             ),
             const DataColumn(label: Text('')), // Actions column
           ],
-          rows: places.map((doc) {
-            final place = PaymentPlaceModel.fromFirestore(doc);
-
+          rows: places.map((place) {
             return DataRow(
               cells: [
                 // Place name column
@@ -232,9 +242,9 @@ class PlacesDataTable extends ConsumerWidget {
                       child: Row(
                         children: place.paymentMethods
                             .map((method) => PaymentMethodChip(
-                                  method: method,
-                                  compact: true,
-                                ))
+                          method: method,
+                          compact: true,
+                        ))
                             .toList(),
                       ),
                     ),
@@ -270,27 +280,90 @@ class PlacesDataTable extends ConsumerWidget {
                   ),
                 ),
 
+                // Verification status column with actions
+                DataCell(
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: place.isVerified
+                              ? Colors.green.shade100
+                              : Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: place.isVerified
+                                ? Colors.green.shade300
+                                : Colors.orange.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          place.isVerified ? 'متحقق' : 'قيد التحقق',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color:
+                            place.isVerified ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (!place.isVerified && onVerify != null)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            color: Colors.green,
+                            size: 18,
+                          ),
+                          onPressed: () => onVerify!(place),
+                          tooltip: 'تحقق',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      if (place.isVerified && onUnverify != null)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.unpublished_outlined,
+                            color: Colors.orange,
+                            size: 18,
+                          ),
+                          onPressed: () => onUnverify!(place),
+                          tooltip: 'إلغاء التحقق',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                    ],
+                  ),
+                ),
+
                 // Actions column
                 DataCell(
-                  TextButton.icon(
-                    onPressed:
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        onPressed:
                         onPlaceTap != null ? () => onPlaceTap!(place) : null,
-                    icon: const Icon(Icons.visibility_rounded, size: 16),
-                    label: Text(
-                      "المزيد",
-                      style: GoogleFonts.cairo(),
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.primaryColor,
-                      backgroundColor: theme.primaryColor.withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        icon: const Icon(Icons.visibility_rounded, size: 16),
+                        label: Text(
+                          "المزيد",
+                          style: GoogleFonts.cairo(),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: theme.primaryColor,
+                          backgroundColor: theme.primaryColor.withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ],

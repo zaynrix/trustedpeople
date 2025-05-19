@@ -15,9 +15,12 @@ class AppRoutes {
   static const String login = 'login';
   static const String admin = 'admin';
   static const String adminDashboard = 'admin_dashboard';
+  static const String adminPaymentPlace = 'admin_payment_place';
+  static const String adminAddPaymentPlace = 'admin_add_payment_place';
+  static const String adminEditPaymentPlace = 'admin_edit_payment_place';
 
   // Route paths (must start with "/")
-  static const String homePath = '/';
+  static const String homePath = '/home';
   static const String trustedPath = '/trusted';
   static const String untrustedPath = '/untrusted';
   static const String instructionPath = '/instruction';
@@ -30,16 +33,19 @@ class AppRoutes {
   // Secure admin paths
   static const String secureAdminLogin = '/secure-admin-784512/login';
   static const String secureAdminDashboard = '/secure-admin-784512/dashboard';
+  static const String adminPaymentPlacePath = '/admin_payment_place';
+  static const String adminAddPaymentPlacePath = '/admin_add_payment_place';
+  static const String adminEditPaymentPlacePath = '/admin_edit_payment_place';
 }
-
-/// Key constants for app navigation
-class NavigationKeys {
-  // Private constructor to prevent instantiation
-  NavigationKeys._();
-
-  static final GlobalKey<NavigatorState> rootNavigatorKey =
-      GlobalKey<NavigatorState>(debugLabel: 'root');
-
-  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
-      GlobalKey<ScaffoldMessengerState>(debugLabel: 'scaffoldMessenger');
-}
+//
+// /// Key constants for app navigation
+// class NavigationKeys {
+//   // Private constructor to prevent instantiation
+//   NavigationKeys._();
+//
+//   static final GlobalKey<NavigatorState> rootNavigatorKey =
+//       GlobalKey<NavigatorState>(debugLabel: 'root');
+//
+//   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+//       GlobalKey<ScaffoldMessengerState>(debugLabel: 'scaffoldMessenger');
+// }

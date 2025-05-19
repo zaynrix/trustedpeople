@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:trustedtallentsvalley/routs/app_router.dart';
-import 'package:trustedtallentsvalley/routs/screens_name.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 
 // import 'package:gym_app/logic/localData/shared_pref.dart';

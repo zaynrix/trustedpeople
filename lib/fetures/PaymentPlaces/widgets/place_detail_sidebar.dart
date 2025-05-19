@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_info_card.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/payment_method_chip.dart';
+import 'package:trustedtallentsvalley/app/core/widgets/payment_places/payment_method_chip.dart';
 
 import '../../../services/auth_service.dart';
 

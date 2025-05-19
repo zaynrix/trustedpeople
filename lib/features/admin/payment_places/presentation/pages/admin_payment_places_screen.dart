@@ -1,31 +1,31 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/app/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/providers/payment_places_provider.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_card.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_detail_sidebar.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/places_data_table.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
+import 'package:trustedtallentsvalley/app/core/widgets/custom_filter_chip.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/presentation/widgets/filter_option_payment_places.dart';
+import 'package:trustedtallentsvalley/app/core/widgets/search_field.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/domain/entities/admin_payment_place.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/domain/repositories/admin_payment_places_repository.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/presentation/providers/admin_payment_places_provider.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/presentation/widgets/admin_place_card.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/presentation/widgets/admin_place_detail_sidebar.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/presentation/widgets/admin_places_data_table.dart';
 
-class UserPaymentPlacesScreen extends ConsumerWidget {
-  const UserPaymentPlacesScreen({Key? key}) : super(key: key);
+class AdminPaymentPlacesScreen extends ConsumerWidget {
+  const AdminPaymentPlacesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final placesStream = ref.watch(paymentPlacesStreamProvider);
-    final isAdmin = ref.watch(isAdminProvider);
+    final placesStream = ref.watch(adminPaymentPlacesStreamProvider);
+    // Admin check is not needed as this screen is admin-only
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         automaticallyImplyLeading: MediaQuery.of(context).size.width < 768,
         title: Text(
-          "أماكن تقبل الدفع البنكي",
+          "إدارة أماكن الدفع البنكي",
           style: GoogleFonts.cairo(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -50,14 +50,14 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
         shape: MediaQuery.of(context).size.width < 768
             ? null
             : const RoundedRectangleBorder(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
-                ),
-              ),
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+        ),
       ),
       drawer:
-          MediaQuery.of(context).size.width < 768 ? const AppDrawer() : null,
+      MediaQuery.of(context).size.width < 768 ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Row(
@@ -85,38 +85,36 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: isAdmin
-          ? FloatingActionButton(
-              backgroundColor: Colors.blue.shade600,
-              onPressed: () => _showAddPlaceDialog(context, ref),
-              child: const Icon(Icons.add),
-              tooltip: 'إضافة متجر جديد',
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.blue.shade600,
+        onPressed: () => _showAddPlaceDialog(context, ref),
+        child: const Icon(Icons.add),
+        tooltip: 'إضافة متجر جديد',
+      ),
     );
   }
 
   Widget _buildMainContent(
-    BuildContext context,
-    WidgetRef ref,
-    BoxConstraints constraints, {
-    bool isMobile = false,
-    bool isTablet = false,
-  }) {
-    final searchQuery = ref.watch(placesSearchQueryProvider);
-    final showSideBar = ref.watch(showPlaceSideBarProvider);
-    final selectedPlace = ref.watch(selectedPlaceProvider);
-    final currentPage = ref.watch(placesCurrentPageProvider);
-    final pageSize = ref.watch(placesPageSizeProvider);
-    final sortField = ref.watch(placesSortFieldProvider);
-    final sortAscending = ref.watch(placesSortDirectionProvider);
-    final filterMode = ref.watch(placesFilterModeProvider);
+      BuildContext context,
+      WidgetRef ref,
+      BoxConstraints constraints, {
+        bool isMobile = false,
+        bool isTablet = false,
+      }) {
+    final searchQuery = ref.watch(adminSearchQueryProvider);
+    final showSideBar = ref.watch(adminShowSideBarProvider);
+    final selectedPlace = ref.watch(adminSelectedPlaceProvider);
+    final currentPage = ref.watch(adminCurrentPageProvider);
+    final pageSize = ref.watch(adminPageSizeProvider);
+    final sortField = ref.watch(adminSortFieldProvider);
+    final sortAscending = ref.watch(adminSortDirectionProvider);
+    final filterMode = ref.watch(adminFilterModeProvider);
 
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
-    final placesStream = ref.watch(paymentPlacesStreamProvider);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
+    final placesStream = ref.watch(adminPaymentPlacesStreamProvider);
 
     // Error handling
-    final errorMessage = ref.watch(placesErrorMessageProvider);
+    final errorMessage = ref.watch(adminErrorMessageProvider);
     if (errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,10 +127,9 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
     }
 
     return placesStream.when(
-      data: (snapshot) {
+      data: (places) {
         // Apply filtering
-        var filteredPlaces = snapshot.docs.where((doc) {
-          final place = PaymentPlaceModel.fromFirestore(doc);
+        var filteredPlaces = places.where((place) {
           final query = searchQuery.toLowerCase();
 
           // Search filter
@@ -144,21 +141,25 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
           // Additional filters
           switch (filterMode) {
-            case PlacesFilterMode.all:
+            case AdminPlacesFilterMode.all:
               return matchesSearch;
-            case PlacesFilterMode.highRated:
+            case AdminPlacesFilterMode.verified:
+              return matchesSearch && place.isVerified;
+            case AdminPlacesFilterMode.unverified:
+              return matchesSearch && !place.isVerified;
+            case AdminPlacesFilterMode.highRated:
               return matchesSearch && place.rating >= 4.0;
-            case PlacesFilterMode.category:
+            case AdminPlacesFilterMode.category:
               final categoryFilter =
-                  ref.watch(paymentPlacesProvider).categoryFilter;
+                  ref.watch(adminPaymentPlacesProvider).categoryFilter;
               if (categoryFilter == null || categoryFilter.isEmpty) {
                 return matchesSearch;
               }
               return matchesSearch &&
                   place.category.toLowerCase() == categoryFilter.toLowerCase();
-            case PlacesFilterMode.byLocation:
+            case AdminPlacesFilterMode.byLocation:
               final locationFilter =
-                  ref.watch(paymentPlacesProvider).locationFilter;
+                  ref.watch(adminPaymentPlacesProvider).locationFilter;
               if (locationFilter == null || locationFilter.isEmpty) {
                 return matchesSearch;
               }
@@ -171,40 +172,37 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
         // Apply sorting
         filteredPlaces.sort((a, b) {
-          final placeA = PaymentPlaceModel.fromFirestore(a);
-          final placeB = PaymentPlaceModel.fromFirestore(b);
-
           switch (sortField) {
             case 'name':
               return sortAscending
-                  ? placeA.name.compareTo(placeB.name)
-                  : placeB.name.compareTo(placeA.name);
+                  ? a.name.compareTo(b.name)
+                  : b.name.compareTo(a.name);
             case 'category':
               return sortAscending
-                  ? placeA.category.compareTo(placeB.category)
-                  : placeB.category.compareTo(placeA.category);
+                  ? a.category.compareTo(b.category)
+                  : b.category.compareTo(a.category);
             case 'location':
               return sortAscending
-                  ? placeA.location.compareTo(placeB.location)
-                  : placeB.location.compareTo(placeA.location);
+                  ? a.location.compareTo(b.location)
+                  : b.location.compareTo(a.location);
             case 'phoneNumber':
               return sortAscending
-                  ? placeA.phoneNumber.compareTo(placeB.phoneNumber)
-                  : placeB.phoneNumber.compareTo(placeA.phoneNumber);
+                  ? a.phoneNumber.compareTo(b.phoneNumber)
+                  : b.phoneNumber.compareTo(a.phoneNumber);
             case 'rating':
               return sortAscending
-                  ? placeA.rating.compareTo(placeB.rating)
-                  : placeB.rating.compareTo(placeA.rating);
+                  ? a.rating.compareTo(b.rating)
+                  : b.rating.compareTo(a.rating);
             default:
               return sortAscending
-                  ? placeA.name.compareTo(placeB.name)
-                  : placeB.name.compareTo(placeA.name);
+                  ? a.name.compareTo(b.name)
+                  : b.name.compareTo(a.name);
           }
         });
 
         // Apply pagination (except for mobile)
         final int startIndex = (currentPage - 1) * pageSize;
-        List<DocumentSnapshot> paginatedPlaces = filteredPlaces;
+        List<AdminPaymentPlace> paginatedPlaces = filteredPlaces;
 
         if (!isMobile && filteredPlaces.length > pageSize) {
           final endIndex = startIndex + pageSize < filteredPlaces.length
@@ -226,46 +224,45 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
             children: [
               SearchField(
                 onChanged: (value) {
-                  ref.read(placesSearchQueryProvider.notifier).state = value;
+                  ref.read(adminSearchQueryProvider.notifier).state = value;
                   placesNotifier.setSearchQuery(value);
                 },
                 hintText: 'البحث باسم المكان أو الموقع أو التصنيف',
               ),
               const SizedBox(height: 16),
-              _buildFilterChips(context, ref),
+              const AdminFilterOptions(),
               const SizedBox(height: 24),
               Expanded(
                 child: displayedPlaces.isEmpty
                     ? _buildEmptyState()
                     : RefreshIndicator(
-                        onRefresh: () async {
-                          // Refresh the data
-                          ref.refresh(paymentPlacesStreamProvider);
-                          return;
+                  onRefresh: () async {
+                    // Refresh the data
+                    ref.refresh(adminPaymentPlacesStreamProvider);
+                    return;
+                  },
+                  child: GridView.builder(
+                    gridDelegate:
+                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 500,
+                      childAspectRatio: 0.9,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: displayedPlaces.length,
+                    itemBuilder: (context, index) {
+                      final place = displayedPlaces[index];
+                      return AdminPlaceCard(
+                        place: place,
+                        onTap: () {
+                          placesNotifier.selectPlace(place);
+                          _showPlaceDetailBottomSheet(
+                              context, ref, place);
                         },
-                        child: GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 500,
-                            childAspectRatio: 0.9,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: displayedPlaces.length,
-                          itemBuilder: (context, index) {
-                            final place = PaymentPlaceModel.fromFirestore(
-                                displayedPlaces[index]);
-                            return PlaceCard(
-                              place: place,
-                              onTap: () {
-                                placesNotifier.selectPlace(place);
-                                _showPlaceDetailBottomSheet(
-                                    context, ref, place);
-                              },
-                            );
-                          },
-                        ),
-                      ),
+                      );
+                    },
+                  ),
+                ),
               ),
             ],
           );
@@ -278,7 +275,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                   Expanded(
                     child: SearchField(
                       onChanged: (value) {
-                        ref.read(placesSearchQueryProvider.notifier).state =
+                        ref.read(adminSearchQueryProvider.notifier).state =
                             value;
                         placesNotifier.setSearchQuery(value);
                       },
@@ -296,55 +293,61 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                 child: displayedPlaces.isEmpty
                     ? _buildEmptyState()
                     : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
                         children: [
                           Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 300,
-                                      childAspectRatio: 0.8,
-                                      crossAxisSpacing: 16,
-                                      mainAxisSpacing: 16,
-                                    ),
-                                    itemCount: displayedPlaces.length,
-                                    itemBuilder: (context, index) {
-                                      final place =
-                                          PaymentPlaceModel.fromFirestore(
-                                              displayedPlaces[index]);
-                                      return PlaceCard(
-                                        place: place,
-                                        onTap: () {
-                                          placesNotifier.selectPlace(place);
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
-                                if (filteredPlaces.length > pageSize)
-                                  _buildPagination(
-                                      context, ref, filteredPlaces.length),
-                              ],
+                            child: GridView.builder(
+                              gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 300,
+                                childAspectRatio: 0.8,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                              itemCount: displayedPlaces.length,
+                              itemBuilder: (context, index) {
+                                final place = displayedPlaces[index];
+                                return AdminPlaceCard(
+                                  place: place,
+                                  onTap: () {
+                                    placesNotifier.selectPlace(place);
+                                  },
+                                );
+                              },
                             ),
                           ),
-                          if (showSideBar && selectedPlace != null) ...[
-                            const SizedBox(width: 24),
-                            PlaceDetailSidebar(
-                              place: selectedPlace,
-                              onClose: () {
-                                placesNotifier.closeBar();
-                              },
-                              onEdit: () => _showEditPlaceDialog(
-                                  context, ref, selectedPlace),
-                              onDelete: () => _showDeleteConfirmation(
-                                  context, ref, selectedPlace),
-                            ),
-                          ],
+                          if (filteredPlaces.length > pageSize)
+                            _buildPagination(
+                                context, ref, filteredPlaces.length),
                         ],
                       ),
+                    ),
+                    if (showSideBar && selectedPlace != null) ...[
+                      const SizedBox(width: 24),
+                      AdminPlaceDetailSidebar(
+                        place: selectedPlace,
+                        onClose: () {
+                          placesNotifier.closeBar();
+                        },
+                        onEdit: () => _showEditPlaceDialog(
+                            context, ref, selectedPlace),
+                        onDelete: () => _showDeleteConfirmation(
+                            context, ref, selectedPlace),
+                        onVerify: selectedPlace.isVerified
+                            ? null
+                            : () => _updateVerificationStatus(
+                            context, ref, selectedPlace.id, true),
+                        onUnverify: selectedPlace.isVerified
+                            ? () => _updateVerificationStatus(
+                            context, ref, selectedPlace.id, false)
+                            : null,
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           );
@@ -358,7 +361,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                   Expanded(
                     child: SearchField(
                       onChanged: (value) {
-                        ref.read(placesSearchQueryProvider.notifier).state =
+                        ref.read(adminSearchQueryProvider.notifier).state =
                             value;
                         placesNotifier.setSearchQuery(value);
                       },
@@ -370,57 +373,71 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildFilterChips(context, ref),
+              const AdminFilterOptions(),
               const SizedBox(height: 24),
               Expanded(
                 child: displayedPlaces.isEmpty
                     ? _buildEmptyState()
                     : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
                         children: [
                           Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: PlacesDataTable(
-                                    places: displayedPlaces,
-                                    onSort: (field, ascending) {
-                                      placesNotifier.setSort(field,
-                                          ascending: ascending);
-                                    },
-                                    onPlaceTap: (place) {
-                                      placesNotifier.selectPlace(place);
-                                    },
-                                    currentSortField: sortField,
-                                    isAscending: sortAscending,
-                                  ),
-                                ),
-                                if (filteredPlaces.length > pageSize)
-                                  _buildPagination(
-                                      context, ref, filteredPlaces.length),
-                              ],
+                            child: AdminPlacesDataTable(
+                              places: displayedPlaces,
+                              onSort: (field, ascending) {
+                                placesNotifier.setSort(field,
+                                    ascending: ascending);
+                              },
+                              onPlaceTap: (place) {
+                                placesNotifier.selectPlace(place);
+                              },
+                              onVerify: (place) =>
+                                  _updateVerificationStatus(
+                                      context, ref, place.id, true),
+                              onUnverify: (place) =>
+                                  _updateVerificationStatus(
+                                      context, ref, place.id, false),
+                              currentSortField: sortField,
+                              isAscending: sortAscending,
                             ),
                           ),
-                          if (showSideBar && selectedPlace != null) ...[
-                            const SizedBox(width: 24),
-                            PlaceDetailSidebar(
-                              place: selectedPlace,
-                              onClose: () {
-                                placesNotifier.closeBar();
-                              },
-                              onEdit: () => _showEditPlaceDialog(
-                                  context, ref, selectedPlace),
-                              onDelete: () => _showDeleteConfirmation(
-                                  context, ref, selectedPlace),
-                            ),
-                          ],
+                          if (filteredPlaces.length > pageSize)
+                            _buildPagination(
+                                context, ref, filteredPlaces.length),
                         ],
                       ),
+                    ),
+                    if (showSideBar && selectedPlace != null) ...[
+                      const SizedBox(width: 24),
+                      AdminPlaceDetailSidebar(
+                        place: selectedPlace,
+                        onClose: () {
+                          placesNotifier.closeBar();
+                        },
+                        onEdit: () => _showEditPlaceDialog(
+                            context, ref, selectedPlace),
+                        onDelete: () => _showDeleteConfirmation(
+                            context, ref, selectedPlace),
+                        onVerify: selectedPlace.isVerified
+                            ? null
+                            : () => _updateVerificationStatus(
+                            context, ref, selectedPlace.id, true),
+                        onUnverify: selectedPlace.isVerified
+                            ? () => _updateVerificationStatus(
+                            context, ref, selectedPlace.id, false)
+                            : null,
+                      ),
+                    ],
+                  ],
+                ),
               ),
               // Stats footer
               if (!isMobile)
                 _buildStatsFooter(
-                    context, filteredPlaces.length, snapshot.docs.length),
+                    context, filteredPlaces.length, places.length),
             ],
           );
         }
@@ -457,7 +474,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
-                ref.refresh(paymentPlacesStreamProvider);
+                ref.refresh(adminPaymentPlacesStreamProvider);
               },
               icon: const Icon(Icons.refresh),
               label: Text(
@@ -473,43 +490,67 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Filter chips
   Widget _buildFilterChips(BuildContext context, WidgetRef ref) {
-    final filterMode = ref.watch(placesFilterModeProvider);
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
-    final categories = ref.watch(placesCategoriesProvider);
+    final filterMode = ref.watch(adminFilterModeProvider);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
+    final categories = ref.watch(adminCategoriesProvider);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.blue.shade600,
             label: 'الكل',
             icon: Icons.all_inclusive,
-            selected: filterMode == PlacesFilterMode.all,
+            selected: filterMode == AdminPlacesFilterMode.all,
             onSelected: (selected) {
               if (selected) {
-                placesNotifier.setFilterMode(PlacesFilterMode.all);
+                placesNotifier.setFilterMode(AdminPlacesFilterMode.all);
               }
             },
           ),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.blue.shade600,
+            label: 'متحقق منها',
+            icon: Icons.verified_rounded,
+            selected: filterMode == AdminPlacesFilterMode.verified,
+            onSelected: (selected) {
+              if (selected) {
+                placesNotifier.setFilterMode(AdminPlacesFilterMode.verified);
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomFilterChip(
+            primaryColor: Colors.blue.shade600,
+            label: 'قيد التحقق',
+            icon: Icons.pending_rounded,
+            selected: filterMode == AdminPlacesFilterMode.unverified,
+            onSelected: (selected) {
+              if (selected) {
+                placesNotifier.setFilterMode(AdminPlacesFilterMode.unverified);
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomFilterChip(
+            primaryColor: Colors.blue.shade600,
             label: 'التقييم العالي',
             icon: Icons.star_rounded,
-            selected: filterMode == PlacesFilterMode.highRated,
+            selected: filterMode == AdminPlacesFilterMode.highRated,
             onSelected: (selected) {
               if (selected) {
-                placesNotifier.setFilterMode(PlacesFilterMode.highRated);
+                placesNotifier.setFilterMode(AdminPlacesFilterMode.highRated);
               }
             },
           ),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.blue.shade600,
             label: 'حسب التصنيف',
             icon: Icons.category_rounded,
-            selected: filterMode == PlacesFilterMode.category,
+            selected: filterMode == AdminPlacesFilterMode.category,
             onSelected: (selected) {
               if (selected) {
                 _showCategoryFilterDialog(context, ref);
@@ -517,11 +558,11 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.blue.shade600,
             label: 'حسب الموقع',
             icon: Icons.location_on_rounded,
-            selected: filterMode == PlacesFilterMode.byLocation,
+            selected: filterMode == AdminPlacesFilterMode.byLocation,
             onSelected: (selected) {
               if (selected) {
                 _showLocationFilterDialog(context, ref);
@@ -533,55 +574,30 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterChip({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required bool selected,
-    required Function(bool) onSelected,
-  }) {
-    return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: selected ? Colors.white : Colors.grey.shade700,
+  // Update verification status
+  Future<void> _updateVerificationStatus(
+      BuildContext context, WidgetRef ref, String id, bool isVerified) async {
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
+    final success = await placesNotifier.updateVerificationStatus(id, isVerified);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isVerified ? 'تم التحقق من المتجر بنجاح' : 'تم إلغاء التحقق من المتجر',
+            style: GoogleFonts.cairo(),
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              color: selected ? Colors.white : Colors.grey.shade700,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-      selected: selected,
-      onSelected: onSelected,
-      selectedColor: Colors.blue.shade600,
-      backgroundColor: Colors.white,
-      checkmarkColor: Colors.white,
-      showCheckmark: false,
-      elevation: 0,
-      shadowColor: Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: selected ? Colors.blue.shade600 : Colors.grey.shade300,
+          backgroundColor: isVerified ? Colors.green : Colors.orange,
         ),
-      ),
-    );
+      );
+    }
   }
 
   // Sort button with dropdown menu
   Widget _buildSortButton(BuildContext context, WidgetRef ref) {
-    final sortField = ref.watch(placesSortFieldProvider);
-    final sortAscending = ref.watch(placesSortDirectionProvider);
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
+    final sortField = ref.watch(adminSortFieldProvider);
+    final sortAscending = ref.watch(adminSortDirectionProvider);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
 
     String getSortFieldName() {
       switch (sortField) {
@@ -683,14 +699,14 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
   }
 
   PopupMenuItem<String> _buildSortMenuItem(
-    BuildContext context,
-    WidgetRef ref, {
-    required String field,
-    required String label,
-    required IconData icon,
-  }) {
-    final sortField = ref.watch(placesSortFieldProvider);
-    final sortAscending = ref.watch(placesSortDirectionProvider);
+      BuildContext context,
+      WidgetRef ref, {
+        required String field,
+        required String label,
+        required IconData icon,
+      }) {
+    final sortField = ref.watch(adminSortFieldProvider);
+    final sortAscending = ref.watch(adminSortDirectionProvider);
 
     return PopupMenuItem(
       value: field,
@@ -719,9 +735,9 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Pagination controls
   Widget _buildPagination(BuildContext context, WidgetRef ref, int totalItems) {
-    final currentPage = ref.watch(placesCurrentPageProvider);
-    final pageSize = ref.watch(placesPageSizeProvider);
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
+    final currentPage = ref.watch(adminCurrentPageProvider);
+    final pageSize = ref.watch(adminPageSizeProvider);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
     final totalPages = (totalItems / pageSize).ceil();
 
     return Container(
@@ -743,10 +759,10 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
               underline: const SizedBox(),
               items: [10, 25, 50, 100]
                   .map((size) => DropdownMenuItem<int>(
-                        value: size,
-                        child:
-                            Text('$size لكل صفحة', style: GoogleFonts.cairo()),
-                      ))
+                value: size,
+                child:
+                Text('$size لكل صفحة', style: GoogleFonts.cairo()),
+              ))
                   .toList(),
               onChanged: (value) {
                 if (value != null) {
@@ -760,7 +776,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.first_page),
             onPressed:
-                currentPage > 1 ? () => placesNotifier.setCurrentPage(1) : null,
+            currentPage > 1 ? () => placesNotifier.setCurrentPage(1) : null,
             tooltip: 'الصفحة الأولى',
             color: Colors.blue.shade600,
             disabledColor: Colors.grey.shade400,
@@ -882,10 +898,8 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Bottom sheet for mobile
   void _showPlaceDetailBottomSheet(
-      BuildContext context, WidgetRef ref, PaymentPlaceModel place) {
-    final isAdmin = ref.watch(isAdminProvider);
-
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
+      BuildContext context, WidgetRef ref, AdminPaymentPlace place) {
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
 
     showModalBottomSheet(
       context: context,
@@ -920,17 +934,27 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                     ),
                   ),
                   Expanded(
-                    child: PlaceDetailSidebar(
+                    child: AdminPlaceDetailSidebar(
                       place: place,
                       onClose: () {
                         Navigator.pop(context);
                         placesNotifier.closeBar();
                       },
-                      onEdit: isAdmin
-                          ? () => _showEditPlaceDialog(context, ref, place)
-                          : null,
-                      onDelete: isAdmin
-                          ? () => _showDeleteConfirmation(context, ref, place)
+                      onEdit: () => _showEditPlaceDialog(context, ref, place),
+                      onDelete: () => _showDeleteConfirmation(context, ref, place),
+                      onVerify: place.isVerified
+                          ? null
+                          : () {
+                        _updateVerificationStatus(
+                            context, ref, place.id, true);
+                        Navigator.pop(context);
+                      },
+                      onUnverify: place.isVerified
+                          ? () {
+                        _updateVerificationStatus(
+                            context, ref, place.id, false);
+                        Navigator.pop(context);
+                      }
                           : null,
                     ),
                   ),
@@ -945,8 +969,8 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Category filter dialog
   void _showCategoryFilterDialog(BuildContext context, WidgetRef ref) {
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
-    final categories = ref.watch(placesCategoriesProvider);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
+    final categories = ref.watch(adminCategoriesProvider);
 
     if (categories.isLoading) {
       showDialog(
@@ -1023,7 +1047,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () {
-              placesNotifier.setFilterMode(PlacesFilterMode.all);
+              placesNotifier.setFilterMode(AdminPlacesFilterMode.all);
               Navigator.pop(context);
             },
             child: Text('إلغاء', style: GoogleFonts.cairo()),
@@ -1038,8 +1062,8 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Location filter dialog
   void _showLocationFilterDialog(BuildContext context, WidgetRef ref) {
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
-    final locations = ref.watch(placesLocationsProvider);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
+    final locations = ref.watch(adminLocationsProvider);
 
     if (locations.isLoading) {
       showDialog(
@@ -1116,7 +1140,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () {
-              placesNotifier.setFilterMode(PlacesFilterMode.all);
+              placesNotifier.setFilterMode(AdminPlacesFilterMode.all);
               Navigator.pop(context);
             },
             child: Text('إلغاء', style: GoogleFonts.cairo()),
@@ -1160,28 +1184,36 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
               _buildHelpItem(
                 title: 'التصفية',
                 description:
-                    'استخدم خيارات التصفية لعرض نتائج محددة (حسب التصنيف، الموقع، أو التقييم)',
+                'استخدم خيارات التصفية لعرض نتائج محددة (حسب التصنيف، الموقع، أو التقييم)',
                 icon: Icons.filter_list,
               ),
               const Divider(),
               _buildHelpItem(
                 title: 'الترتيب',
                 description:
-                    'يمكنك ترتيب النتائج حسب الاسم أو الموقع أو التقييم',
+                'يمكنك ترتيب النتائج حسب الاسم أو الموقع أو التقييم',
                 icon: Icons.sort,
+              ),
+              const Divider(),
+              _buildHelpItem(
+                title: 'التحقق من المتاجر',
+                description:
+                'يمكنك تغيير حالة التحقق للمتاجر من خلال الضغط على زر التحقق',
+                icon: Icons.verified_user,
               ),
               const Divider(),
               _buildHelpItem(
                 title: 'التفاصيل',
                 description:
-                    'انقر على "المزيد" أو على بطاقة المكان لعرض جميع التفاصيل',
+                'انقر على "المزيد" أو على بطاقة المكان لعرض جميع التفاصيل',
                 icon: Icons.info_outline,
               ),
               const Divider(),
               _buildHelpItem(
-                title: 'طرق الدفع',
-                description: 'تظهر طرق الدفع المقبولة لكل متجر بألوان مختلفة',
-                icon: Icons.payment,
+                title: 'الإضافة والتعديل',
+                description:
+                'يمكنك إضافة متجر جديد من خلال الزر العائم في أسفل الشاشة، أو تعديل متجر حالي من صفحة التفاصيل',
+                icon: Icons.edit,
               ),
             ],
           ),
@@ -1242,6 +1274,8 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Dialog for exporting data
   void _showExportDialog(BuildContext context, WidgetRef ref) {
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1269,54 +1303,40 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
               context,
               title: 'Excel (XLSX)',
               icon: Icons.table_chart,
-              onTap: () {
-                // Export logic would go here
+              onTap: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'تم تصدير البيانات بنجاح',
-                      style: GoogleFonts.cairo(),
+                final result = await placesNotifier.exportToExcel();
+                if (result != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo(),
+                      ),
+                      backgroundColor: Colors.green,
                     ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                  );
+                }
               },
             ),
             _buildExportOption(
               context,
               title: 'CSV',
               icon: Icons.description,
-              onTap: () {
-                // Export logic would go here
+              onTap: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'تم تصدير البيانات بنجاح',
-                      style: GoogleFonts.cairo(),
+                final result = await placesNotifier.exportToCSV();
+                if (result != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo(),
+                      ),
+                      backgroundColor: Colors.green,
                     ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-            ),
-            _buildExportOption(
-              context,
-              title: 'PDF',
-              icon: Icons.picture_as_pdf,
-              onTap: () {
-                // Export logic would go here
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'تم تصدير البيانات بنجاح',
-                      style: GoogleFonts.cairo(),
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                  );
+                }
               },
             ),
           ],
@@ -1339,11 +1359,11 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Export option item
   Widget _buildExportOption(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+      BuildContext context, {
+        required String title,
+        required IconData icon,
+        required VoidCallback onTap,
+      }) {
     return ListTile(
       leading: Icon(icon, color: Colors.blue.shade600),
       title: Text(title, style: GoogleFonts.cairo()),
@@ -1358,7 +1378,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
   // Dialog for adding a new place
   void _showAddPlaceDialog(BuildContext context, WidgetRef ref) {
     final formKey = GlobalKey<FormState>();
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
 
     String name = '';
     String phoneNumber = '';
@@ -1377,8 +1397,6 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
       'جوال باي',
       'نقد',
     ];
-
-    final categoryController = TextEditingController();
 
     // Set to track selected payment methods
     final selectedPaymentMethods = <String>{};
@@ -1454,7 +1472,6 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: categoryController,
                   decoration: InputDecoration(
                     labelText: 'التصنيف',
                     hintText: 'مثال: مطعم، سوبرماركت، صيدلية',
@@ -1487,7 +1504,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                         runSpacing: 8,
                         children: availablePaymentMethods.map((method) {
                           final isSelected =
-                              selectedPaymentMethods.contains(method);
+                          selectedPaymentMethods.contains(method);
                           return FilterChip(
                             label: Text(method, style: GoogleFonts.cairo()),
                             selected: isSelected,
@@ -1597,7 +1614,8 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
               if (formKey.currentState?.validate() ?? false) {
                 formKey.currentState?.save();
 
-                final place = PaymentPlaceModel(
+                // Create an instance of AdminPaymentPlace from AdminPaymentPlaceModel
+                final place = AdminPaymentPlace(
                   id: '', // Will be set by Firestore
                   name: name,
                   phoneNumber: phoneNumber,
@@ -1648,9 +1666,9 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Dialog for editing a place
   void _showEditPlaceDialog(
-      BuildContext context, WidgetRef ref, PaymentPlaceModel place) {
+      BuildContext context, WidgetRef ref, AdminPaymentPlace place) {
     final formKey = GlobalKey<FormState>();
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
 
     String name = place.name;
     String phoneNumber = place.phoneNumber;
@@ -1778,7 +1796,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
                         runSpacing: 8,
                         children: availablePaymentMethods.map((method) {
                           final isSelected =
-                              selectedPaymentMethods.contains(method);
+                          selectedPaymentMethods.contains(method);
                           return FilterChip(
                             label: Text(method, style: GoogleFonts.cairo()),
                             selected: isSelected,
@@ -1888,7 +1906,7 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
               if (formKey.currentState?.validate() ?? false) {
                 formKey.currentState?.save();
 
-                final updatedPlace = PaymentPlaceModel(
+                final updatedPlace = AdminPaymentPlace(
                   id: place.id,
                   name: name,
                   phoneNumber: phoneNumber,
@@ -1939,8 +1957,8 @@ class UserPaymentPlacesScreen extends ConsumerWidget {
 
   // Confirmation dialog for deleting a place
   void _showDeleteConfirmation(
-      BuildContext context, WidgetRef ref, PaymentPlaceModel place) {
-    final placesNotifier = ref.read(paymentPlacesProvider.notifier);
+      BuildContext context, WidgetRef ref, AdminPaymentPlace place) {
+    final placesNotifier = ref.read(adminPaymentPlacesProvider.notifier);
 
     showDialog(
       context: context,

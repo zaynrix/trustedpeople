@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trustedtallentsvalley/features/admin/payment_places/presentation/pages/admin_payment_places_screen.dart';
 import 'package:trustedtallentsvalley/features/auth/presentation/pages/login_page.dart';
 import 'package:trustedtallentsvalley/features/auth/presentation/providers/auth_provider.dart';
 import 'package:trustedtallentsvalley/features/user/home/presentation/pages/user_home_screen.dart';
@@ -26,53 +27,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRouter.homePath,
     routes: [
-      // GoRoute(
-      //   path: AppRouter.homePath,
-      //   name: AppRouter.home,
-      //   builder: (context, state) => const UserHomeScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.trustedPath,
-      //   name: AppRouter.trusted,
-      //   builder: (context, state) => const TrustedUsersScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.untrustedPath,
-      //   name: AppRouter.untrusted,
-      //   builder: (context, state) => const UntrustedUsersScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.instructionPath,
-      //   name: AppRouter.instruction,
-      //   builder: (context, state) => const InstructionScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.paymentPlacesPath,
-      //   name: AppRouter.paymentPlaces,
-      //   builder: (context, state) => const PaymentPlacesScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.contactUsPath,
-      //   name: AppRouter.contactUs,
-      //   builder: (context, state) => const ContactUsScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.loginPath,
-      //   name: AppRouter.login,
-      //   builder: (context, state) => const AdminLoginScreen(),
-      // ),
-      // GoRoute(
-      //   path: AppRouter.adminPath,
-      //   name: AppRouter.admin,
-      //   builder: (context, state) {
-      //     // Only allow admins to access admin page
-      //     if (authState.isAdmin) {
-      //       return const AdminDashboardScreen();
-      //     } else {
-      //       return const UnauthorizedScreen();
-      //     }
-      //   },
-      // ),
       GoRoute(
         path: AppRouter.homePath,
         name: AppRouter.home,
@@ -93,11 +47,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRouter.instruction,
         builder: (context, state) => const ProtectionGuideScreen(),
       ),
-      GoRoute(
-        path: AppRouter.paymentPlacesPath,
-        name: AppRouter.paymentPlaces,
-        builder: (context, state) => const PaymentPlacesScreen(),
-      ),
+      // GoRoute(
+      //   path: ScreensNames.ortPath,
+      //   name: ScreensNames.ort,
+      //   builder: (context, state) {
+      //     if(authState.isAdmin){
+      //       return const AdminPaymentPlacesScreen();
+      //     } else  {
+      //       return UserPaymentPlacesScreen();
+      //     }
+      //   } ,
+      // ),
       GoRoute(
         path: AppRouter.contactUsPath,
         name: AppRouter.contactUs,
@@ -148,6 +108,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             return const AdminDashboard();
           } else {
             return const UnauthorizedScreen();
+          }
+        },
+      ),
+      GoRoute(
+        path: AppRouter.adminPaymentPlacePath,
+        name: AppRouter.adminPaymentPlace,
+        builder: (context, state) {
+          // Only allow admins to access admin page
+          if(authState.isAdmin){
+            return const AdminPaymentPlacesScreen();
+          } else  {
+            return UserPaymentPlacesScreen();
           }
         },
       ),
@@ -207,6 +179,9 @@ class AppRouter {
   static const String paymentPlaces = 'paymentPlaces';
   static const String login = 'login';
   static const String admin = 'admin';
+  static const String adminPaymentPlace = 'admin_payment_place';
+  static const String adminAddPaymentPlace = 'admin_add_payment_place';
+  static const String adminEditPaymentPlace = 'admin_edit_payment_place';
 
   // Paths (must start with "/")
   static const String homePath = '/';
@@ -217,4 +192,7 @@ class AppRouter {
   static const String paymentPlacesPath = '/payment-places';
   static const String loginPath = '/login';
   static const String adminPath = '/admin';
+  static const String adminPaymentPlacePath = '/admin_payment_place_path';
+  static const String adminAddPaymentPlacePath = '/admin_add_payment_place';
+  static const String adminEditPaymentPlacePath = '/admin_edit_payment_place';
 }
