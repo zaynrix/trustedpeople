@@ -107,7 +107,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/services',
         name: ScreensNames.adminServices,
-        builder: (context, state) => const AdminServicesScreen(),
+        builder: (context, state) => AdminServicesScreen(),
       ),
       GoRoute(
         path: '/admin/service-requests',

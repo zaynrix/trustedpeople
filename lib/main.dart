@@ -6,13 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:trustedtallentsvalley/core/theme/app_theme.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
-import 'package:trustedtallentsvalley/services/block_service2.dart';
+import 'package:trustedtallentsvalley/services/block_service.dart';
 
 import 'fetures/auth/blocked_screen.dart';
 

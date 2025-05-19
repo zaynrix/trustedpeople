@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 import 'package:trustedtallentsvalley/services/service_model.dart';
 
@@ -15,6 +16,12 @@ class AdminServicesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminProvider);
     final servicesStream = ref.watch(servicesStreamProvider);
+
+    // Add responsive layout detection
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    final isMediumScreen = screenSize.width >= 600 && screenSize.width < 1100;
+
     if (!isAdmin) {
       return Scaffold(
         body: Center(
@@ -28,6 +35,7 @@ class AdminServicesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: isSmallScreen,
         title: Text(
           'إدارة الخدمات',
           style: GoogleFonts.cairo(
@@ -37,95 +45,113 @@ class AdminServicesScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.teal,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'قائمة الخدمات',
-                  style: GoogleFonts.cairo(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddServiceDialog(context, ref),
-                  icon: const Icon(Icons.add),
-                  label: Text(
-                    'إضافة خدمة جديدة',
-                    style: GoogleFonts.cairo(),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+      drawer: isSmallScreen ? const AppDrawer() : null,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Side drawer for larger screens
+              if (!isSmallScreen) const AppDrawer(isPermanent: true),
 
-            // Services list
-            Expanded(
-              child: servicesStream.when(
-                data: (services) {
-                  if (services.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              // Main content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            Icons.shopping_cart,
-                            size: 64,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 16),
                           Text(
-                            'لا توجد خدمات حالياً',
+                            'قائمة الخدمات',
                             style: GoogleFonts.cairo(
-                              fontSize: 18,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade700,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'قم بإضافة خدمات جديدة بالضغط على زر "إضافة خدمة جديدة"',
-                            style: GoogleFonts.cairo(
-                              color: Colors.grey.shade600,
+                          ElevatedButton.icon(
+                            onPressed: () =>
+                                _showAddServiceDialog(context, ref),
+                            icon: const Icon(Icons.add),
+                            label: Text(
+                              'إضافة خدمة جديدة',
+                              style: GoogleFonts.cairo(),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }
+                      const SizedBox(height: 24),
 
-                  return ListView.separated(
-                    itemCount: services.length,
-                    separatorBuilder: (context, index) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final service = services[index];
-                      return _buildServiceItem(context, ref, service);
-                    },
-                  );
-                },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                error: (error, stack) => Center(
-                  child: Text(
-                    'حدث خطأ: $error',
-                    style: GoogleFonts.cairo(color: Colors.red),
+                      // Services list
+                      Expanded(
+                        child: servicesStream.when(
+                          data: (services) {
+                            if (services.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.shopping_cart,
+                                      size: 64,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'لا توجد خدمات حالياً',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'قم بإضافة خدمات جديدة بالضغط على زر "إضافة خدمة جديدة"',
+                                      style: GoogleFonts.cairo(
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              itemCount: services.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(),
+                              itemBuilder: (context, index) {
+                                final service = services[index];
+                                return _buildServiceItem(context, ref, service);
+                              },
+                            );
+                          },
+                          loading: () => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          error: (error, stack) => Center(
+                            child: Text(
+                              'حدث خطأ: $error',
+                              style: GoogleFonts.cairo(color: Colors.red),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }

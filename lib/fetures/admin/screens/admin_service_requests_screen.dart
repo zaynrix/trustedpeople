@@ -229,9 +229,18 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
 
     // Format the timestamp
     final createdDate = request.createdAt;
-    final formattedDate =
-        '$createdDate/$createdDate/${createdDate} ${createdDate}:${createdDate.toString().padLeft(2, '0')}';
+    String formattedDate = '';
+    if (createdDate != null) {
+      // Convert Timestamp to DateTime
+      final dateTime = createdDate.toDate();
 
+      // Format: DD/MM/YYYY HH:MM
+      formattedDate = '${dateTime.day.toString().padLeft(2, '0')}/'
+          '${dateTime.month.toString().padLeft(2, '0')}/'
+          '${dateTime.year} '
+          '${dateTime.hour.toString().padLeft(2, '0')}:'
+          '${dateTime.minute.toString().padLeft(2, '0')}';
+    }
     // Determine card color based on status
     Color statusColor;
     switch (request.status) {
@@ -256,7 +265,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     bool canProcess = true;
     if (request.status == ServiceRequestStatus.inProgress &&
         request.assignedAdminId != null &&
-        request.assignedAdminName != adminId) {
+        request.assignedAdminId != adminId) {
       canProcess = false;
     }
 

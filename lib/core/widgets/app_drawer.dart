@@ -29,25 +29,22 @@ class AppDrawer extends ConsumerWidget {
         if (!isPermanent)
           DrawerHeader(
             decoration: BoxDecoration(
-              color: isAdmin
-                  ? Colors.green
-                      .withOpacity(0.15) // Subtle green tint for admins
-                  : Colors.black12,
+              color: isAdmin ? Colors.green.withOpacity(0.15) : Colors.black12,
             ),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Main title
+                  // Main title with logo
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SvgPicture.asset(
-                        'assets/images/logo.svg', // تأكد أن الملف موجود
-                        width: 100,
-                        height: 100,
+                        'assets/images/logo.svg',
+                        width: 60, // Reduced from 100
+                        height: 60, // Reduced from 100
                       ),
-                      const SizedBox(width: 10), // Space between image and text
+                      const SizedBox(width: 10),
                       Text(
                         'موثوق',
                         style: GoogleFonts.cairo(
@@ -60,11 +57,10 @@ class AppDrawer extends ConsumerWidget {
                     ],
                   ),
 
-                  // Add spacing between elements
                   const SizedBox(height: 8),
 
                   // Admin indicator - only visible to admins
-                  if (isAdmin)
+                  if (isAdmin) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
@@ -75,28 +71,26 @@ class AppDrawer extends ConsumerWidget {
                             Border.all(color: Colors.green.withOpacity(0.3)),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SvgPicture.asset(
-                            'assets/images/logo.svg', // تأكد أن الملف موجود
-                            width: 100,
-                            height: 100,
-                          ),
-                          const SizedBox(
-                              width: 10), // Space between image and text
+                          const Icon(Icons.admin_panel_settings,
+                              color: Colors.green, size: 18),
+                          const SizedBox(width: 6),
                           Text(
-                            'موثوق',
+                            'وضع المشرف',
                             style: GoogleFonts.cairo(
-                              textStyle: const TextStyle(
-                                fontSize: 20,
+                              textStyle: TextStyle(
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.green.shade800,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  if (isAdmin)
+                    const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
@@ -107,10 +101,16 @@ class AppDrawer extends ConsumerWidget {
                             Border.all(color: Colors.green.withOpacity(0.3)),
                       ),
                       child: Text(
-                        'البريد الإلكتروني: ${authState.user?.email}',
-                        style: GoogleFonts.cairo(color: Colors.black),
+                        'البريد الإلكتروني: ${authState.user?.email ?? ""}',
+                        style: GoogleFonts.cairo(
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -124,13 +124,13 @@ class AppDrawer extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Main title
+                // Main title with logo
                 SvgPicture.asset(
-                  'assets/images/logo.svg', // تأكد أن الملف موجود
-                  width: 100,
-                  height: 100,
+                  'assets/images/logo.svg',
+                  width: 60, // Reduced from 100
+                  height: 60, // Reduced from 100
                 ),
-                const SizedBox(width: 10), // Space between image and text
+                const SizedBox(height: 8),
                 Text(
                   'موثوق',
                   style: GoogleFonts.cairo(
@@ -141,11 +141,10 @@ class AppDrawer extends ConsumerWidget {
                   ),
                 ),
 
-                // Add spacing between elements
                 const SizedBox(height: 8),
 
                 // Admin indicator - only visible to admins
-                if (isAdmin)
+                if (isAdmin) ...[
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -157,15 +156,13 @@ class AppDrawer extends ConsumerWidget {
                     child: Text(
                       'وضع المشرف',
                       style: GoogleFonts.cairo(
-                        fontSize: 10,
+                        fontSize: 12,
                         color: Colors.green.shade800,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                const SizedBox(height: 8),
-
-                if (isAdmin)
+                  const SizedBox(height: 8),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -175,10 +172,16 @@ class AppDrawer extends ConsumerWidget {
                       border: Border.all(color: Colors.green.withOpacity(0.3)),
                     ),
                     child: Text(
-                      'البريد الإلكتروني: ${authState.user?.email}',
-                      style: GoogleFonts.cairo(color: Colors.black),
+                      'البريد الإلكتروني: ${authState.user?.email ?? ""}',
+                      style: GoogleFonts.cairo(
+                        color: Colors.black,
+                        fontSize: 11,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
+                ],
               ],
             ),
           ),
@@ -220,8 +223,8 @@ class AppDrawer extends ConsumerWidget {
         ),
         _buildNavigationItem(
           context,
-          icon: Icons.shopping_cart, // Changed icon to be more service-related
-          label: 'اطلب خدمتك', // Removed question mark for consistency
+          icon: Icons.shopping_cart,
+          label: 'اطلب خدمتك',
           route: ScreensNames.services,
           isPermanent: isPermanent,
         ),
@@ -231,15 +234,14 @@ class AppDrawer extends ConsumerWidget {
             context,
             icon: Icons.admin_panel_settings,
             label: 'إدارة الخدمات',
-            route:
-                'admin_services', // Make sure this route is defined in route_generator.dart
+            route: 'admin_services',
             isPermanent: isPermanent,
           ),
           _buildNavigationItem(
             context,
             icon: Icons.support_agent,
             label: 'طلبات الخدمات',
-            route: 'admin_service_requests', // Make sure this route is defined
+            route: 'admin_service_requests',
             isPermanent: isPermanent,
           ),
         ],
@@ -304,9 +306,11 @@ class AppDrawer extends ConsumerWidget {
     final activeColor = Colors.green;
 
     return ListTile(
+      dense: true, // Makes the list tile more compact
       leading: Icon(
         icon,
         color: isActive ? activeColor : null,
+        size: 22, // Slightly smaller icon
       ),
       title: Text(
         label,
@@ -314,6 +318,7 @@ class AppDrawer extends ConsumerWidget {
           textStyle: TextStyle(
             color: isActive ? activeColor : null,
             fontWeight: isActive ? FontWeight.bold : null,
+            fontSize: 14, // Smaller font size
           ),
         ),
       ),
