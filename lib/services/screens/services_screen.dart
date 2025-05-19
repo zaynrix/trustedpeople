@@ -25,7 +25,12 @@ class ServicesScreen extends ConsumerWidget {
     final servicesState = ref.watch(servicesProvider);
     final filteredServices = ref.watch(filteredServicesProvider);
     final categories = ref.watch(serviceCategoriesProvider);
-
+// Add at the beginning of ServicesScreen build method
+    print(
+        "Building ServicesScreen with ${filteredServices.length} filtered services");
+    print("Filter category: ${ref.watch(servicesProvider).categoryFilter}");
+    print(
+        "isActive services: ${filteredServices.where((s) => s.isActive).length}");
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: isMobile,
@@ -294,7 +299,7 @@ class ServicesScreen extends ConsumerWidget {
         }).toList(),
       ],
       onSelected: (category) {
-        ref.read(servicesProvider.notifier).setCategoryFilter(selectedCategory);
+        ref.read(servicesProvider.notifier).setCategoryFilter(category!.name);
       },
     );
   }

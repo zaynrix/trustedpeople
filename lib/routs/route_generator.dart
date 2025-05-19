@@ -86,10 +86,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ServicesScreen(),
       ),
       GoRoute(
-        path: '/service/:id',
+        path: '/service/:serviceId',
         name: ScreensNames.serviceDetail,
         builder: (context, state) {
-          final serviceId = state.pathParameters['id']!;
+          final serviceId = state.pathParameters[
+              'serviceId']!; // FIXED - parameter name matches path
           return ServiceDetailScreen(serviceId: serviceId);
         },
       ),

@@ -291,7 +291,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                     ),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.min, // This is good, keep it
                     children: [
                       Icon(
                         _getStatusIcon(request.status),
@@ -299,30 +299,42 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                         color: statusColor,
                       ),
                       const SizedBox(width: 6),
-                      // Text(
-                      //   _getStatusText(request.status),
-                      //   style: GoogleFonts.cairo(
-                      //     fontWeight: FontWeight.bold,
-                      //     color: statusColor,
-                      //   ),
-                      // ),
+                      Text(
+                        request.status.displayName,
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                        // Add overflow handling
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  '#${request.id.substring(0, 8)}',
-                  style: GoogleFonts.cairo(
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.bold,
+                // Make ID flexible with ellipsis
+                Flexible(
+                  child: Text(
+                    '#${request.id.substring(0, 8)}',
+                    style: GoogleFonts.cairo(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  formattedDate,
-                  style: GoogleFonts.cairo(
-                    color: Colors.grey.shade600,
-                    fontSize: 14,
+                // Remove Spacer() if space is tight
+                // const Spacer(),
+                const SizedBox(width: 8), // Use fixed spacing instead
+                // Make date flexible with ellipsis
+                Flexible(
+                  child: Text(
+                    formattedDate,
+                    style: GoogleFonts.cairo(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

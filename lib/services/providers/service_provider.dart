@@ -67,6 +67,7 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
 
       final snapshot = await _firestore
           .collection('services')
+          .where('isActive', isEqualTo: true) // Add this line
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -163,14 +164,15 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
     }
   }
 
-  // Delete a service (admin only)
+// Delete a service (admin only)
   Future<bool> deleteService(String serviceId) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      // Soft delete by changing status
+      // Soft delete by changing status and isActive
       await _firestore.collection('services').doc(serviceId).update({
         'status': 'deleted',
+        'isActive': false, // Add this line
         'updatedAt': Timestamp.now(),
       });
 
@@ -201,7 +203,10 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
       final matchesCategory = categoryFilter == null ||
           service.category.toString().split('.').last == categoryFilter;
 
-      return matchesQuery && matchesCategory;
+      // Add this line to only show active services
+      final isServiceActive = service.isActive;
+
+      return matchesQuery && matchesCategory && isServiceActive;
     }).toList();
   }
 }
@@ -240,7 +245,7 @@ final serviceCategoriesProvider = FutureProvider<List<String>>((ref) async {
 final servicesStreamProvider = StreamProvider<List<ServiceModel>>((ref) {
   return FirebaseFirestore.instance
       .collection('services')
-      // .where('status', isEqualTo: 'active')
+      .where('isActive', isEqualTo: true) // Uncomment this line
       .orderBy('createdAt', descending: true)
       .snapshots()
       .map((snapshot) =>
@@ -259,5 +264,19 @@ final allServicesStreamProvider = StreamProvider<List<ServiceModel>>((ref) {
 
 // Provider for filtered services based on search and category filters
 final filteredServicesProvider = Provider<List<ServiceModel>>((ref) {
-  return ref.read(servicesProvider.notifier).getFilteredServices();
+  final servicesState = ref.watch(servicesProvider);
+  final query = servicesState.searchQuery.toLowerCase();
+  final categoryFilter = servicesState.categoryFilter;
+
+  return servicesState.services.where((service) {
+    final matchesQuery = query.isEmpty ||
+        service.title.toLowerCase().contains(query) ||
+        service.description.toLowerCase().contains(query);
+
+    final matchesCategory = categoryFilter == null ||
+        service.category.toString().split('.').last == categoryFilter;
+
+    // Check isActive status as well
+    return matchesQuery && matchesCategory && service.isActive;
+  }).toList();
 });
