@@ -1,19 +1,18 @@
-import 'dart:html' as html;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
+import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/adminActivitiesWidget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/userRecentUpdatesWidget.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
+import 'package:trustedtallentsvalley/services/models/service_model.dart';
+import 'package:trustedtallentsvalley/services/providers/service_requests_provider.dart';
 
 import '../../auth/admin_dashboard.dart';
 
@@ -271,6 +270,87 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+// Helper method to get status text
+  String _getStatusText(ServiceRequestStatus status) {
+    switch (status) {
+      case ServiceRequestStatus.pending:
+        return 'قيد الانتظار';
+      case ServiceRequestStatus.inProgress:
+        return 'قيد المعالجة';
+      case ServiceRequestStatus.completed:
+        return 'مكتمل';
+      case ServiceRequestStatus.cancelled:
+        return 'ملغي';
+      default:
+        return 'غير معروف';
+    }
+  }
+
+// Helper method to get status color
+  Color _getStatusColor(ServiceRequestStatus status) {
+    switch (status) {
+      case ServiceRequestStatus.pending:
+        return Colors.blue;
+      case ServiceRequestStatus.inProgress:
+        return Colors.orange;
+      case ServiceRequestStatus.completed:
+        return Colors.green;
+      case ServiceRequestStatus.cancelled:
+        return Colors.red;
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'تاريخ غير متوفر';
+
+    // Format date to Arabic style
+    final day = date.day.toString();
+    final month = _getArabicMonth(date.month);
+    final year = date.year.toString();
+
+    return '$day $month $year';
+  }
+
+// Helper method to get status text from string
+  String _getStatusTextFromString(String statusString) {
+    if (statusString.contains('pending')) {
+      return 'قيد الانتظار';
+    } else if (statusString.contains('inProgress')) {
+      return 'قيد المعالجة';
+    } else if (statusString.contains('completed')) {
+      return 'مكتمل';
+    } else if (statusString.contains('cancelled')) {
+      return 'ملغي';
+    } else {
+      return 'غير معروف';
+    }
+  }
+
+// Helper method to get status color from string
+  Color _getStatusColorFromString(String statusString) {
+    if (statusString.contains('pending')) {
+      return Colors.blue;
+    } else if (statusString.contains('inProgress')) {
+      return Colors.orange;
+    } else if (statusString.contains('completed')) {
+      return Colors.green;
+    } else if (statusString.contains('cancelled')) {
+      return Colors.red;
+    } else {
+      return Colors.grey;
+    }
+  }
+  // String _formatDate(DateTime? date) {
+  //   if (date == null) return 'تاريخ غير متوفر';
+  //
+  //   // Format date to Arabic style
+  //   final day = date.day.toString();
+  //   final month = _getArabicMonth(date.month);
+  //   final year = date.year.toString();
+  //
+  //   return '$day $month $year';
+  // }
+
   // Admin dashboard with analytics
   Widget _buildAdminDashboard(
       BuildContext context, BoxConstraints constraints, WidgetRef ref) {
@@ -328,6 +408,8 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 32),
+          // Replace the "أدوات تشخيص الزيارات" Container with this new Container
+          // Replace the "أدوات تشخيص الزيارات" Container with this new Container
           Container(
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.symmetric(vertical: 16),
@@ -340,63 +422,446 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'أدوات تشخيص الزيارات',
+                  'الإشعارات والطلبات الجديدة',
                   style: GoogleFonts.cairo(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh),
-                      label: Text('تحديث البيانات', style: GoogleFonts.cairo()),
-                      onPressed: () {
-                        // Refresh analytics data
-                        ref.refresh(analyticsDataProvider);
-                      },
-                    ),
-                    const SizedBox(width: 16),
-                    // ElevatedButton.icon(
-                    //   icon: const Icon(Icons.add),
-                    //   label:
-                    //       Text('تسجيل زيارة جديدة', style: GoogleFonts.cairo()),
-                    //   onPressed: () async {
-                    //     final success = await ref
-                    //         .read(visitorAnalyticsProvider)
-                    //         .();
-                    //
-                    //     ScaffoldMessenger.of(context).showSnackBar(
-                    //       SnackBar(
-                    //         content: Text(
-                    //           success
-                    //               ? 'تم تسجيل زيارة جديدة بنجاح'
-                    //               : 'فشل تسجيل الزيارة الجديدة',
-                    //           style: GoogleFonts.cairo(),
-                    //         ),
-                    //         backgroundColor:
-                    //             success ? Colors.green : Colors.red,
-                    //       ),
-                    //     );
-                    //
-                    //     // Refresh the data
-                    //     ref.refresh(analyticsDataProvider);
-                    //   },
-                    // ),
-                  ],
+
+                // Service Requests Section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Stack(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.assignment,
+                                color: Colors.blue),
+                          ),
+
+                          // Notification badge for service requests
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final state = ref.watch(serviceRequestsProvider);
+
+                              if (state.newRequestsCount > 0 &&
+                                  state.showNewRequestsBadge)
+                                return Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 16,
+                                      minHeight: 16,
+                                    ),
+                                    child: Text(
+                                      state.newRequestsCount.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                );
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'طلبات الخدمة',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final state =
+                                    ref.watch(serviceRequestsProvider);
+                                final pendingCount = state.newRequestsCount;
+
+                                return Text(
+                                  pendingCount > 0
+                                      ? 'لديك $pendingCount طلبات جديدة في انتظار المراجعة'
+                                      : 'لا توجد طلبات جديدة',
+                                  style: GoogleFonts.cairo(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 14,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Navigate to service requests page
+                          context.goNamed(ScreensNames.serviceRequest);
+                          // Clear the badge when navigating to requests page
+                          ref
+                              .read(serviceRequestsProvider.notifier)
+                              .clearNewRequestsBadge();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                        ),
+                        child: Text(
+                          'عرض الطلبات',
+                          style: GoogleFonts.cairo(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
                 const SizedBox(height: 16),
-                FutureBuilder<String?>(
-                  future: Future.value(kIsWeb
-                      ? html.window.localStorage['last_visit_date']
-                      : null),
-                  builder: (context, snapshot) {
-                    return Text(
-                      'آخر زيارة مسجلة: ${snapshot.data ?? 'غير متوفر'}',
-                      style: GoogleFonts.cairo(),
-                    );
-                  },
+
+                // Contact Messages Section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Stack(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.email, color: Colors.green),
+                          ),
+
+                          // Notification badge for contact messages
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final unreadCount = ref
+                                  .watch(unreadMessagesCountProvider)
+                                  .maybeWhen(
+                                    data: (count) => count,
+                                    orElse: () => 0,
+                                  );
+
+                              if (unreadCount > 0)
+                                return Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 16,
+                                      minHeight: 16,
+                                    ),
+                                    child: Text(
+                                      unreadCount.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                );
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'رسائل التواصل',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final unreadCount = ref
+                                    .watch(unreadMessagesCountProvider)
+                                    .maybeWhen(
+                                      data: (count) => count,
+                                      orElse: () => 0,
+                                    );
+
+                                return Text(
+                                  unreadCount > 0
+                                      ? 'لديك $unreadCount رسائل جديدة غير مقروءة'
+                                      : 'لا توجد رسائل جديدة',
+                                  style: GoogleFonts.cairo(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 14,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Navigate to contact messages page
+                          context.goNamed(ScreensNames.contactUs);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                        ),
+                        child: Text(
+                          'عرض الرسائل',
+                          style: GoogleFonts.cairo(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Recent Activity Preview
+                const SizedBox(height: 24),
+                Text(
+                  'آخر الطلبات والرسائل',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Recent Service Requests Preview
+                Container(
+                  height: 200,
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final state = ref.watch(serviceRequestsProvider);
+
+                      if (state.isLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (state.errorMessage != null) {
+                        return Center(
+                          child: Text(
+                            'حدث خطأ: ${state.errorMessage}',
+                            style: GoogleFonts.cairo(color: Colors.red),
+                          ),
+                        );
+                      }
+
+                      if (state.requests.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'لا توجد طلبات حديثة',
+                            style: GoogleFonts.cairo(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      // Show only the 3 most recent requests
+                      final recentRequests = state.requests.take(3).toList();
+
+                      return ListView.separated(
+                        itemCount: recentRequests.length,
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final request1 = recentRequests[index];
+                          final isPending =
+                              request1.status == ServiceRequestStatus.pending;
+// Inside your _buildAdminDashboard method, replace the ListTile section in the recent requests preview with this:
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  request1.status.toString().contains('pending')
+                                      ? Colors.blue.shade100
+                                      : Colors.grey.shade100,
+                              child: Icon(
+                                Icons.assignment,
+                                color: request1.status
+                                        .toString()
+                                        .contains('pending')
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                            ),
+                            title: Text(
+                              request1.serviceName,
+                              style: GoogleFonts.cairo(
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              'من ${request1.clientName} - ${_formatDate(request1.createdAt.toDate())}',
+                              style: GoogleFonts.cairo(fontSize: 12),
+                            ),
+                            trailing: request1.status
+                                    .toString()
+                                    .contains('pending')
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'جديد',
+                                      style: GoogleFonts.cairo(
+                                        color: Colors.blue.shade800,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  )
+                                : Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColorFromString(
+                                              request1.status.toString())
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _getStatusTextFromString(
+                                          request1.status.toString()),
+                                      style: GoogleFonts.cairo(
+                                        color: _getStatusColorFromString(
+                                            request1.status.toString()),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                            onTap: () {
+                              // Navigate to request details
+                              context.pushNamed(
+                                ScreensNames.serviceDetail,
+                                pathParameters: {'id': request1.id},
+                              );
+                            },
+                          );
+                          // return ListTile(
+                          //   leading: CircleAvatar(
+                          //     backgroundColor: isPending
+                          //         ? Colors.blue.shade100
+                          //         : Colors.grey.shade100,
+                          //     child: Icon(
+                          //       Icons.assignment,
+                          //       color: isPending ? Colors.blue : Colors.grey,
+                          //     ),
+                          //   ),
+                          //   title: Text(
+                          //     request1.serviceName,
+                          //     style: GoogleFonts.cairo(
+                          //         fontWeight: FontWeight.bold),
+                          //   ),
+                          //   subtitle: Text(
+                          //     'من ${request1.clientName} - ${_formatDate(request1.createdAt.toDate())}',
+                          //     style: GoogleFonts.cairo(fontSize: 12),
+                          //   ),
+                          //   trailing: isPending
+                          //       ? Container(
+                          //           padding: const EdgeInsets.symmetric(
+                          //               horizontal: 8, vertical: 4),
+                          //           decoration: BoxDecoration(
+                          //             color: Colors.blue.shade100,
+                          //             borderRadius: BorderRadius.circular(12),
+                          //           ),
+                          //           child: Text(
+                          //             'جديد',
+                          //             style: GoogleFonts.cairo(
+                          //               color: Colors.blue.shade800,
+                          //               fontSize: 12,
+                          //             ),
+                          //           ),
+                          //         )
+                          //       : Container(
+                          //           padding: const EdgeInsets.symmetric(
+                          //               horizontal: 8, vertical: 4),
+                          //           decoration: BoxDecoration(
+                          //             color: _getStatusColor(request1.status
+                          //                     as ServiceRequestStatus)
+                          //                 .withOpacity(0.1),
+                          //             borderRadius: BorderRadius.circular(12),
+                          //           ),
+                          //           child: Text(
+                          //             _getStatusText(request1.status
+                          //                 as ServiceRequestStatus),
+                          //             style: GoogleFonts.cairo(
+                          //               color: _getStatusColor(request1.status
+                          //                   as ServiceRequestStatus),
+                          //               fontSize: 12,
+                          //             ),
+                          //           ),
+                          //         ),
+                          //   onTap: () {
+                          //     // Navigate to request details
+                          //     context.pushNamed(
+                          //       ScreensNames.serviceDetail,
+                          //       pathParameters: {'id': request1.id},
+                          //     );
+                          //   },
+                          // );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),

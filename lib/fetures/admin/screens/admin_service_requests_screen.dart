@@ -183,11 +183,11 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon(
-            //   _getStatusIcon(status.name),
-            //   size: 64,
-            //   color: Colors.grey.shade400,
-            // ),
+            Icon(
+              _getStatusIcon(status),
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
             const SizedBox(height: 16),
             Text(
               'لا توجد طلبات ${_getStatusText(status)}',

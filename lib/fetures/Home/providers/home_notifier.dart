@@ -5,6 +5,8 @@ import 'package:trustedtallentsvalley/config/firebase_constant.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/ActivityUpdate.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 
+import '../../../services/auth_service.dart';
+
 // Define filter modes
 enum FilterMode { all, withReviews, withoutTelegram, byLocation }
 
@@ -179,6 +181,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   // Add new user to Firestore
   Future<bool> addUser({
+    ref,
     required String aliasName,
     required String mobileNumber,
     required String location,
@@ -190,6 +193,12 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
+
+      // Obtener información del administrador actual
+      final auth = ref.read(firebaseAuthProvider);
+      final currentUser = auth.currentUser;
+      final adminName =
+          currentUser?.displayName ?? currentUser?.email ?? 'مشرف غير معروف';
 
       // Generate a new document ID
       final docRef = _firestore.collection(FirebaseConstant.trustedUsers).doc();
@@ -205,6 +214,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
         'otherAccounts': otherAccounts ?? '',
         'reviews': reviews ?? '',
         'createdAt': FieldValue.serverTimestamp(),
+        'addedBy': adminName, // Agregamos el nombre del administrador actual
       });
 
       state = state.copyWith(isLoading: false);
@@ -222,54 +232,40 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // Update existing user in Firestore
   Future<bool> updateUser({
     required String id,
-    String? aliasName,
-    String? mobileNumber,
-    String? location,
-    bool? isTrusted,
-    String? servicesProvided,
-    String? telegramAccount,
-    String? otherAccounts,
-    String? reviews,
+    required String aliasName,
+    required String mobileNumber,
+    required String location,
+    required bool isTrusted,
+    required String servicesProvided,
+    required String telegramAccount,
+    required String otherAccounts,
+    required String reviews,
   }) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      final Map<String, dynamic> updateData = {};
-
-      if (aliasName != null) updateData['aliasName'] = aliasName;
-      if (mobileNumber != null) updateData['mobileNumber'] = mobileNumber;
-      if (location != null) updateData['location'] = location;
-      if (isTrusted != null) updateData['isTrusted'] = isTrusted;
-      if (servicesProvided != null)
-        updateData['servicesProvided'] = servicesProvided;
-      if (telegramAccount != null)
-        updateData['telegramAccount'] = telegramAccount;
-      if (otherAccounts != null) updateData['otherAccounts'] = otherAccounts;
-      if (reviews != null) updateData['reviews'] = reviews;
-
-      updateData['updatedAt'] = FieldValue.serverTimestamp();
-
+      // Para actualizaciones, no cambiamos el campo addedBy
       await _firestore
           .collection(FirebaseConstant.trustedUsers)
           .doc(id)
-          .update(updateData);
+          .update({
+        'aliasName': aliasName,
+        'mobileNumber': mobileNumber,
+        'location': location,
+        'isTrusted': isTrusted,
+        'servicesProvided': servicesProvided,
+        'telegramAccount': telegramAccount,
+        'otherAccounts': otherAccounts,
+        'reviews': reviews,
+        'updatedAt': FieldValue
+            .serverTimestamp(), // Se puede agregar un campo para la última actualización
+        // No actualizamos 'addedBy' para mantener el registro original
+      });
 
-      // If we're updating the currently selected user, update it in the state
-      if (state.selectedUser?.id == id) {
-        // Fetch the updated user data
-        DocumentSnapshot doc = await _firestore
-            .collection(FirebaseConstant.trustedUsers)
-            .doc(id)
-            .get();
+      // Si queremos registrar quién actualizó, podríamos añadir otro campo
+      // 'lastUpdatedBy': adminName,
 
-        state = state.copyWith(
-          selectedUser: UserModel.fromFirestore(doc),
-          isLoading: false,
-        );
-      } else {
-        state = state.copyWith(isLoading: false);
-      }
-
+      state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(

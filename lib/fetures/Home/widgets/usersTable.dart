@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/status_chip.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_card.dart';
@@ -383,14 +382,6 @@ class UsersListScreen extends ConsumerWidget {
                                 Expanded(
                                   child: UsersDataTable(
                                     users: displayedUsers,
-                                    // onSort: (field, ascending) {
-                                    //   homeNotifier.setSort(field, ascending: ascending);
-                                    // },
-                                    // onUserTap: (user) {
-                                    //   homeNotifier.visibleBar(selected: user);
-                                    // },
-                                    // currentSortField: sortField,
-                                    // isAscending: sortAscending,
                                   ),
                                 ),
                                 if (filteredUsers.length > pageSize)
@@ -1488,6 +1479,7 @@ class UsersListScreen extends ConsumerWidget {
                 formKey.currentState?.save();
 
                 final success = await homeNotifier.addUser(
+                  ref: ref,
                   aliasName: aliasName,
                   mobileNumber: mobileNumber,
                   location: location,

@@ -46,7 +46,7 @@ class UsersDataTable extends ConsumerWidget {
           columns: [
             DataColumn(
               label: Text(
-                'الاسمsss',
+                'الاسم', // Fixed typo
                 style: GoogleFonts.cairo(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey.shade800,
@@ -89,6 +89,15 @@ class UsersDataTable extends ConsumerWidget {
                 ),
               ),
             ),
+            DataColumn(
+              label: Text(
+                'تم بواسطة',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ),
             const DataColumn(label: Text('')),
           ],
           rows: users.map((usern) {
@@ -121,11 +130,6 @@ class UsersDataTable extends ConsumerWidget {
                     role: userData.role, // Convert to int if it exists
                     compact: true,
                   ),
-                  // StatusChip(
-                  //   isTrusted: user["isTrusted"] ?? false,
-                  //   role: user["role"],
-                  //   compact: true,
-                  // ),
                 ),
                 DataCell(
                   GestureDetector(
@@ -189,6 +193,29 @@ class UsersDataTable extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
+                  ),
+                ),
+                // DataCell(Text(usern['reviews'],
+                //     style: GoogleFonts.cairo())), // Show who added the user
+                DataCell(
+                  Builder(
+                    builder: (context) {
+                      String addedByValue = 'Unknown';
+                      try {
+                        final data = usern.data();
+                        if (data != null && data is Map<String, dynamic>) {
+                          if (data.containsKey('addedBy')) {
+                            addedByValue = data['addedBy'] ?? 'Unknown';
+                          }
+                        }
+                      } catch (e) {
+                        // Silently handle any errors
+                      }
+                      return Text(
+                        addedByValue,
+                        style: GoogleFonts.cairo(),
+                      );
+                    },
                   ),
                 ),
                 DataCell(

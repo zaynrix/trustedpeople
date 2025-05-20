@@ -11,6 +11,8 @@ class UserModel {
   final String reviews;
   final bool isTrusted;
   final int role; // Added role field
+  final DateTime? createdAt;
+  final String addedBy; // Nuevo campo
 
   UserModel({
     required this.id,
@@ -23,6 +25,8 @@ class UserModel {
     required this.reviews,
     required this.isTrusted,
     required this.role, // Add to constructor
+    this.createdAt,
+    this.addedBy = '', // Valor por defecto
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot snapshot) {
@@ -49,7 +53,11 @@ class UserModel {
       otherAccounts: data?['otherAccounts'] ?? '',
       reviews: data?['reviews'] ?? '',
       isTrusted: data?['isTrusted'] ?? false,
-      role: role, // Add role to constructor
+      role: role,
+      createdAt: data?['createdAt'] != null
+          ? (data?['createdAt'] as Timestamp).toDate()
+          : null,
+      addedBy: data?['addedBy'] ?? '', // Add role to constructor
     );
   }
 
