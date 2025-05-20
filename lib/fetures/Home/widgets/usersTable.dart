@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/core/widgets/custom_filter_chip.dart';
 import 'package:trustedtallentsvalley/core/widgets/empty_state_widget.dart';
 import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
@@ -639,7 +640,8 @@ class UsersListScreen extends ConsumerWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildFilterChip(
+          CustomFilterChip(
+            primaryColor: Colors.green,
             label: 'الكل',
             icon: Icons.all_inclusive,
             selected: filterMode == FilterMode.all,
@@ -648,11 +650,10 @@ class UsersListScreen extends ConsumerWidget {
                 homeNotifier.setFilterMode(FilterMode.all);
               }
             },
-            context: context,
           ),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.green,
             label: 'لديهم تقييمات',
             icon: Icons.star_rounded,
             selected: filterMode == FilterMode.withReviews,
@@ -663,8 +664,8 @@ class UsersListScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.green,
             label: 'بدون تيليجرام',
             icon: Icons.telegram,
             selected: filterMode == FilterMode.withoutTelegram,
@@ -675,8 +676,8 @@ class UsersListScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(width: 8),
-          _buildFilterChip(
-            context: context,
+          CustomFilterChip(
+            primaryColor: Colors.green,
             label: 'حسب الموقع',
             icon: Icons.location_on_rounded,
             selected: filterMode == FilterMode.byLocation,
@@ -691,46 +692,6 @@ class UsersListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterChip({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required bool selected,
-    required Function(bool) onSelected,
-  }) {
-    return InkWell(
-      onTap: () => onSelected(!selected),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? primaryColor : Colors.grey.shade300,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected ? Colors.white : Colors.grey.shade700,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.cairo(
-                color: selected ? Colors.white : Colors.grey.shade700,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // Pagination controls
   Widget _buildPagination(BuildContext context, WidgetRef ref, int totalItems) {
