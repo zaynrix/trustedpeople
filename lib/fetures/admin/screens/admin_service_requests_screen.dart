@@ -82,6 +82,8 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
             labelStyle: GoogleFonts.cairo(fontWeight: FontWeight.bold),
             unselectedLabelStyle: GoogleFonts.cairo(),
             indicatorColor: Colors.white,
+            unselectedLabelColor: Colors.black,
+            labelColor: Colors.white,
           ),
         ),
         body: requestsStream.when(
