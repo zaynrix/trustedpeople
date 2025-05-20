@@ -1918,39 +1918,61 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnalyticsColumnWithData(Map<String, dynamic> data, context) {
+  Widget _buildAnalyticsColumnWithData(
+      Map<String, dynamic> data, BuildContext context) {
+    // Handle null or empty data
+    if (data == null || data.isEmpty) {
+      return const Center(child: Text('No data available'));
+    }
+
+    // Fix property name mismatch - monthlyVisits vs monthlyVisitors
+    final monthlyVisits = data['monthlyVisitors'] ?? data['monthlyVisits'] ?? 0;
+
+    // Ensure all values are properly formatted to avoid null errors
+    final todayVisitors = data['todayVisitors'] ?? 0;
+    final percentChange = data['percentChange'] ?? 0.0;
+    final totalVisitors = data['totalVisitors'] ?? 0;
+    final avgSessionDuration = data['avgSessionDuration'] ?? '0:00';
+
     return Column(
       children: [
         InkWell(
-          onTap: () => context.goNamed('admin_dashboard'),
+          onTap: () {
+            GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+          },
           child: _buildAnalyticItem(
-            onTap: () {
-              print("clicked");
-              context.goNamed('admin_dashboard');
-            }, // Use context from the build method
-
-            data['todayVisits'].toString(),
+            todayVisitors.toString(),
             'زيارة اليوم',
             Icons.trending_up,
             Colors.green,
-            '${data['percentChange'].toStringAsFixed(1)}% عن أمس',
+            '${percentChange.toStringAsFixed(1)}% عن أمس',
           ),
         ),
         const SizedBox(height: 16),
-        _buildAnalyticItem(
-          data['totalVisitors'].toString(),
-          'إجمالي الزيارات',
-          Icons.people,
-          Colors.blue,
-          '${data['monthlyVisits']} زيارة هذا الشهر',
+        InkWell(
+          onTap: () {
+            GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+          },
+          child: _buildAnalyticItem(
+            totalVisitors.toString(),
+            'إجمالي الزيارات',
+            Icons.people,
+            Colors.blue,
+            '$monthlyVisits زيارة هذا الشهر',
+          ),
         ),
         const SizedBox(height: 16),
-        _buildAnalyticItem(
-          data['avgSessionDuration'],
-          'متوسط مدة الزيارة',
-          Icons.timer,
-          Colors.orange,
-          'تحديث لحظي',
+        InkWell(
+          onTap: () {
+            GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+          },
+          child: _buildAnalyticItem(
+            avgSessionDuration,
+            'متوسط مدة الزيارة',
+            Icons.timer,
+            Colors.orange,
+            'تحديث لحظي',
+          ),
         ),
       ],
     );
