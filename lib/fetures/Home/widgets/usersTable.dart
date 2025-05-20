@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/core/widgets/empty_state_widget.dart';
+import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/status_chip.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_card.dart';
@@ -29,7 +30,6 @@ class UsersListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
     final isTablet = screenSize.width >= 768 && screenSize.width < 1200;
@@ -236,7 +236,7 @@ class UsersListScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Expanded(
                 child: displayedUsers.isEmpty
-                    ? _buildEmptyState()
+                    ? const EmptyStateWidget()
                     : RefreshIndicator(
                         onRefresh: () async {
                           // Refresh the data
@@ -292,7 +292,7 @@ class UsersListScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Expanded(
                 child: displayedUsers.isEmpty
-                    ? _buildEmptyState()
+                    ? const EmptyStateWidget()
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -373,7 +373,7 @@ class UsersListScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Expanded(
                 child: displayedUsers.isEmpty
-                    ? _buildEmptyState()
+                    ? const EmptyStateWidget()
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -417,8 +417,8 @@ class UsersListScreen extends ConsumerWidget {
               ),
               // Stats footer for larger screens
               if (!isMobile)
-                _buildStatsFooter(
-                    context, filteredUsers.length, snapshot.docs.length),
+                FooterStateWidget(
+                   filteredCount:  filteredUsers.length,totalCount: snapshot.docs.length),
             ],
           );
         }
@@ -826,42 +826,6 @@ class UsersListScreen extends ConsumerWidget {
     );
   }
 
-  // Stats footer
-  Widget _buildStatsFooter(
-      BuildContext context, int filteredCount, int totalCount) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline,
-            size: 16,
-            color: Colors.grey.shade700,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'عرض $filteredCount من إجمالي $totalCount',
-            style: GoogleFonts.cairo(
-              color: Colors.grey.shade700,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'آخر تحديث: ${DateTime.now().toString().substring(0, 16)}',
-            style: GoogleFonts.cairo(
-              color: Colors.grey.shade700,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showUserDetailBottomSheet(
       BuildContext context, WidgetRef ref, UserModel user) {
@@ -930,38 +894,6 @@ class UsersListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لم يتم العثور على أي نتائج',
-            style: GoogleFonts.cairo(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'حاول البحث بكلمات مفتاحية أخرى',
-            style: GoogleFonts.cairo(
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Dialog to filter by location
   void _showLocationFilterDialog(BuildContext context, WidgetRef ref) {
     final homeNotifier = ref.read(homeProvider.notifier);
     final locations = ref.watch(locationsProvider);
