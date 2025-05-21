@@ -26,10 +26,10 @@ class ServicesScreen extends ConsumerWidget {
     final filteredServices = ref.watch(filteredServicesProvider);
     final categories = ref.watch(serviceCategoriesProvider);
 // Add at the beginning of ServicesScreen build method
-    print(
+    debugPrint(
         "Building ServicesScreen with ${filteredServices.length} filtered services");
-    print("Filter category: ${ref.watch(servicesProvider).categoryFilter}");
-    print(
+    debugPrint("Filter category: ${ref.watch(servicesProvider).categoryFilter}");
+    debugPrint(
         "isActive services: ${filteredServices.where((s) => s.isActive).length}");
     return Scaffold(
       appBar: AppBar(
@@ -55,83 +55,74 @@ class ServicesScreen extends ConsumerWidget {
       drawer: isMobile ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Side drawer for larger screens
-              if (!isMobile) const AppDrawer(isPermanent: true),
+          return Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(24.0),
+              child: servicesState.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        _buildHeroSection(context),
+                        const SizedBox(height: 24),
 
-              // Main content
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(24.0),
-                  child: servicesState.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // Search and filter
+                        Row(
                           children: [
-                            // Header
-                            _buildHeroSection(context),
-                            const SizedBox(height: 24),
-
-                            // Search and filter
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SearchField(
-                                    onChanged: (value) {
-                                      ref
-                                          .read(servicesProvider.notifier)
-                                          .setSearchQuery(value);
-                                    },
-                                    hintText: 'البحث في الخدمات المتوفرة...',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                categories.when(
-                                  data: (categoryStrings) {
-                                    final serviceCategories = categoryStrings
-                                        .map(
-                                            ServiceCategoryExtension.fromString)
-                                        .toList();
-
-                                    return _buildCategoryFilter(
-                                        context, ref, serviceCategories);
-                                  },
-                                  loading: () => const Center(
-                                      child: CircularProgressIndicator()),
-                                  error: (error, _) => Center(
-                                      child: Text(
-                                          'حدث خطأ أثناء تحميل التصنيفات')),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Services grid
-                            if (servicesState.errorMessage != null)
-                              Center(
-                                child: Text(
-                                  servicesState.errorMessage!,
-                                  style: GoogleFonts.cairo(color: Colors.red),
-                                ),
-                              )
-                            else if (filteredServices.isEmpty)
-                              _buildEmptyState()
-                            else
-                              Expanded(
-                                child: _buildServicesGrid(
-                                  ref,
-                                  context,
-                                  filteredServices,
-                                  isMobile,
-                                ),
+                            Expanded(
+                              child: SearchField(
+                                onChanged: (value) {
+                                  ref
+                                      .read(servicesProvider.notifier)
+                                      .setSearchQuery(value);
+                                },
+                                hintText: 'البحث في الخدمات المتوفرة...',
                               ),
+                            ),
+                            const SizedBox(width: 16),
+                            categories.when(
+                              data: (categoryStrings) {
+                                final serviceCategories = categoryStrings
+                                    .map(
+                                        ServiceCategoryExtension.fromString)
+                                    .toList();
+
+                                return _buildCategoryFilter(
+                                    context, ref, serviceCategories);
+                              },
+                              loading: () => const Center(
+                                  child: CircularProgressIndicator()),
+                              error: (error, _) => Center(
+                                  child: Text(
+                                      'حدث خطأ أثناء تحميل التصنيفات')),
+                            ),
                           ],
                         ),
-                ),
-              ),
-            ],
+                        const SizedBox(height: 24),
+
+                        // Services grid
+                        if (servicesState.errorMessage != null)
+                          Center(
+                            child: Text(
+                              servicesState.errorMessage!,
+                              style: GoogleFonts.cairo(color: Colors.red),
+                            ),
+                          )
+                        else if (filteredServices.isEmpty)
+                          _buildEmptyState()
+                        else
+                          Expanded(
+                            child: _buildServicesGrid(
+                              ref,
+                              context,
+                              filteredServices,
+                              isMobile,
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
           );
         },
       ),

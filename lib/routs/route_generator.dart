@@ -15,6 +15,7 @@ import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
+import 'package:trustedtallentsvalley/fetures/main_screen.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 import 'package:trustedtallentsvalley/services/screens/services_screen.dart';
 
@@ -29,6 +30,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: ScreensNames.homePath,
+      routes: [
+      // Wrap all routes with the AppShell
+      ShellRoute(
+      builder: (context, state, child) {
+    // Mobile drawer will be handled by AppShell based on screen size
+    return AppShell(child: child);
+  },
     routes: [
       GoRoute(
         path: ScreensNames.homePath,
@@ -169,7 +177,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
         },
       ),
-    ],
+    ],)],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),
       body: Center(

@@ -127,21 +127,11 @@ class ProtectionGuideScreen extends ConsumerWidget {
           : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Show permanent drawer on larger screens
-              if (constraints.maxWidth > 768)
-                const AppDrawer(isPermanent: true),
-
-              // Main content area
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildProtectionContent(context, ref, tipsAsync),
-                ),
-              ),
-            ],
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildProtectionContent(context, ref, tipsAsync),
+            ),
           );
         },
       ),

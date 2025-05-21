@@ -261,18 +261,8 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
       drawer: isMobile ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Show permanent drawer on larger screens
-              if (constraints.maxWidth > 768)
-                const AppDrawer(isPermanent: true),
-
-              // Main content area
-              Expanded(
-                child: isAdmin ? _buildAdminView() : _buildContactForm(context),
-              ),
-            ],
+          return Expanded(
+            child: isAdmin ? _buildAdminView() : _buildContactForm(context),
           );
         },
       ),

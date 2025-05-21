@@ -66,40 +66,31 @@ class AdminServicesScreen extends ConsumerWidget {
       drawer: isSmallScreen ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Side drawer for larger screens
-              if (!isSmallScreen) const AppDrawer(isPermanent: true),
-
-              // Main content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeaderSection(),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: servicesStream.when(
-                          data: (services) =>
-                              _buildServicesList(context, ref, services),
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (error, stack) => Center(
-                            child: Text(
-                              'حدث خطأ: $error',
-                              style: GoogleFonts.cairo(color: Colors.red),
-                            ),
-                          ),
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeaderSection(),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: servicesStream.when(
+                      data: (services) =>
+                          _buildServicesList(context, ref, services),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, stack) => Center(
+                        child: Text(
+                          'حدث خطأ: $error',
+                          style: GoogleFonts.cairo(color: Colors.red),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           );
         },
       ),

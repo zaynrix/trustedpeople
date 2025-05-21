@@ -60,28 +60,18 @@ class PaymentPlacesScreen extends ConsumerWidget {
           MediaQuery.of(context).size.width < 768 ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Side drawer for larger screens
-              if (constraints.maxWidth >= 768)
-                const AppDrawer(isPermanent: true),
-
-              // Main content
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(24.0),
-                  child: _buildMainContent(
-                    context,
-                    ref,
-                    constraints,
-                    isMobile: constraints.maxWidth < 768,
-                    isTablet: constraints.maxWidth >= 768 &&
-                        constraints.maxWidth < 1200,
-                  ),
-                ),
+          return Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(24.0),
+              child: _buildMainContent(
+                context,
+                ref,
+                constraints,
+                isMobile: constraints.maxWidth < 768,
+                isTablet: constraints.maxWidth >= 768 &&
+                    constraints.maxWidth < 1200,
               ),
-            ],
+            ),
           );
         },
       ),
@@ -89,8 +79,8 @@ class PaymentPlacesScreen extends ConsumerWidget {
           ? FloatingActionButton(
               backgroundColor: Colors.blue.shade600,
               onPressed: () => _showAddPlaceDialog(context, ref),
-              child: const Icon(Icons.add),
               tooltip: 'إضافة متجر جديد',
+              child: const Icon(Icons.add),
             )
           : null,
     );

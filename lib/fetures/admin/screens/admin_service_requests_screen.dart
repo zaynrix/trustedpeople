@@ -1,21 +1,27 @@
 // lib/fetures/admin/screens/admin_service_requests_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 import 'package:trustedtallentsvalley/services/providers/service_requests_provider.dart';
 
 import '../../../services/service_model.dart';
 
 class AdminServiceRequestsScreen extends ConsumerWidget {
-  const AdminServiceRequestsScreen({Key? key}) : super(key: key);
+  const AdminServiceRequestsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminProvider);
     final requestsStream = ref.watch(allServiceRequestsProvider);
     final pendingRequestsCount = ref.watch(newRequestsCountProvider);
-
+    final screenSize = MediaQuery.of(context).size;
+    final isMobile = screenSize.width < 768;
+    final isTablet = screenSize.width >= 768 && screenSize.width < 1200;
     if (!isAdmin) {
       return const Scaffold(
         body: Center(
@@ -28,18 +34,12 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final adminId = authState.user?.uid ?? '';
     final adminName = authState.user?.email?.split('@').first ?? 'مشرف';
-
-    return DefaultTabController(
+    final mainContent = DefaultTabController(
       length: 4, // For the different request status tabs
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-            'إدارة طلبات الخدمات',
-            style: GoogleFonts.cairo(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+          toolbarHeight: 20,
+          automaticallyImplyLeading: isMobile,
           backgroundColor: Colors.teal,
           bottom: TabBar(
             tabs: [
@@ -86,31 +86,32 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
             labelColor: Colors.white,
           ),
         ),
+        drawer: isMobile ? const AppDrawer() : null,
         body: requestsStream.when(
           data: (requests) {
             // Filter requests based on status for each tab
             final pendingRequests = requests
                 .where(
                   (request) => request.status == ServiceRequestStatus.pending,
-                )
+            )
                 .toList();
 
             final processingRequests = requests
                 .where(
                   (request) =>
-                      request.status == ServiceRequestStatus.inProgress,
-                )
+              request.status == ServiceRequestStatus.inProgress,
+            )
                 .toList();
 
             final completedRequests = requests
                 .where(
                   (request) => request.status == ServiceRequestStatus.completed,
-                )
+            )
                 .toList();
 
             final cancelledRejectedRequests = requests
                 .where((request) =>
-                    request.status == ServiceRequestStatus.cancelled)
+            request.status == ServiceRequestStatus.cancelled)
                 .toList();
 
             return TabBarView(
@@ -170,7 +171,27 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
         ),
       ),
     );
+
+    if (isMobile) {
+      return mainContent;
+    }
+    return Scaffold(
+      // appBar: AppBar(
+      //   backgroundColor: Colors.teal,
+      //   centerTitle: true,
+      //   title: Text(
+      //     'إدارة طلبات الخدمات',
+      //     style: GoogleFonts.cairo(
+      //       fontWeight: FontWeight.bold,
+      //       color: Colors.white,
+      //     ),
+      //   ),
+      // ),
+      body: Expanded(child: mainContent),
+    );
   }
+
+
 
   Widget _buildRequestsTab(
     BuildContext context,

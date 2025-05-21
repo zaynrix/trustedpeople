@@ -86,23 +86,17 @@ class UsersListScreen extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator())
           : LayoutBuilder(
               builder: (context, constraints) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!isMobile) const AppDrawer(isPermanent: true),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(24.0),
-                        child: _buildMainContent(
-                          context,
-                          ref,
-                          constraints,
-                          isMobile: isMobile,
-                          isTablet: isTablet,
-                        ),
-                      ),
+                return Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(24.0),
+                    child: _buildMainContent(
+                      context,
+                      ref,
+                      constraints,
+                      isMobile: isMobile,
+                      isTablet: isTablet,
                     ),
-                  ],
+                  ),
                 );
               },
             ),

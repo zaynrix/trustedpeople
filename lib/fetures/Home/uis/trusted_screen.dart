@@ -18,6 +18,7 @@ class TrustedUsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usersStream = ref.watch(trustedUsersStreamProvider);
 
+
     return UsersListScreen(
       title: "قائمة الموثوقين",
       usersStream: usersStream,
