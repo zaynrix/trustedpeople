@@ -11,6 +11,7 @@ import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/status_chip.dart';
+import 'package:trustedtallentsvalley/fetures/Home/widgets/trusted_help_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_card.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_info_card.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/users_data_table.dart';
@@ -66,7 +67,7 @@ class UsersListScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.help_outline_rounded),
             onPressed: () {
-              _showHelpDialog(context);
+              showHelpDialog(context);
             },
             tooltip: 'المساعدة',
           ),
@@ -928,83 +929,6 @@ class UsersListScreen extends ConsumerWidget {
               Navigator.pop(context);
             },
             child: Text('إلغاء', style: GoogleFonts.cairo()),
-          ),
-        ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
-
-  // Help dialog
-  void _showHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.help_outline, color: primaryColor),
-            const SizedBox(width: 8),
-            Text(
-              'المساعدة',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              HelpItemWidget(
-                primaryColor: primaryColor,
-                title: 'البحث',
-                description: 'يمكنك البحث بالاسم أو رقم الجوال أو الموقع',
-                icon: Icons.search,
-              ),
-              const Divider(),
-              HelpItemWidget(
-                primaryColor: primaryColor,
-                title: 'التصفية',
-                description: 'استخدم خيارات التصفية لعرض نتائج محددة',
-                icon: Icons.filter_list,
-              ),
-              const Divider(),
-              HelpItemWidget(
-                primaryColor: primaryColor,
-                title: 'الترتيب',
-                description: 'يمكنك ترتيب النتائج حسب الاسم أو الموقع أو غيرها',
-                icon: Icons.sort,
-              ),
-              const Divider(),
-              HelpItemWidget(
-                primaryColor: primaryColor,
-                title: 'التفاصيل',
-                description: 'انقر على "المزيد" لعرض جميع تفاصيل المستخدم',
-                icon: Icons.info_outline,
-              ),
-              const Divider(),
-              HelpItemWidget(
-                primaryColor: primaryColor,
-                title: 'نسخ البيانات',
-                description: 'انقر على أي معلومة لنسخها إلى الحافظة',
-                icon: Icons.content_copy,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إغلاق',
-              style: GoogleFonts.cairo(
-                color: primaryColor,
-              ),
-            ),
           ),
         ],
         shape: RoundedRectangleBorder(
