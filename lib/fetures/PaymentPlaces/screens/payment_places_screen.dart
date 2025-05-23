@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/core/widgets/empty_state_widget.dart';
+import 'package:trustedtallentsvalley/core/widgets/help_item_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
@@ -226,7 +228,7 @@ class PaymentPlacesScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Expanded(
                 child: displayedPlaces.isEmpty
-                    ? _buildEmptyState()
+                    ? const EmptyStateWidget()
                     : RefreshIndicator(
                         onRefresh: () async {
                           // Refresh the data
@@ -284,7 +286,7 @@ class PaymentPlacesScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Expanded(
                 child: displayedPlaces.isEmpty
-                    ? _buildEmptyState()
+                    ? const EmptyStateWidget()
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -364,7 +366,7 @@ class PaymentPlacesScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Expanded(
                 child: displayedPlaces.isEmpty
-                    ? _buildEmptyState()
+                    ? const EmptyStateWidget()
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -838,37 +840,6 @@ class PaymentPlacesScreen extends ConsumerWidget {
     );
   }
 
-  // Empty state widget
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لم يتم العثور على أي نتائج',
-            style: GoogleFonts.cairo(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'حاول البحث بكلمات مفتاحية أخرى',
-            style: GoogleFonts.cairo(
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // Bottom sheet for mobile
   void _showPlaceDetailBottomSheet(
@@ -1141,34 +1112,39 @@ class PaymentPlacesScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: Colors.blue.shade600,
                 title: 'البحث',
                 description: 'يمكنك البحث باسم المكان أو الموقع أو التصنيف',
                 icon: Icons.search,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: Colors.blue.shade600,
                 title: 'التصفية',
                 description:
                     'استخدم خيارات التصفية لعرض نتائج محددة (حسب التصنيف، الموقع، أو التقييم)',
                 icon: Icons.filter_list,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: Colors.blue.shade600,
                 title: 'الترتيب',
                 description:
                     'يمكنك ترتيب النتائج حسب الاسم أو الموقع أو التقييم',
                 icon: Icons.sort,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: Colors.blue.shade600,
                 title: 'التفاصيل',
                 description:
                     'انقر على "المزيد" أو على بطاقة المكان لعرض جميع التفاصيل',
                 icon: Icons.info_outline,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: Colors.blue.shade600,
                 title: 'طرق الدفع',
                 description: 'تظهر طرق الدفع المقبولة لكل متجر بألوان مختلفة',
                 icon: Icons.payment,
@@ -1190,42 +1166,6 @@ class PaymentPlacesScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-      ),
-    );
-  }
-
-  // Helper for building help items
-  Widget _buildHelpItem({
-    required String title,
-    required String description,
-    required IconData icon,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Colors.blue.shade600),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: GoogleFonts.cairo(),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

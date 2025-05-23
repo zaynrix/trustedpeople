@@ -6,6 +6,7 @@ import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/core/widgets/custom_filter_chip.dart';
 import 'package:trustedtallentsvalley/core/widgets/empty_state_widget.dart';
 import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
+import 'package:trustedtallentsvalley/core/widgets/help_item_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
@@ -958,31 +959,36 @@ class UsersListScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: primaryColor,
                 title: 'البحث',
                 description: 'يمكنك البحث بالاسم أو رقم الجوال أو الموقع',
                 icon: Icons.search,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: primaryColor,
                 title: 'التصفية',
                 description: 'استخدم خيارات التصفية لعرض نتائج محددة',
                 icon: Icons.filter_list,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: primaryColor,
                 title: 'الترتيب',
                 description: 'يمكنك ترتيب النتائج حسب الاسم أو الموقع أو غيرها',
                 icon: Icons.sort,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: primaryColor,
                 title: 'التفاصيل',
                 description: 'انقر على "المزيد" لعرض جميع تفاصيل المستخدم',
                 icon: Icons.info_outline,
               ),
               const Divider(),
-              _buildHelpItem(
+              HelpItemWidget(
+                primaryColor: primaryColor,
                 title: 'نسخ البيانات',
                 description: 'انقر على أي معلومة لنسخها إلى الحافظة',
                 icon: Icons.content_copy,
@@ -1004,42 +1010,6 @@ class UsersListScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-      ),
-    );
-  }
-
-  // Helper for building help items
-  Widget _buildHelpItem({
-    required String title,
-    required String description,
-    required IconData icon,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: primaryColor),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: GoogleFonts.cairo(),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
