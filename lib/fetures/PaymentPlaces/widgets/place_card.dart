@@ -10,10 +10,10 @@ class PlaceCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const PlaceCard({
-    Key? key,
+    super.key,
     required this.place,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +138,7 @@ class PlaceCard extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Icon(Icons.star_rounded,
+                          const Icon(Icons.star_rounded,
                               color: Colors.amber, size: 18),
                           const SizedBox(width: 4),
                           Text(
@@ -212,7 +212,7 @@ class PlaceCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Icon(Icons.content_copy, size: 12, color: Colors.blue),
+                        const Icon(Icons.content_copy, size: 12, color: Colors.blue),
                       ],
                     ),
                   ),
