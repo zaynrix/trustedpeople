@@ -4,7 +4,7 @@
 // import 'package:go_router/go_router.dart';
 // import 'package:google_fonts/google_fonts.dart';
 // import 'package:trustedtallentsvalley/routs/route_generator.dart';
-// import 'package:trustedtallentsvalley/services/auth_service.dart';
+// import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 //
 // class LoginScreen extends ConsumerStatefulWidget {
 //   const LoginScreen({Key? key}) : super(key: key);

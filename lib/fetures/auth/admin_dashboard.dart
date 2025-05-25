@@ -1,14 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
-import 'package:trustedtallentsvalley/services/visitor_analytics_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/visitor_analytics_service.dart';
 
 import 'BlockedUsersScreen.dart';
 import 'EnhancedVisitorDetails.dart';
@@ -165,7 +164,7 @@ class AdminDashboard extends ConsumerWidget {
     final visitorSearch = ref.watch(visitorSearchProvider);
 
     // Watch analytics state to trigger data loading
-    final analyticsState = ref.watch(analyticsStateProvider);
+    // final analyticsState = ref.watch(analyticsStateProvider);
 
     // Get screen size info
     final screenSize = MediaQuery.of(context).size;
@@ -1208,58 +1207,47 @@ class AdminDashboard extends ConsumerWidget {
   }
 
   // Enhanced security info row with copy and block options
-  Widget _buildSecurityInfoRow(
-    String label,
-    String value, {
-    VoidCallback? onCopy,
-    VoidCallback? onBlock,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.cairo(),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (onCopy != null)
-            IconButton(
-              icon: const Icon(Icons.copy, size: 16),
-              onPressed: onCopy,
-              tooltip: 'نسخ',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          if (onBlock != null)
-            IconButton(
-              icon: const Icon(Icons.block, size: 16, color: Colors.red),
-              onPressed: onBlock,
-              tooltip: 'حظر',
-              padding: const EdgeInsets.only(right: 8),
-              constraints: const BoxConstraints(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Copy to clipboard helper
-  void _copyToClipboard(String text, context) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('تم النسخ', style: GoogleFonts.cairo()),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
+  // Widget _buildSecurityInfoRow(
+  //   String label,
+  //   String value, {
+  //   VoidCallback? onCopy,
+  //   VoidCallback? onBlock,
+  // }) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 8.0),
+  //     child: Row(
+  //       children: [
+  //         Text(
+  //           '$label: ',
+  //           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+  //         ),
+  //         Expanded(
+  //           child: Text(
+  //             value,
+  //             style: GoogleFonts.cairo(),
+  //             overflow: TextOverflow.ellipsis,
+  //           ),
+  //         ),
+  //         if (onCopy != null)
+  //           IconButton(
+  //             icon: const Icon(Icons.copy, size: 16),
+  //             onPressed: onCopy,
+  //             tooltip: 'نسخ',
+  //             padding: EdgeInsets.zero,
+  //             constraints: const BoxConstraints(),
+  //           ),
+  //         if (onBlock != null)
+  //           IconButton(
+  //             icon: const Icon(Icons.block, size: 16, color: Colors.red),
+  //             onPressed: onBlock,
+  //             tooltip: 'حظر',
+  //             padding: const EdgeInsets.only(right: 8),
+  //             constraints: const BoxConstraints(),
+  //           ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   // Show block dialog and add to blocked users
   void _showBlockDialog(

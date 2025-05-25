@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Provider for detailed user information

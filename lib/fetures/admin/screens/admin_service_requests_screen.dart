@@ -1,15 +1,12 @@
 // lib/fetures/admin/screens/admin_service_requests_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/routs/route_generator.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
-import 'package:trustedtallentsvalley/services/providers/service_requests_provider.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/providers/service_requests_provider.dart';
 
-import '../../../services/service_model.dart';
+import '../../../fetures/services/service_model.dart';
 
 class AdminServiceRequestsScreen extends ConsumerWidget {
   const AdminServiceRequestsScreen({super.key});
@@ -21,7 +18,6 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     final pendingRequestsCount = ref.watch(newRequestsCountProvider);
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
-    final isTablet = screenSize.width >= 768 && screenSize.width < 1200;
     if (!isAdmin) {
       return const Scaffold(
         body: Center(
@@ -93,25 +89,25 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
             final pendingRequests = requests
                 .where(
                   (request) => request.status == ServiceRequestStatus.pending,
-            )
+                )
                 .toList();
 
             final processingRequests = requests
                 .where(
                   (request) =>
-              request.status == ServiceRequestStatus.inProgress,
-            )
+                      request.status == ServiceRequestStatus.inProgress,
+                )
                 .toList();
 
             final completedRequests = requests
                 .where(
                   (request) => request.status == ServiceRequestStatus.completed,
-            )
+                )
                 .toList();
 
             final cancelledRejectedRequests = requests
                 .where((request) =>
-            request.status == ServiceRequestStatus.cancelled)
+                    request.status == ServiceRequestStatus.cancelled)
                 .toList();
 
             return TabBarView(
@@ -191,8 +187,6 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     );
   }
 
-
-
   Widget _buildRequestsTab(
     BuildContext context,
     WidgetRef ref,
@@ -253,17 +247,15 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     // Format the timestamp
     final createdDate = request.createdAt;
     String formattedDate = '';
-    if (createdDate != null) {
-      // Convert Timestamp to DateTime
-      final dateTime = createdDate.toDate();
+    // Convert Timestamp to DateTime
+    final dateTime = createdDate.toDate();
 
-      // Format: DD/MM/YYYY HH:MM
-      formattedDate = '${dateTime.day.toString().padLeft(2, '0')}/'
-          '${dateTime.month.toString().padLeft(2, '0')}/'
-          '${dateTime.year} '
-          '${dateTime.hour.toString().padLeft(2, '0')}:'
-          '${dateTime.minute.toString().padLeft(2, '0')}';
-    }
+    // Format: DD/MM/YYYY HH:MM
+    formattedDate = '${dateTime.day.toString().padLeft(2, '0')}/'
+        '${dateTime.month.toString().padLeft(2, '0')}/'
+        '${dateTime.year} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:'
+        '${dateTime.minute.toString().padLeft(2, '0')}';
     // Determine card color based on status
     Color statusColor;
     switch (request.status) {
@@ -470,8 +462,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
             ),
 
             // Notes section (if available)
-            if (request.requirements != null &&
-                request.requirements!.isNotEmpty) ...[
+            if (request.requirements.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -491,7 +482,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      request.requirements!,
+                      request.requirements,
                       style: GoogleFonts.cairo(),
                     ),
                   ],

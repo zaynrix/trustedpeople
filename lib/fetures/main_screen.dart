@@ -4,8 +4,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
 
 /// Main shell that provides a consistent layout with NavigationRail for all screens
 class AppShell extends ConsumerStatefulWidget {
@@ -60,10 +60,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Widget _buildCustomNavigationRail(
-      BuildContext context,
-      bool isAdmin,
-      AuthState authState,
-      ) {
+    BuildContext context,
+    bool isAdmin,
+    AuthState authState,
+  ) {
     // Get current route info for highlighting active item
     final location = GoRouterState.of(context).matchedLocation;
     final currentRouteName = GoRouterState.of(context).name;
@@ -92,42 +92,48 @@ class _AppShellState extends ConsumerState<AppShell> {
                     Icons.home,
                     "الصفحة الرئيسية",
                     ScreensNames.home,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.home, ScreensNames.homePath),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.home, ScreensNames.homePath),
                   ),
                   _buildNavItem(
                     context,
                     Icons.verified_user,
                     "قائمة الموثوقين",
                     ScreensNames.trusted,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.trusted, ScreensNames.trustedPath),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.trusted, ScreensNames.trustedPath),
                   ),
                   _buildNavItem(
                     context,
                     Icons.block,
                     "قائمة النصابين",
                     ScreensNames.untrusted,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.untrusted, ScreensNames.untrustedPath),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.untrusted, ScreensNames.untrustedPath),
                   ),
                   _buildNavItem(
                     context,
                     Icons.payment_outlined,
                     "أماكن تقبل الدفع البنكي",
                     ScreensNames.ort,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.ort, ScreensNames.ortPath),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.ort, ScreensNames.ortPath),
                   ),
                   _buildNavItem(
                     context,
                     Icons.description,
                     "كيف تحمي نفسك؟",
                     ScreensNames.instruction,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.instruction, ScreensNames.instructionPath),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.instruction, ScreensNames.instructionPath),
                   ),
                   _buildNavItem(
                     context,
                     Icons.shopping_cart,
                     "اطلب خدمتك",
                     ScreensNames.services,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.services, '/services'),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.services, '/services'),
                   ),
 
                   // Admin-only items with correct route names
@@ -137,14 +143,19 @@ class _AppShellState extends ConsumerState<AppShell> {
                       Icons.admin_panel_settings,
                       "إدارة الخدمات",
                       ScreensNames.adminServices,
-                      isActive: _isRouteActive(currentRouteName, location, ScreensNames.adminServices, '/admin/services'),
+                      isActive: _isRouteActive(currentRouteName, location,
+                          ScreensNames.adminServices, '/admin/services'),
                     ),
                     _buildNavItem(
                       context,
                       Icons.support_agent,
                       "طلبات الخدمات",
                       ScreensNames.adminServiceRequests,
-                      isActive: _isRouteActive(currentRouteName, location, ScreensNames.adminServiceRequests, '/admin/service-requests'),
+                      isActive: _isRouteActive(
+                          currentRouteName,
+                          location,
+                          ScreensNames.adminServiceRequests,
+                          '/admin/service-requests'),
                     ),
                   ],
 
@@ -153,7 +164,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                     Icons.contact_mail,
                     "تواصل للاستفسارات",
                     ScreensNames.contactUs,
-                    isActive: _isRouteActive(currentRouteName, location, ScreensNames.contactUs, ScreensNames.contactUsPath),
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.contactUs, ScreensNames.contactUsPath),
                   ),
                 ],
               ),
@@ -168,14 +180,17 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   // Improved route matching logic
-  bool _isRouteActive(String? currentRouteName, String location, String routeName, String routePath) {
+  bool _isRouteActive(String? currentRouteName, String location,
+      String routeName, String routePath) {
     // Special case for home route
     if (routeName == ScreensNames.home && location == '/') {
       return true;
     }
 
     // Debug info when a potential match is found
-    if (currentRouteName == routeName || location == routePath || location.startsWith(routePath)) {
+    if (currentRouteName == routeName ||
+        location == routePath ||
+        location.startsWith(routePath)) {
       debugPrint('Match found for route: $routeName ($routePath)');
       debugPrint('  Current name: $currentRouteName, Current path: $location');
     }
@@ -199,12 +214,12 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Widget _buildNavItem(
-      BuildContext context,
-      IconData icon,
-      String label,
-      String route, {
-        required bool isActive,
-      }) {
+    BuildContext context,
+    IconData icon,
+    String label,
+    String route, {
+    required bool isActive,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -219,59 +234,60 @@ class _AppShellState extends ConsumerState<AppShell> {
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: isActive ? Colors.green.withOpacity(0.1) : Colors.transparent,
+            color:
+                isActive ? Colors.green.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: isActive
                 ? Border.all(color: Colors.green.withOpacity(0.5))
                 : null,
           ),
           child: _isRailExpanded
-          // Expanded item with icon and text
+              // Expanded item with icon and text
               ? Row(
-            textDirection: TextDirection.rtl, // RTL for Arabic
-            children: [
-              Icon(
-                icon,
-                color: isActive ? Colors.green : Colors.grey.shade700,
-                size: 22,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: GoogleFonts.cairo(
-                    color: isActive ? Colors.green : Colors.grey.shade800,
-                    fontWeight: isActive ? FontWeight.bold : null,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.right,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          )
-          // Collapsed item with just icon and indicator
+                  textDirection: TextDirection.rtl, // RTL for Arabic
+                  children: [
+                    Icon(
+                      icon,
+                      color: isActive ? Colors.green : Colors.grey.shade700,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: GoogleFonts.cairo(
+                          color: isActive ? Colors.green : Colors.grey.shade800,
+                          fontWeight: isActive ? FontWeight.bold : null,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                )
+              // Collapsed item with just icon and indicator
               : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: isActive ? Colors.green : Colors.grey.shade700,
-                size: 24,
-              ),
-              const SizedBox(height: 4),
-              // Selection indicator
-              if (isActive)
-                Container(
-                  width: 24,
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      color: isActive ? Colors.green : Colors.grey.shade700,
+                      size: 24,
+                    ),
+                    const SizedBox(height: 4),
+                    // Selection indicator
+                    if (isActive)
+                      Container(
+                        width: 24,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
         ),
       ),
     );
@@ -311,14 +327,15 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
             child: _isRailExpanded
                 ? Text(
-              'وضع المشرف',
-              style: GoogleFonts.cairo(
-                fontSize: 12,
-                color: Colors.green.shade800,
-                fontWeight: FontWeight.bold,
-              ),
-            )
-                : const Icon(Icons.admin_panel_settings, color: Colors.green, size: 18),
+                    'وضع المشرف',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      color: Colors.green.shade800,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : const Icon(Icons.admin_panel_settings,
+                    color: Colors.green, size: 18),
           ),
 
         // Email badge if expanded
@@ -357,7 +374,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         children: [
           const Divider(),
           IconButton(
-            icon: Icon(_isRailExpanded ? Icons.chevron_left : Icons.chevron_right),
+            icon: Icon(
+                _isRailExpanded ? Icons.chevron_left : Icons.chevron_right),
             onPressed: () {
               setState(() {
                 _isRailExpanded = !_isRailExpanded;
@@ -365,7 +383,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             },
             tooltip: _isRailExpanded ? 'تصغير' : 'توسيع',
           ),
-          if(isAdmen) ...[
+          if (isAdmen) ...[
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.red),
               tooltip: 'تسجيل الخروج',

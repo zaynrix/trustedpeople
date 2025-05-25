@@ -1,8 +1,8 @@
 // // lib/providers/analytics_provider.dart
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:trustedtallentsvalley/services/visitor_analytics_service.dart';
+// import 'package:trustedtallentsvalley/fetures/services/visitor_analytics_service.dart';
 //
-// import '../services/analytics_service.dart';
+// import '../fetures/services/analytics_service.dart';
 //
 // final visitorAnalyticsProvider = Provider<VisitorAnalyticsService>((ref) {
 //   return VisitorAnalyticsService();

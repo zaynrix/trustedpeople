@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
-import 'package:trustedtallentsvalley/services/service_model.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/service_model.dart';
 
-import '../../../services/providers/service_provider.dart';
+import '../../../fetures/services/providers/service_provider.dart';
 
 class AdminServicesScreen extends ConsumerWidget {
   const AdminServicesScreen({Key? key}) : super(key: key);
@@ -20,7 +20,6 @@ class AdminServicesScreen extends ConsumerWidget {
     // Add responsive layout detection
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 600;
-    final isMediumScreen = screenSize.width >= 600 && screenSize.width < 1100;
 
     if (!isAdmin) {
       return Scaffold(
@@ -66,8 +65,7 @@ class AdminServicesScreen extends ConsumerWidget {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () =>
-                            _showAddServiceDialog(context, ref),
+                        onPressed: () => _showAddServiceDialog(context, ref),
                         icon: const Icon(Icons.add),
                         label: Text(
                           'إضافة خدمة جديدة',
@@ -119,8 +117,7 @@ class AdminServicesScreen extends ConsumerWidget {
 
                         return ListView.separated(
                           itemCount: services.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(),
+                          separatorBuilder: (context, index) => const Divider(),
                           itemBuilder: (context, index) {
                             final service = services[index];
                             return _buildServiceItem(context, ref, service);
@@ -149,8 +146,6 @@ class AdminServicesScreen extends ConsumerWidget {
 
   Widget _buildServiceItem(
       BuildContext context, WidgetRef ref, ServiceModel service) {
-    final notifier = ref.read(servicesProvider.notifier);
-
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8),

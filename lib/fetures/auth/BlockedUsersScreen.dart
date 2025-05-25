@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 
 // Define the provider at top level instead of inline
 final blockedUsersProvider = StreamProvider<List<BlockedUser>>((ref) {
