@@ -10,7 +10,7 @@ class UserData {
   final String aliasName;
   final String mobileNumber;
   final String location;
-  final bool isTrusted;
+  final int role;
   final String servicesProvided;
   final String telegramAccount;
   final String otherAccounts;
@@ -20,7 +20,7 @@ class UserData {
     required this.aliasName,
     required this.mobileNumber,
     required this.location,
-    required this.isTrusted,
+    required this.role,
     required this.servicesProvided,
     required this.telegramAccount,
     required this.otherAccounts,
@@ -97,12 +97,15 @@ final firebaseFirestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
 });
 
+// ✅ FIXED - Move this outside the class
+final visiblePhoneNumberProvider = StateProvider<String?>((ref) => null);
+
 // Enhanced HomeNotifier with additional methods
 class HomeNotifier extends StateNotifier<HomeState> {
   final FirebaseFirestore _firestore;
 
   HomeNotifier(this._firestore) : super(HomeState());
-  final visiblePhoneNumberProvider = StateProvider<String?>((ref) => null);
+
   // Method to toggle phone number visibility
   void togglePhoneNumberVisibility(String userId, ref) {
     final currentVisibleId = ref.read(visiblePhoneNumberProvider);
@@ -140,6 +143,37 @@ class HomeNotifier extends StateNotifier<HomeState> {
       return snapshot.docs.isNotEmpty;
     } catch (e) {
       debugPrint('Error checking existing users: $e');
+      return false;
+    }
+  }
+
+  // Add this method to clear existing data with mismatched fields
+  Future<bool> clearAndResetUsers({required ref}) async {
+    try {
+      state = state.copyWith(isLoading: true);
+
+      // Clear all existing users
+      final snapshot =
+          await _firestore.collection(FirebaseConstant.trustedUsers).get();
+
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      debugPrint('Cleared ${snapshot.docs.length} users');
+
+      // Re-add users with correct structure
+      final success = await batchAddPredefinedUsers(ref: ref);
+
+      state = state.copyWith(isLoading: false);
+      return success;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Error clearing and resetting: $e',
+      );
       return false;
     }
   }
@@ -273,17 +307,50 @@ class HomeNotifier extends StateNotifier<HomeState> {
     );
   }
 
+  // Add this method to your HomeNotifier class for debugging
+  Future<void> debugFirestoreData() async {
+    try {
+      final snapshot = await _firestore
+          .collection(FirebaseConstant.trustedUsers)
+          .limit(5)
+          .get();
+
+      debugPrint('=== FIRESTORE DEBUG ===');
+      debugPrint('Total documents: ${snapshot.docs.length}');
+
+      for (var doc in snapshot.docs) {
+        debugPrint('Document ID: ${doc.id}');
+        debugPrint('Document data: ${doc.data()}');
+        debugPrint('---');
+      }
+
+      // Try to convert to UserModel
+      for (var doc in snapshot.docs) {
+        try {
+          final user = UserModel.fromFirestore(doc);
+          debugPrint(
+              'Successfully converted: ${user.aliasName} (role: ${user.role})');
+        } catch (e) {
+          debugPrint('Failed to convert document ${doc.id}: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error debugging Firestore: $e');
+    }
+  }
+
   Future<bool> batchAddPredefinedUsers({required ref}) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      // Define the predefined users data
+      // ✅ COMPLETE - Define ALL predefined users data with CORRECT locations
       final List<UserData> predefinedUsers = [
+        // Admins (role = 0)
         UserData(
           aliasName: "يحيى",
           mobileNumber: "+972592487533",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 0, // Admin
           servicesProvided: "استقبال من جميع دول العالم، USDT, Revlout, Paypal",
           telegramAccount: "",
           otherAccounts: "",
@@ -292,8 +359,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ماجد",
           mobileNumber: "+972 59-261-9965, +972562223551",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 0, // Admin
           servicesProvided:
               "أمريكا، أوروبا، بريطانيا،Wise, PayPal, Payoneer، ويسترن يونيون، دول الخليج",
           telegramAccount: "",
@@ -303,8 +370,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "محمد",
           mobileNumber: "+972 56-6472431",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 0, // Admin
           servicesProvided: "USDT, TikTok",
           telegramAccount: "",
           otherAccounts: "",
@@ -313,8 +380,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "حمدي",
           mobileNumber: "+972598289003",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 0, // Admin
           servicesProvided: "حوالات دولية، PayPal",
           telegramAccount: "",
           otherAccounts: "",
@@ -323,18 +390,20 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "بيان",
           mobileNumber: "+972 59-506-9967",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 0, // Admin
           servicesProvided: "USDT",
           telegramAccount: "",
           otherAccounts: "",
           reviews: "",
         ),
+
+        // Trusted users (role = 1)
         UserData(
           aliasName: "براء",
           mobileNumber: "+972 59-914-0957, +972 59-711-3369",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "الأردن، USDT، Revolut, PayPal,حوالات دولية",
           telegramAccount: "",
           otherAccounts: "",
@@ -343,8 +412,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "دولار للصرافة",
           mobileNumber: "+972 59-871-0003",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided:
               "USDT, فودافون كاش, الأردن امارات، كويت، قطر، عمان، المغرب، البحرين، السعودية، اليمن",
           telegramAccount: "",
@@ -354,8 +423,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "البراء",
           mobileNumber: "+972 59-244-9244",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "USDT, الامارات، الاردن، مصر، PayPal، سلطنة عمان",
           telegramAccount: "",
           otherAccounts: "",
@@ -364,8 +433,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "أطلس للصرافة",
           mobileNumber: "+972 59-878-1313",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided:
               "ويسترن يونيون، موني غرام، ريا، تركيا، ليبيا، الجزائر، العراق",
           telegramAccount: "",
@@ -376,7 +445,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "المنشاوي للصرافة والحوالات المالية",
           mobileNumber: "+970595704141",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -385,8 +454,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "صالح",
           mobileNumber: "+972598258269",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -395,8 +464,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "معتصم",
           mobileNumber: "+972 59-253-1001",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -406,7 +475,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "شركة الدفع السريع",
           mobileNumber: "+970 59-993-0036",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -415,8 +484,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "خليل",
           mobileNumber: "+972 59-563-9555",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "USDT, تركيا، وايزو ويسترن يونيون، فودافون",
           telegramAccount: "",
           otherAccounts: "",
@@ -425,8 +494,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "محمد طموس",
           mobileNumber: "+972 59-708-0098",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided:
               "باي بال، USDT، فودافون، منصات العمل الحر، إستقبال بوابة دفع",
           telegramAccount: "",
@@ -436,8 +505,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "محمود سالم",
           mobileNumber: "+972 598 84 4330",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "الأردن، دول الخليج، فودافون، USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -446,8 +515,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "صبَّاح للصرافة والحوالات المالية -دير البلح",
           mobileNumber: "+972 59-290-0707",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -456,8 +525,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "حمادة منيفي",
           mobileNumber: "+972 59-222-8463",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "USDT, الأردن, السعودية،الامارت،PayPal",
           telegramAccount: "",
           otherAccounts: "",
@@ -467,7 +536,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "حمادة النجار",
           mobileNumber: "+970 599 52 1600",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "اوروبا، امريكا ، USDT, فودافون كاش",
           telegramAccount: "",
           otherAccounts: "",
@@ -477,7 +546,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "عابد للصرافة",
           mobileNumber: "+970 599 966 166",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided:
               "حوالات دول الخليج، تركيا، فودافون، USDT، حوالات أوروبية، حوالات عربية",
           telegramAccount: "",
@@ -487,8 +556,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "حرزالله للصرافة",
           mobileNumber: "+972 59-720-2152",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "الحوالات الدولية، USDT، فودافون كاش",
           telegramAccount: "",
           otherAccounts: "",
@@ -498,7 +567,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "احمد الشريف",
           mobileNumber: "+970 599 921 827",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "USDT, فودافون",
           telegramAccount: "",
           otherAccounts: "",
@@ -507,8 +576,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "الفيصل للصرافة",
           mobileNumber: "+972 59-771-4208, +972598919757",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -518,7 +587,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "الوطني للصرافه والحوالات الماليه",
           mobileNumber: "+970 599 16 7166",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -528,17 +597,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "المعتمد للصرافة والحوالات المالية - غزة",
           mobileNumber: "+970 593 09 9123",
           location: "فلسطين",
-          isTrusted: true,
-          servicesProvided: "",
-          telegramAccount: "",
-          otherAccounts: "",
-          reviews: "",
-        ),
-        UserData(
-          aliasName: "المنشاوي للصرافة والحوالات المالية",
-          mobileNumber: "+970595704141",
-          location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -547,8 +606,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "حرز الله للصرافة",
           mobileNumber: "0593330006, 972594560600",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية، حوالات عربية",
           telegramAccount: "",
           otherAccounts: "",
@@ -558,7 +617,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "قويدر للصرافة",
           mobileNumber: "+970 599 60 4471",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -567,8 +626,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "نادر - شيفت للصرافة",
           mobileNumber: "+972 59-956-2801, +972 59-828-8013",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -578,7 +637,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "الخليج الدولية للصرافة",
           mobileNumber: "+970 592 49 9843, +970 567 158 563",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -587,8 +646,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "الدانا للصرافة",
           mobileNumber: "+972597234202",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -598,7 +657,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "شركة سريع للصرافة",
           mobileNumber: "+970 595 922 185",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -608,7 +667,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "فاست كاش",
           mobileNumber: "+970 599 365 651",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -617,8 +676,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ماهر البغدادي",
           mobileNumber: "+972 59-560-3802",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "الأردن، USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -628,7 +687,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "صهيب الاستاذ",
           mobileNumber: "+970 598 213 559",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "حوالات خليجية، USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -637,8 +696,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "باسل ابو ريدة",
           mobileNumber: "+972 59-984-9306",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "PayPal, USDT, الخليج",
           telegramAccount: "",
           otherAccounts: "",
@@ -648,7 +707,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "رؤوف",
           mobileNumber: "+970 592 426 557",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية",
           telegramAccount: "",
           otherAccounts: "",
@@ -657,8 +716,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ايهاب فلانكو",
           mobileNumber: "+972 56-892-6178",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -667,8 +726,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ياسر الدباس",
           mobileNumber: "+972 59-536-1790",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -677,8 +736,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "مكتب كيشلي",
           mobileNumber: "+972 59-510-2759",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "استقبال جميع الدول، فودافون كاش، USDT، Tik Tok",
           telegramAccount: "",
           otherAccounts: "",
@@ -687,8 +746,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "انجاز للصرافة",
           mobileNumber: "+972 56-755-7590",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "استقبال دول، فودافون، كاش",
           telegramAccount: "",
           otherAccounts: "",
@@ -697,8 +756,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "بلال",
           mobileNumber: "+972 59-447-5597",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "الاردن، فودافون كاش، USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -707,8 +766,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "مصعب رضوان",
           mobileNumber: "+972 59-255-4866",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "ويسترن يونيون، موني غرام، قطر، فودافون",
           telegramAccount: "",
           otherAccounts: "",
@@ -717,8 +776,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "معاذ",
           mobileNumber: "+972 59-281-2551",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -727,8 +786,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "شركة ساجد شقليه للصرافة والحوالات المالية WU",
           mobileNumber: "+972 59-973-5137",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -738,7 +797,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "احمد",
           mobileNumber: "+970 595 564 510",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "منصات العمل الحر، فودافون كاش",
           telegramAccount: "",
           otherAccounts: "",
@@ -747,8 +806,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "الأستاذ للصرافة",
           mobileNumber: "+972 56-912-1919, +972 59-786-6281",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -757,8 +816,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "مرشد للصرافة",
           mobileNumber: "+972 59-980-3137, +970 599 180 478",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "",
           telegramAccount: "",
           otherAccounts: "",
@@ -767,8 +826,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ابو عمر",
           mobileNumber: "+972 59-216-1229",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided:
               "فودافون كاش +انستا باي، USDT + paypal +ويسترن يونيون، حوالات دول عربية",
           telegramAccount: "",
@@ -778,8 +837,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "احمد النجار",
           mobileNumber: "00972595816203, 00972562772891",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "أوروبا، الجزائر، الاردن،PayPal، USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -789,7 +848,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "محمد قويدر",
           mobileNumber: "+970-597999232",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "USDT فودافون كاش ,انستا باي, ويسترن يونيون",
           telegramAccount: "",
           otherAccounts: "",
@@ -798,8 +857,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ابو ادم",
           mobileNumber: "+972592155294",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided:
               "USDT, Revlout, Paypal، اوروبا، امريكا، الخليج، بريطانيا",
           telegramAccount: "",
@@ -809,8 +868,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "مكتب آدم",
           mobileNumber: "972592553910",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided:
               "الدول العربية، الاوروبية، ويسترن يونيون، الاردن، المغرب",
           telegramAccount: "",
@@ -821,7 +880,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "مكتب ترست بلس",
           mobileNumber: "0594429043",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية - حوالات عربية - USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -831,7 +890,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
           aliasName: "مكتب ايلاف",
           mobileNumber: "970599516360",
           location: "فلسطين",
-          isTrusted: true,
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية - حوالات عربية - USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -840,8 +899,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ارشي للصرافة - السرايا",
           mobileNumber: "0599704097, 972595731317",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية - حوالات عربية - USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -850,8 +909,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "ارشي للصرافة - شارع الوحدة",
           mobileNumber: "972599876133",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية - حوالات عربية - USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -860,8 +919,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
         UserData(
           aliasName: "قشطة للصرافة",
           mobileNumber: "972568033337",
-          location: "فلسطين/إسرائيل",
-          isTrusted: true,
+          location: "فلسطين",
+          role: 1, // Trusted
           servicesProvided: "حوالات دولية - حوالات عربية - USDT",
           telegramAccount: "",
           otherAccounts: "",
@@ -891,7 +950,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
             'aliasName': userData.aliasName,
             'mobileNumber': userData.mobileNumber,
             'location': userData.location,
-            'isTrusted': userData.isTrusted,
+            'role':
+                userData.role, // ✅ FIXED - Use 'role' instead of 'trustLevel'
             'servicesProvided': userData.servicesProvided,
             'telegramAccount': userData.telegramAccount,
             'otherAccounts': userData.otherAccounts,
@@ -901,7 +961,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
           });
 
           successCount++;
-          debugPrint('Successfully added user: ${userData.aliasName}');
+          debugPrint(
+              'Successfully added user: ${userData.aliasName} with role: ${userData.role}');
 
           // Add a small delay between operations to prevent overwhelming Firestore
           await Future.delayed(const Duration(milliseconds: 100));
@@ -932,13 +993,13 @@ class HomeNotifier extends StateNotifier<HomeState> {
     }
   }
 
-  // Add new user to Firestore
+  // ✅ FIXED - Add new user to Firestore with CORRECT field names
   Future<bool> addUser({
     ref,
     required String aliasName,
     required String mobileNumber,
     required String location,
-    required bool isTrusted,
+    required int role, // ✅ FIXED - Changed from trustLevel to role
     String? servicesProvided,
     String? telegramAccount,
     String? otherAccounts,
@@ -947,13 +1008,11 @@ class HomeNotifier extends StateNotifier<HomeState> {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      // Obtener información del administrador actual
       final auth = ref.read(firebaseAuthProvider);
       final currentUser = auth.currentUser;
       final adminName =
           currentUser?.displayName ?? currentUser?.email ?? 'مشرف غير معروف';
 
-      // Generate a new document ID
       final docRef = _firestore.collection(FirebaseConstant.trustedUsers).doc();
 
       await docRef.set({
@@ -961,13 +1020,13 @@ class HomeNotifier extends StateNotifier<HomeState> {
         'aliasName': aliasName,
         'mobileNumber': mobileNumber,
         'location': location,
-        'isTrusted': isTrusted,
+        'role': role, // ✅ FIXED - Use 'role' instead of 'trustLevel'
         'servicesProvided': servicesProvided ?? '',
         'telegramAccount': telegramAccount ?? '',
         'otherAccounts': otherAccounts ?? '',
         'reviews': reviews ?? '',
         'createdAt': FieldValue.serverTimestamp(),
-        'addedBy': adminName, // Agregamos el nombre del administrador actual
+        'addedBy': adminName,
       });
 
       state = state.copyWith(isLoading: false);
@@ -982,13 +1041,13 @@ class HomeNotifier extends StateNotifier<HomeState> {
     }
   }
 
-  // Update existing user in Firestore
+  // ✅ FIXED - Update existing user in Firestore with CORRECT field names
   Future<bool> updateUser({
     required String id,
     required String aliasName,
     required String mobileNumber,
     required String location,
-    required bool isTrusted,
+    required int role, // ✅ FIXED - Changed from trustLevel to role
     required String servicesProvided,
     required String telegramAccount,
     required String otherAccounts,
@@ -997,7 +1056,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
-      // Para actualizaciones, no cambiamos el campo addedBy
       await _firestore
           .collection(FirebaseConstant.trustedUsers)
           .doc(id)
@@ -1005,18 +1063,13 @@ class HomeNotifier extends StateNotifier<HomeState> {
         'aliasName': aliasName,
         'mobileNumber': mobileNumber,
         'location': location,
-        'isTrusted': isTrusted,
+        'role': role, // ✅ FIXED - Use 'role' instead of 'trustLevel'
         'servicesProvided': servicesProvided,
         'telegramAccount': telegramAccount,
         'otherAccounts': otherAccounts,
         'reviews': reviews,
-        'updatedAt': FieldValue
-            .serverTimestamp(), // Se puede agregar un campo para la última actualización
-        // No actualizamos 'addedBy' para mantener el registro original
+        'updatedAt': FieldValue.serverTimestamp(),
       });
-
-      // Si queremos registrar quién actualizó, podríamos añadir otro campo
-      // 'lastUpdatedBy': adminName,
 
       state = state.copyWith(isLoading: false);
       return true;
@@ -1151,26 +1204,50 @@ final locationsProvider = StreamProvider<List<String>>((ref) {
   });
 });
 
-// Stream provider for trusted users
+// Stream provider for trusted users (role = 1)
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
       .collection(FirebaseConstant.trustedUsers)
-      .where("isTrusted", isEqualTo: true)
+      .where("role", isEqualTo: 1) // 1 = موثوق (Trusted)
       .snapshots();
 });
 
-// Stream provider for untrusted users
+// Stream provider for untrusted users (role = 3)
 final untrustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
       .collection(FirebaseConstant.trustedUsers)
-      .where("isTrusted", isEqualTo: false)
+      .where("role", isEqualTo: 3) // 3 = نصاب (Fraud/Untrusted)
       .snapshots();
 });
 
-// Stream provider for all users
+// Stream provider for admin users (role = 0)
+final adminUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
+  return FirebaseFirestore.instance
+      .collection(FirebaseConstant.trustedUsers)
+      .where("role", isEqualTo: 0) // 0 = مشرف (Admin)
+      .snapshots();
+});
+
+// Stream provider for known users (role = 2)
+final knownUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
+  return FirebaseFirestore.instance
+      .collection(FirebaseConstant.trustedUsers)
+      .where("role", isEqualTo: 2) // 2 = معروف (Known)
+      .snapshots();
+});
+
+// Stream provider for all users (no filtering)
 final allUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
       .collection(FirebaseConstant.trustedUsers)
+      .snapshots();
+});
+
+// Stream provider for non-admin users (roles 1, 2, 3)
+final nonAdminUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
+  return FirebaseFirestore.instance
+      .collection(FirebaseConstant.trustedUsers)
+      .where("role", whereIn: [1, 2, 3]) // All non-admin roles
       .snapshots();
 });
 
@@ -1183,6 +1260,7 @@ final allActivitiesProvider = StreamProvider<List<Activity>>((ref) {
       .map((snapshot) =>
           snapshot.docs.map((doc) => Activity.fromFirestore(doc)).toList());
 });
+
 // Provider for public activities only (user view)
 final publicActivitiesProvider = StreamProvider<List<Activity>>((ref) {
   try {
@@ -1238,7 +1316,6 @@ class ActivityService {
     try {
       final docRef =
           await _firestore.collection('activities').add(activity.toMap());
-
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to add activity: $e');

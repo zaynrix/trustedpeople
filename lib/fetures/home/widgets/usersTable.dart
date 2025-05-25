@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/core/widgets/custom_filter_chip.dart';
-import 'package:trustedtallentsvalley/core/widgets/empty_state_widget.dart';
 import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
@@ -13,7 +13,6 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/status_chip.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/trusted_help_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_card.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_info_card.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/users_data_table.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
 class UsersListScreen extends ConsumerWidget {
@@ -35,10 +34,8 @@ class UsersListScreen extends ConsumerWidget {
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
     final isTablet = screenSize.width >= 768 && screenSize.width < 1200;
-
-    // Watch for loading state
     final isLoading = ref.watch(isLoadingProvider);
-
+    debugPrint("this truested ${trustedUsersStreamProvider.name}");
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -53,21 +50,15 @@ class UsersListScreen extends ConsumerWidget {
         backgroundColor: primaryColor,
         elevation: 0,
         actions: [
-          // Export button - only visible to admins
           if (!isMobile && ref.watch(isAdminProvider))
             IconButton(
               icon: const Icon(Icons.download_rounded),
-              onPressed: () {
-                _showExportDialog(context, ref);
-              },
+              onPressed: () => _showExportDialog(context, ref),
               tooltip: 'تصدير البيانات',
             ),
-          // Help button - visible to everyone
           IconButton(
             icon: const Icon(Icons.help_outline_rounded),
-            onPressed: () {
-              showHelpDialog(context);
-            },
+            onPressed: () => showHelpDialog(context),
             tooltip: 'المساعدة',
           ),
           const SizedBox(width: 8),
@@ -82,59 +73,27 @@ class UsersListScreen extends ConsumerWidget {
               ),
       ),
       drawer: isMobile ? const AppDrawer() : null,
-      // Show loading indicator when loading
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                return Container(
-                  padding: const EdgeInsets.all(24.0),
-                  child: _buildMainContent(
-                    context,
-                    ref,
-                    constraints,
-                    isMobile: isMobile,
-                    isTablet: isTablet,
-                  ),
-                );
-              },
-            ),
-      // FAB for adding new users (if admin)
+          : _buildMainContent(context, ref,
+              isMobile: isMobile, isTablet: isTablet),
       floatingActionButton: ref.watch(isAdminProvider)
           ? FloatingActionButton(
               backgroundColor: primaryColor,
-              onPressed: () {
-                _showAddUserDialog(context, ref);
-              },
+              onPressed: () => _showAddUserDialog(context, ref),
               child: const Icon(Icons.add),
             )
           : null,
     );
   }
 
-  final visiblePhoneNumberProvider = StateProvider<String?>((ref) => null);
-
-  // Method to toggle phone number visibility
-  void _togglePhoneNumberVisibility(WidgetRef ref, String userId) {
-    final currentVisibleId = ref.read(visiblePhoneNumberProvider);
-
-    if (currentVisibleId == userId) {
-      // Hide the current visible number
-      ref.read(visiblePhoneNumberProvider.notifier).state = null;
-    } else {
-      // Show this user's number (and hide any other)
-      ref.read(visiblePhoneNumberProvider.notifier).state = userId;
-    }
-  }
-
   Widget _buildMainContent(
     BuildContext context,
-    WidgetRef ref,
-    BoxConstraints constraints, {
+    WidgetRef ref, {
     bool isMobile = false,
     bool isTablet = false,
   }) {
-    // Watch for all required state
+    // Watch state
     final searchQuery = ref.watch(searchQueryProvider);
     final showSideBar = ref.watch(showSideBarProvider);
     final selectedUser = ref.watch(selectedUserProvider);
@@ -145,14 +104,11 @@ class UsersListScreen extends ConsumerWidget {
     final filterMode = ref.watch(filterModeProvider);
     final locationFilter = ref.watch(locationFilterProvider);
     final visiblePhoneNumberId = ref.watch(visiblePhoneNumberProvider);
-
-    // Get the providers
     final homeNotifier = ref.read(homeProvider.notifier);
 
-    // Watch for error messages
+    // Handle error messages
     final errorMessage = ref.watch(errorMessageProvider);
     if (errorMessage != null) {
-      // Show error snackbar once
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -165,143 +121,136 @@ class UsersListScreen extends ConsumerWidget {
 
     return usersStream.when(
       data: (snapshot) {
-        // Apply filtering
-        var filteredUsers = snapshot.docs.where((user) {
-          // Apply search filter
-          final aliasName = (user['aliasName'] ?? '').toString().toLowerCase();
-          final mobileNumber = (user['mobileNumber'] ?? '').toString();
-          final location = (user['location'] ?? '').toString().toLowerCase();
-          final services =
-              (user['servicesProvided'] ?? '').toString().toLowerCase();
-          final query = searchQuery.toLowerCase();
+        debugPrint(
+            'UsersListScreen: Received ${snapshot.docs.length} documents');
 
-          bool matchesSearch = query.isEmpty ||
-              aliasName.contains(query) ||
-              mobileNumber.contains(query) ||
-              location.contains(query) ||
-              services.contains(query);
+        // Convert documents to UserModel list
+        List<UserModel> allUsers = [];
+        for (var doc in snapshot.docs) {
+          try {
+            final user = UserModel.fromFirestore(doc);
+            allUsers.add(user);
+          } catch (e) {
+            debugPrint('Error converting document ${doc.id}: $e');
+          }
+        }
 
-          // Apply additional filters based on filter mode
+        debugPrint(
+            'UsersListScreen: Successfully converted ${allUsers.length} users');
+
+        // Apply search filter
+        List<UserModel> filteredUsers = allUsers.where((user) {
+          if (searchQuery.isEmpty) return true;
+
+          final query = searchQuery.toLowerCase().trim();
+          return user.aliasName.toLowerCase().contains(query) ||
+              user.mobileNumber.toLowerCase().contains(query) ||
+              user.location.toLowerCase().contains(query) ||
+              user.servicesProvided.toLowerCase().contains(query) ||
+              user.statusText.toLowerCase().contains(query);
+        }).toList();
+
+        // Apply additional filters
+        filteredUsers = filteredUsers.where((user) {
           switch (filterMode) {
             case FilterMode.all:
-              return matchesSearch;
+              return true;
             case FilterMode.withReviews:
-              final hasReviews = (user['reviews'] ?? '').toString().isNotEmpty;
-              return matchesSearch && hasReviews;
+              return user.reviews.isNotEmpty;
             case FilterMode.withoutTelegram:
-              final noTelegram =
-                  (user['telegramAccount'] ?? '').toString().isEmpty;
-              return matchesSearch && noTelegram;
+              return user.telegramAccount.isEmpty;
             case FilterMode.byLocation:
-              // Location-specific filtering
-              if (locationFilter == null || locationFilter.isEmpty) {
-                return matchesSearch;
-              }
-              return matchesSearch &&
-                  location.contains(locationFilter.toLowerCase());
+              if (locationFilter == null || locationFilter.isEmpty) return true;
+              return user.location
+                  .toLowerCase()
+                  .contains(locationFilter.toLowerCase());
           }
         }).toList();
 
         // Apply sorting
         filteredUsers.sort((a, b) {
-          final aValue = (a[sortField] ?? '').toString();
-          final bValue = (b[sortField] ?? '').toString();
+          dynamic aValue, bValue;
 
-          return sortAscending
-              ? aValue.compareTo(bValue)
-              : bValue.compareTo(aValue);
+          switch (sortField) {
+            case 'aliasName':
+              aValue = a.aliasName;
+              bValue = b.aliasName;
+              break;
+            case 'mobileNumber':
+              aValue = a.mobileNumber;
+              bValue = b.mobileNumber;
+              break;
+            case 'location':
+              aValue = a.location;
+              bValue = b.location;
+              break;
+            case 'reviews':
+              aValue = a.reviews;
+              bValue = b.reviews;
+              break;
+            case 'role':
+              aValue = a.role;
+              bValue = b.role;
+              break;
+            default:
+              aValue = a.aliasName;
+              bValue = b.aliasName;
+          }
+
+          final comparison = aValue.toString().compareTo(bValue.toString());
+          return sortAscending ? comparison : -comparison;
         });
 
-        // Apply pagination (for desktop/tablet view)
-        final int startIndex = (currentPage - 1) * pageSize;
-        List<DocumentSnapshot> paginatedUsers = filteredUsers;
+        debugPrint(
+            'UsersListScreen: After filtering and sorting: ${filteredUsers.length} users');
+
+        // Apply pagination (only for desktop/tablet)
+        List<UserModel> displayedUsers = filteredUsers;
+        int totalPages = 1;
 
         if (!isMobile && filteredUsers.length > pageSize) {
-          final endIndex = startIndex + pageSize < filteredUsers.length
+          totalPages = (filteredUsers.length / pageSize).ceil();
+          final startIndex = (currentPage - 1) * pageSize;
+          final endIndex = (startIndex + pageSize < filteredUsers.length)
               ? startIndex + pageSize
               : filteredUsers.length;
 
           if (startIndex < filteredUsers.length) {
-            paginatedUsers = filteredUsers.sublist(startIndex, endIndex);
+            displayedUsers = filteredUsers.sublist(startIndex, endIndex);
           } else {
-            paginatedUsers = [];
+            displayedUsers = [];
+            // Reset to first page if current page is out of range
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              homeNotifier.setCurrentPage(1);
+            });
           }
         }
 
-        // For mobile view, we'll show all results to enable easier scrolling
-        final displayedUsers = isMobile ? filteredUsers : paginatedUsers;
+        debugPrint(
+            'UsersListScreen: Final displayedUsers: ${displayedUsers.length}');
 
-        if (isMobile) {
-          return Column(
+        return Container(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
             children: [
-              SearchField(
-                onChanged: (value) {
-                  ref.read(searchQueryProvider.notifier).state = value;
-                  homeNotifier.setSearchQuery(value);
-                },
-                hintText: 'البحث بالاسم أو رقم الجوال أو الموقع',
-              ),
-              const SizedBox(height: 16),
-              _buildFilterChips(context, ref),
-              const SizedBox(height: 24),
-              Expanded(
-                child: displayedUsers.isEmpty
-                    ? const EmptyStateWidget()
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.vertical,
-                                    child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: UsersDataTable(
-                                          users: displayedUsers,
-                                          visiblePhoneNumberId:
-                                              visiblePhoneNumberId,
-                                          onTogglePhoneNumber: (userId) =>
-                                              _togglePhoneNumberVisibility(
-                                                  ref, userId),
-                                          onEditUser: (user) =>
-                                              _showEditUserDialog(
-                                                  context, ref, user),
-                                          onDeleteUser: (user) =>
-                                              _showDeleteConfirmation(
-                                                  context, ref, user),
-                                        )),
-                                  ),
-                                ),
-                                if (filteredUsers.length > pageSize)
-                                  _buildPagination(
-                                      context, ref, filteredUsers.length),
-                              ],
-                            ),
-                          ),
-                          if (showSideBar && selectedUser != null) ...[
-                            const SizedBox(width: 24),
-                            UserDetailSidebar(
-                              user: selectedUser,
-                              onClose: () {
-                                homeNotifier.closeBar();
-                              },
-                              onEdit: () => _showEditUserDialog(
-                                  context, ref, selectedUser),
-                              onDelete: () => _showDeleteConfirmation(
-                                  context, ref, selectedUser),
-                            ),
-                          ],
-                        ],
-                      ),
-              ),
-            ],
-          );
-        } else if (isTablet) {
-          // Tablet layout with sidebar
-          return Column(
-            children: [
+              // Debug info (remove in production)
+              if (ref.watch(isAdminProvider))
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Text(
+                    'Debug: Total: ${snapshot.docs.length}, Filtered: ${filteredUsers.length}, Displayed: ${displayedUsers.length}, Page: $currentPage/$totalPages',
+                    style: GoogleFonts.cairo(
+                        fontSize: 12, color: Colors.blue.shade700),
+                  ),
+                ),
+
+              // Controls row
               Row(
                 children: [
                   Expanded(
@@ -313,144 +262,90 @@ class UsersListScreen extends ConsumerWidget {
                       hintText: 'البحث بالاسم أو رقم الجوال أو الموقع',
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  _buildSortButton(context, ref),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildFilterChips(context, ref),
-              const SizedBox(height: 24),
-              Expanded(
-                child: displayedUsers.isEmpty
-                    ? const EmptyStateWidget()
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 400,
-                                      childAspectRatio: 1.2,
-                                      crossAxisSpacing: 16,
-                                      mainAxisSpacing: 16,
-                                    ),
-                                    itemCount: displayedUsers.length,
-                                    itemBuilder: (context, index) {
-                                      final user = UserModel.fromFirestore(
-                                          displayedUsers[index]);
-                                      return UserCard(
-                                        user: user,
-                                        visiblePhoneNumberId:
-                                            visiblePhoneNumberId,
-                                        onTogglePhoneNumber: (userId) =>
-                                            _togglePhoneNumberVisibility(
-                                                ref, userId),
-                                        onTap: () {
-                                          homeNotifier.visibleBar(
-                                              selected: user);
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
-                                if (filteredUsers.length > pageSize)
-                                  _buildPagination(
-                                      context, ref, filteredUsers.length),
-                              ],
+                  if (!isMobile) ...[
+                    const SizedBox(width: 16),
+                    _buildSortButton(context, ref),
+                  ],
+                  if (ref.watch(isAdminProvider)) ...[
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final success = await homeNotifier
+                            .batchAddPredefinedUsers(ref: ref);
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('تم إضافة جميع المستخدمين بنجاح!',
+                                  style: GoogleFonts.cairo()),
+                              backgroundColor: Colors.green,
                             ),
-                          ),
-                          if (showSideBar && selectedUser != null) ...[
-                            const SizedBox(width: 24),
-                            UserDetailSidebar(
-                              user: selectedUser,
-                              onClose: () {
-                                homeNotifier.closeBar();
-                              },
-                              onEdit: () => _showEditUserDialog(
-                                  context, ref, selectedUser),
-                              onDelete: () => _showDeleteConfirmation(
-                                  context, ref, selectedUser),
-                            ),
-                          ],
-                        ],
-                      ),
-              ),
-            ],
-          );
-        } else {
-          // Desktop layout with data table
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ElevatedButton(
-                onPressed: () async {
-                  final homeNotifier = ref.read(homeProvider.notifier);
-                  final success = await ref
-                      .read(homeProvider.notifier)
-                      .batchAddPredefinedUsers(ref: ref);
-
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('تم إضافة جميع المستخدمين بنجاح!')),
-                    );
-                  }
-                },
-                child: Text('إضافة جميع المستخدمين'),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: SearchField(
-                      onChanged: (value) {
-                        ref.read(searchQueryProvider.notifier).state = value;
-                        homeNotifier.setSearchQuery(value);
+                          );
+                        }
                       },
-                      hintText: 'البحث بالاسم أو رقم الجوال أو الموقع',
+                      icon: const Icon(Icons.group_add),
+                      label: Text('إضافة المستخدمين الافتراضيين',
+                          style: GoogleFonts.cairo()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  _buildSortButton(context, ref),
+                  ],
                 ],
               ),
+
               const SizedBox(height: 16),
+
+              // Filter chips
               _buildFilterChips(context, ref),
+
               const SizedBox(height: 24),
+
+              // Main content area
               Expanded(
                 child: displayedUsers.isEmpty
-                    ? const EmptyStateWidget()
+                    ? _buildEmptyState(
+                        filteredUsers.isEmpty, searchQuery, filterMode)
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Main content
                           Expanded(
                             child: Column(
                               children: [
+                                // Content based on screen size
                                 Expanded(
-                                  child: UsersDataTable(
-                                    users: displayedUsers,
-                                    visiblePhoneNumberId: visiblePhoneNumberId,
-                                    onTogglePhoneNumber: (userId) =>
-                                        _togglePhoneNumberVisibility(
-                                            ref, userId),
-                                  ),
+                                  child: isMobile
+                                      ? _buildMobileView(context, ref,
+                                          displayedUsers, visiblePhoneNumberId)
+                                      : isTablet
+                                          ? _buildTabletView(
+                                              context,
+                                              ref,
+                                              displayedUsers,
+                                              visiblePhoneNumberId)
+                                          : _buildDesktopView(
+                                              context,
+                                              ref,
+                                              displayedUsers,
+                                              visiblePhoneNumberId),
                                 ),
-                                if (filteredUsers.length > pageSize)
-                                  _buildPagination(
-                                      context, ref, filteredUsers.length),
+
+                                // Pagination (for desktop/tablet)
+                                if (!isMobile &&
+                                    filteredUsers.length > pageSize)
+                                  _buildPagination(context, ref,
+                                      filteredUsers.length, totalPages),
                               ],
                             ),
                           ),
+
+                          // Sidebar
                           if (showSideBar && selectedUser != null) ...[
                             const SizedBox(width: 24),
                             UserDetailSidebar(
                               user: selectedUser,
-                              onClose: () {
-                                homeNotifier.closeBar();
-                              },
+                              onClose: () => homeNotifier.closeBar(),
                               onEdit: () => _showEditUserDialog(
                                   context, ref, selectedUser),
                               onDelete: () => _showDeleteConfirmation(
@@ -460,54 +355,42 @@ class UsersListScreen extends ConsumerWidget {
                         ],
                       ),
               ),
-              // Stats footer for larger screens
+
+              // Footer stats
               if (!isMobile)
                 FooterStateWidget(
-                    filteredCount: filteredUsers.length,
-                    totalCount: snapshot.docs.length),
+                  filteredCount: filteredUsers.length,
+                  totalCount: snapshot.docs.length,
+                ),
             ],
-          );
-        }
+          ),
+        );
       },
-      loading: () => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: Colors.red,
-              size: 48,
-            ),
+            const Icon(Icons.error_outline_rounded,
+                color: Colors.red, size: 48),
             const SizedBox(height: 16),
             Text(
               'حدث خطأ أثناء تحميل البيانات',
-              style: GoogleFonts.cairo(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style:
+                  GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: GoogleFonts.cairo(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-              ),
+              style:
+                  GoogleFonts.cairo(color: Colors.grey.shade700, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () {
-                // ref.refresh(trustedUsersStreamProvider);
-              },
+              onPressed: () => ref.refresh(allUsersStreamProvider),
               icon: const Icon(Icons.refresh),
-              label: Text(
-                'إعادة المحاولة',
-                style: GoogleFonts.cairo(),
-              ),
+              label: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
             ),
           ],
         ),
@@ -515,7 +398,558 @@ class UsersListScreen extends ConsumerWidget {
     );
   }
 
-  // Sort button with dropdown menu
+  Widget _buildEmptyState(
+      bool isFiltered, String searchQuery, FilterMode filterMode) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isFiltered ? Icons.search_off : Icons.people_outline,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            isFiltered ? 'لا توجد نتائج للبحث' : 'لا توجد مستخدمين للعرض',
+            style: GoogleFonts.cairo(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (isFiltered) ...[
+            Text(
+              searchQuery.isNotEmpty
+                  ? 'جرب البحث بكلمات مختلفة أو قم بإزالة المرشحات'
+                  : 'قم بتغيير معايير التصفية',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ] else ...[
+            Text(
+              'تأكد من أن قاعدة البيانات تحتوي على مستخدمين',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileView(BuildContext context, WidgetRef ref,
+      List<UserModel> users, String? visiblePhoneNumberId) {
+    return ListView.separated(
+      itemCount: users.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final user = users[index];
+        return UserCard(
+          user: user,
+          visiblePhoneNumberId: visiblePhoneNumberId,
+          onTogglePhoneNumber: (userId) =>
+              _togglePhoneNumberVisibility(ref, userId),
+          onTap: () =>
+              ref.read(homeProvider.notifier).visibleBar(selected: user),
+        );
+      },
+    );
+  }
+
+  Widget _buildTabletView(BuildContext context, WidgetRef ref,
+      List<UserModel> users, String? visiblePhoneNumberId) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 400,
+        childAspectRatio: 1.2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: users.length,
+      itemBuilder: (context, index) {
+        final user = users[index];
+        return UserCard(
+          user: user,
+          visiblePhoneNumberId: visiblePhoneNumberId,
+          onTogglePhoneNumber: (userId) =>
+              _togglePhoneNumberVisibility(ref, userId),
+          onTap: () =>
+              ref.read(homeProvider.notifier).visibleBar(selected: user),
+        );
+      },
+    );
+  }
+
+  Widget _buildDesktopView(BuildContext context, WidgetRef ref,
+      List<UserModel> users, String? visiblePhoneNumberId) {
+    // Convert UserModel list back to DocumentSnapshot format for UsersDataTable
+    // This is a temporary solution - ideally UsersDataTable should accept UserModel directly
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: _buildUserTable(context, ref, users, visiblePhoneNumberId),
+    );
+  }
+
+  Widget _buildUserTable(BuildContext context, WidgetRef ref,
+      List<UserModel> users, String? visiblePhoneNumberId) {
+    final isAdmin = ref.watch(isAdminProvider);
+
+    return Column(
+      children: [
+        // Table header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                  flex: 2,
+                  child: Text('الاسم والحالة',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              Expanded(
+                  flex: 2,
+                  child: Text('رقم الجوال',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              Expanded(
+                  flex: 2,
+                  child: Text('الموقع',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              Expanded(
+                  flex: 1,
+                  child: Text('التقييمات',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              Expanded(
+                  flex: 1,
+                  child: Text('تيليجرام',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              if (isAdmin) ...[
+                Expanded(
+                    flex: 1,
+                    child: Text('تم بواسطة',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 1,
+                    child: Text('إجراءات',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center)),
+              ] else
+                Expanded(
+                    flex: 1,
+                    child: Text('تفاصيل',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center)),
+            ],
+          ),
+        ),
+
+        // Table content
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: users.length,
+            separatorBuilder: (context, index) => Divider(
+                color: Colors.grey.shade200,
+                height: 1,
+                indent: 16,
+                endIndent: 16),
+            itemBuilder: (context, index) {
+              final user = users[index];
+              final isPhoneVisible = visiblePhoneNumberId == user.id;
+              final selectedUser = ref.watch(selectedUserProvider);
+              final isSelected = user.id == selectedUser?.id;
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? primaryColor.withOpacity(0.08)
+                      : user.role == 0
+                          ? Colors.purple.shade50
+                          : index % 2 == 0
+                              ? Colors.white
+                              : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: user.role == 0
+                      ? Border.all(color: Colors.purple.shade200, width: 1)
+                      : isSelected
+                          ? Border.all(
+                              color: primaryColor.withOpacity(0.3), width: 1)
+                          : null,
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => ref
+                      .read(homeProvider.notifier)
+                      .visibleBar(selected: user),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        // Name and Status
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.aliasName,
+                                style: GoogleFonts.cairo(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: isSelected
+                                      ? primaryColor
+                                      : user.role == 0
+                                          ? Colors.purple.shade700
+                                          : Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              StatusChip(role: user.role, compact: true),
+                            ],
+                          ),
+                        ),
+
+                        // Phone Number
+                        Expanded(
+                          flex: 2,
+                          child: _buildPhoneNumberSection(
+                              context, user, isPhoneVisible, ref),
+                        ),
+
+                        // Location
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: 16, color: Colors.grey.shade600),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  user.location.isEmpty
+                                      ? 'غير محدد'
+                                      : user.location,
+                                  style: GoogleFonts.cairo(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Reviews
+                        Expanded(
+                          flex: 1,
+                          child: user.reviews.isNotEmpty
+                              ? Row(
+                                  children: [
+                                    const Icon(Icons.star,
+                                        size: 16, color: Colors.amber),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(user.reviews,
+                                          style: GoogleFonts.cairo(),
+                                          overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ],
+                                )
+                              : Text('لا يوجد',
+                                  style: GoogleFonts.cairo(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 12)),
+                        ),
+
+                        // Telegram
+                        Expanded(
+                          flex: 1,
+                          child: user.telegramAccount.isNotEmpty
+                              ? Row(
+                                  children: [
+                                    const Icon(Icons.telegram,
+                                        size: 16, color: Colors.blue),
+                                    const SizedBox(width: 4),
+                                    Text('متوفر',
+                                        style: GoogleFonts.cairo(
+                                            color: Colors.blue.shade600,
+                                            fontSize: 12)),
+                                  ],
+                                )
+                              : Text('غير متوفر',
+                                  style: GoogleFonts.cairo(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 12)),
+                        ),
+
+                        // Admin columns or actions
+                        if (isAdmin) ...[
+                          // Added by
+                          Expanded(
+                            flex: 1,
+                            child: Text(
+                              user.addedBy.isEmpty ? 'غير معروف' : user.addedBy,
+                              style: GoogleFonts.cairo(fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Actions
+                          Expanded(
+                            flex: 1,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  onPressed: () => ref
+                                      .read(homeProvider.notifier)
+                                      .visibleBar(selected: user),
+                                  icon: const Icon(Icons.visibility, size: 16),
+                                  tooltip: 'عرض التفاصيل',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor:
+                                        primaryColor.withOpacity(0.1),
+                                    foregroundColor: primaryColor,
+                                    minimumSize: const Size(32, 32),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  onPressed: () =>
+                                      _showEditUserDialog(context, ref, user),
+                                  icon: const Icon(Icons.edit, size: 16),
+                                  tooltip: 'تعديل',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor:
+                                        Colors.blue.withOpacity(0.1),
+                                    foregroundColor: Colors.blue.shade600,
+                                    minimumSize: const Size(32, 32),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  onPressed: () => _showDeleteConfirmation(
+                                      context, ref, user),
+                                  icon: const Icon(Icons.delete, size: 16),
+                                  tooltip: 'حذف',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor:
+                                        Colors.red.withOpacity(0.1),
+                                    foregroundColor: Colors.red.shade600,
+                                    minimumSize: const Size(32, 32),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else
+                          Expanded(
+                            flex: 1,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  onPressed: () => ref
+                                      .read(homeProvider.notifier)
+                                      .visibleBar(selected: user),
+                                  icon: const Icon(Icons.visibility, size: 18),
+                                  tooltip: 'عرض التفاصيل',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor:
+                                        primaryColor.withOpacity(0.1),
+                                    foregroundColor: primaryColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _togglePhoneNumberVisibility(WidgetRef ref, String userId) {
+    final currentVisibleId = ref.read(visiblePhoneNumberProvider);
+    if (currentVisibleId == userId) {
+      ref.read(visiblePhoneNumberProvider.notifier).state = null;
+    } else {
+      ref.read(visiblePhoneNumberProvider.notifier).state = userId;
+    }
+  }
+
+  Widget _buildPhoneNumberSection(BuildContext context, UserModel user,
+      bool isPhoneVisible, WidgetRef ref) {
+    if (isPhoneVisible) {
+      return Row(
+        children: [
+          GestureDetector(
+            onTap: () => _copyToClipboard(context, user.mobileNumber),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    user.mobileNumber,
+                    style: GoogleFonts.cairo(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.content_copy,
+                      size: 14, color: Colors.green.shade600),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.visibility_off,
+                size: 18, color: Colors.grey.shade600),
+            onPressed: () => _togglePhoneNumberVisibility(ref, user.id),
+            tooltip: 'إخفاء رقم الجوال',
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade100,
+              minimumSize: const Size(32, 32),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ElevatedButton.icon(
+      onPressed: () => _togglePhoneNumberVisibility(ref, user.id),
+      icon: const Icon(Icons.visibility, size: 16),
+      label: Text('اظهر رقم الجوال', style: GoogleFonts.cairo(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green.shade600,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+      ),
+    );
+  }
+
+  void _copyToClipboard(BuildContext context, String text) {
+    if (text.isEmpty) return;
+
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text('تم نسخ رقم الجوال بنجاح', style: GoogleFonts.cairo()),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips(BuildContext context, WidgetRef ref) {
+    final filterMode = ref.watch(filterModeProvider);
+    final homeNotifier = ref.read(homeProvider.notifier);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          CustomFilterChip(
+            primaryColor: primaryColor,
+            label: 'الكل',
+            icon: Icons.all_inclusive,
+            selected: filterMode == FilterMode.all,
+            onSelected: (selected) {
+              if (selected) homeNotifier.setFilterMode(FilterMode.all);
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomFilterChip(
+            primaryColor: primaryColor,
+            label: 'لديهم تقييمات',
+            icon: Icons.star_rounded,
+            selected: filterMode == FilterMode.withReviews,
+            onSelected: (selected) {
+              if (selected) homeNotifier.setFilterMode(FilterMode.withReviews);
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomFilterChip(
+            primaryColor: primaryColor,
+            label: 'بدون تيليجرام',
+            icon: Icons.telegram,
+            selected: filterMode == FilterMode.withoutTelegram,
+            onSelected: (selected) {
+              if (selected)
+                homeNotifier.setFilterMode(FilterMode.withoutTelegram);
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomFilterChip(
+            primaryColor: primaryColor,
+            label: 'حسب الموقع',
+            icon: Icons.location_on_rounded,
+            selected: filterMode == FilterMode.byLocation,
+            onSelected: (selected) {
+              if (selected) _showLocationFilterDialog(context, ref);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSortButton(BuildContext context, WidgetRef ref) {
     final sortField = ref.watch(sortFieldProvider);
     final sortAscending = ref.watch(sortDirectionProvider);
@@ -531,6 +965,8 @@ class UsersListScreen extends ConsumerWidget {
           return 'الموقع';
         case 'reviews':
           return 'التقييمات';
+        case 'role':
+          return 'الحالة';
         default:
           return 'الاسم';
       }
@@ -555,10 +991,8 @@ class UsersListScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.sort_rounded, size: 20),
             const SizedBox(width: 8),
-            Text(
-              'ترتيب حسب: ${getSortFieldName()}',
-              style: GoogleFonts.cairo(),
-            ),
+            Text('ترتيب حسب: ${getSortFieldName()}',
+                style: GoogleFonts.cairo()),
             const SizedBox(width: 8),
             Icon(
               sortAscending
@@ -570,178 +1004,56 @@ class UsersListScreen extends ConsumerWidget {
         ),
       ),
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'aliasName',
-          child: Row(
-            children: [
-              Icon(
-                Icons.person,
-                size: 18,
-                color: sortField == 'aliasName' ? primaryColor : Colors.grey,
-              ),
-              const SizedBox(width: 8),
-              Text('الاسم', style: GoogleFonts.cairo()),
-              const Spacer(),
-              if (sortField == 'aliasName')
-                Icon(
-                  sortAscending
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 14,
-                  color: primaryColor,
-                ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'mobileNumber',
-          child: Row(
-            children: [
-              Icon(
-                Icons.phone,
-                size: 18,
-                color: sortField == 'mobileNumber' ? primaryColor : Colors.grey,
-              ),
-              const SizedBox(width: 8),
-              Text('رقم الجوال', style: GoogleFonts.cairo()),
-              const Spacer(),
-              if (sortField == 'mobileNumber')
-                Icon(
-                  sortAscending
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 14,
-                  color: primaryColor,
-                ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'location',
-          child: Row(
-            children: [
-              Icon(
-                Icons.location_on,
-                size: 18,
-                color: sortField == 'location' ? primaryColor : Colors.grey,
-              ),
-              const SizedBox(width: 8),
-              Text('الموقع', style: GoogleFonts.cairo()),
-              const Spacer(),
-              if (sortField == 'location')
-                Icon(
-                  sortAscending
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 14,
-                  color: primaryColor,
-                ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'reviews',
-          child: Row(
-            children: [
-              Icon(
-                Icons.star,
-                size: 18,
-                color: sortField == 'reviews' ? primaryColor : Colors.grey,
-              ),
-              const SizedBox(width: 8),
-              Text('التقييمات', style: GoogleFonts.cairo()),
-              const Spacer(),
-              if (sortField == 'reviews')
-                Icon(
-                  sortAscending
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 14,
-                  color: primaryColor,
-                ),
-            ],
-          ),
-        ),
+        _buildSortMenuItem(
+            'aliasName', 'الاسم', Icons.person, sortField, sortAscending),
+        _buildSortMenuItem('mobileNumber', 'رقم الجوال', Icons.phone, sortField,
+            sortAscending),
+        _buildSortMenuItem(
+            'location', 'الموقع', Icons.location_on, sortField, sortAscending),
+        _buildSortMenuItem(
+            'reviews', 'التقييمات', Icons.star, sortField, sortAscending),
+        _buildSortMenuItem(
+            'role', 'الحالة', Icons.security, sortField, sortAscending),
       ],
       onSelected: (value) {
         if (sortField == value) {
-          // Toggle direction if same field
           homeNotifier.setSort(value);
         } else {
-          // Set new field and reset to ascending
           homeNotifier.setSort(value, ascending: true);
         }
       },
     );
   }
 
-  // Filter chips
-  Widget _buildFilterChips(BuildContext context, WidgetRef ref) {
-    final filterMode = ref.watch(filterModeProvider);
-    final homeNotifier = ref.read(homeProvider.notifier);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+  PopupMenuItem<String> _buildSortMenuItem(String value, String label,
+      IconData icon, String currentSortField, bool sortAscending) {
+    final isSelected = currentSortField == value;
+    return PopupMenuItem(
+      value: value,
       child: Row(
         children: [
-          CustomFilterChip(
-            primaryColor: Colors.green,
-            label: 'الكل',
-            icon: Icons.all_inclusive,
-            selected: filterMode == FilterMode.all,
-            onSelected: (selected) {
-              if (selected) {
-                homeNotifier.setFilterMode(FilterMode.all);
-              }
-            },
-          ),
+          Icon(icon, size: 18, color: isSelected ? primaryColor : Colors.grey),
           const SizedBox(width: 8),
-          CustomFilterChip(
-            primaryColor: Colors.green,
-            label: 'لديهم تقييمات',
-            icon: Icons.star_rounded,
-            selected: filterMode == FilterMode.withReviews,
-            onSelected: (selected) {
-              if (selected) {
-                homeNotifier.setFilterMode(FilterMode.withReviews);
-              }
-            },
-          ),
-          const SizedBox(width: 8),
-          CustomFilterChip(
-            primaryColor: Colors.green,
-            label: 'بدون تيليجرام',
-            icon: Icons.telegram,
-            selected: filterMode == FilterMode.withoutTelegram,
-            onSelected: (selected) {
-              if (selected) {
-                homeNotifier.setFilterMode(FilterMode.withoutTelegram);
-              }
-            },
-          ),
-          const SizedBox(width: 8),
-          CustomFilterChip(
-            primaryColor: Colors.green,
-            label: 'حسب الموقع',
-            icon: Icons.location_on_rounded,
-            selected: filterMode == FilterMode.byLocation,
-            onSelected: (selected) {
-              if (selected) {
-                _showLocationFilterDialog(context, ref);
-              }
-            },
-          ),
+          Text(label, style: GoogleFonts.cairo()),
+          const Spacer(),
+          if (isSelected)
+            Icon(
+              sortAscending
+                  ? Icons.arrow_upward_rounded
+                  : Icons.arrow_downward_rounded,
+              size: 14,
+              color: primaryColor,
+            ),
         ],
       ),
     );
   }
 
-  // Pagination controls
-  Widget _buildPagination(BuildContext context, WidgetRef ref, int totalItems) {
+  Widget _buildPagination(
+      BuildContext context, WidgetRef ref, int totalItems, int totalPages) {
     final currentPage = ref.watch(currentPageProvider);
     final pageSize = ref.watch(pageSizeProvider);
     final homeNotifier = ref.read(homeProvider.notifier);
-    final totalPages = (totalItems / pageSize).ceil();
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -768,9 +1080,7 @@ class UsersListScreen extends ConsumerWidget {
                       ))
                   .toList(),
               onChanged: (value) {
-                if (value != null) {
-                  homeNotifier.setPageSize(value);
-                }
+                if (value != null) homeNotifier.setPageSize(value);
               },
             ),
           ),
@@ -802,9 +1112,7 @@ class UsersListScreen extends ConsumerWidget {
             ),
             child: Text(
               '$currentPage من $totalPages',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
             ),
           ),
           IconButton(
@@ -834,7 +1142,6 @@ class UsersListScreen extends ConsumerWidget {
     final homeNotifier = ref.read(homeProvider.notifier);
     final locations = ref.watch(locationsProvider);
 
-    // Show loading if locations are loading
     if (locations.isLoading) {
       showDialog(
         context: context,
@@ -843,7 +1150,6 @@ class UsersListScreen extends ConsumerWidget {
       return;
     }
 
-    // Show error if locations failed to load
     if (locations.hasError) {
       showDialog(
         context: context,
@@ -863,30 +1169,19 @@ class UsersListScreen extends ConsumerWidget {
       return;
     }
 
-    // Show locations dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          'تصفية حسب الموقع',
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Text('تصفية حسب الموقع',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'اختر الموقع للتصفية',
-              style: GoogleFonts.cairo(),
-            ),
+            Text('اختر الموقع للتصفية', style: GoogleFonts.cairo()),
             const SizedBox(height: 16),
             if (locations.value!.isEmpty)
-              Text(
-                'لا توجد مواقع متاحة',
-                style: GoogleFonts.cairo(),
-                textAlign: TextAlign.center,
-              )
+              Text('لا توجد مواقع متاحة',
+                  style: GoogleFonts.cairo(), textAlign: TextAlign.center)
             else
               SizedBox(
                 width: double.maxFinite,
@@ -918,28 +1213,24 @@ class UsersListScreen extends ConsumerWidget {
             child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
         ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
-  // Dialog for exporting data
   void _showExportDialog(BuildContext context, WidgetRef ref) {
     final homeNotifier = ref.read(homeProvider.notifier);
     if (!ref.read(isAdminProvider)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'عذراً، فقط المشرفين يمكنهم تصدير البيانات',
-            style: GoogleFonts.cairo(),
-          ),
+          content: Text('عذراً، فقط المشرفين يمكنهم تصدير البيانات',
+              style: GoogleFonts.cairo()),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -947,119 +1238,84 @@ class UsersListScreen extends ConsumerWidget {
           children: [
             Icon(Icons.download_rounded, color: primaryColor),
             const SizedBox(width: 8),
-            Text(
-              'تصدير البيانات',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('تصدير البيانات',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'اختر صيغة التصدير:',
-              style: GoogleFonts.cairo(),
-            ),
+            Text('اختر صيغة التصدير:', style: GoogleFonts.cairo()),
             const SizedBox(height: 16),
-            _buildExportOption(
-              context,
-              title: 'Excel (XLSX)',
-              icon: Icons.table_chart,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await homeNotifier.exportData('xlsx');
-                if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم تصدير البيانات بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-            _buildExportOption(
-              context,
-              title: 'CSV',
-              icon: Icons.description,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await homeNotifier.exportData('csv');
-                if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم تصدير البيانات بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-            _buildExportOption(
-              context,
-              title: 'PDF',
-              icon: Icons.picture_as_pdf,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await homeNotifier.exportData('pdf');
-                if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم تصدير البيانات بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
+            _buildExportOption(context,
+                title: 'Excel (XLSX)',
+                icon: Icons.table_chart, onTap: () async {
+              Navigator.pop(context);
+              final result = await homeNotifier.exportData('xlsx');
+              if (result != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }),
+            _buildExportOption(context, title: 'CSV', icon: Icons.description,
+                onTap: () async {
+              Navigator.pop(context);
+              final result = await homeNotifier.exportData('csv');
+              if (result != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }),
+            _buildExportOption(context,
+                title: 'PDF', icon: Icons.picture_as_pdf, onTap: () async {
+              Navigator.pop(context);
+              final result = await homeNotifier.exportData('pdf');
+              if (result != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.cairo(),
-            ),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
         ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
-  // Export option item
-  Widget _buildExportOption(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildExportOption(BuildContext context,
+      {required String title,
+      required IconData icon,
+      required VoidCallback onTap}) {
     return ListTile(
       leading: Icon(icon, color: primaryColor),
       title: Text(title, style: GoogleFonts.cairo()),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       onTap: onTap,
       hoverColor: primaryColor.withOpacity(0.1),
     );
   }
 
-  // Dialog for adding a new user
   void _showAddUserDialog(BuildContext context, WidgetRef ref) {
     final formKey = GlobalKey<FormState>();
     final homeNotifier = ref.read(homeProvider.notifier);
@@ -1071,19 +1327,19 @@ class UsersListScreen extends ConsumerWidget {
     String? telegramAccount;
     String? otherAccounts;
     String? reviews;
-    bool isTrusted = true;
+    int role = 1; // 1 = موثوق, 2 = معروف, 3 = نصاب
+
     if (!ref.read(isAdminProvider)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'عذراً، فقط المشرفين يمكنهم إضافة مستخدمين جدد',
-            style: GoogleFonts.cairo(),
-          ),
+          content: Text('عذراً، فقط المشرفين يمكنهم إضافة مستخدمين جدد',
+              style: GoogleFonts.cairo()),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1091,12 +1347,8 @@ class UsersListScreen extends ConsumerWidget {
           children: [
             Icon(Icons.person_add, color: primaryColor),
             const SizedBox(width: 8),
-            Text(
-              'إضافة مستخدم جديد',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('إضافة مستخدم جديد',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Form(
@@ -1109,15 +1361,11 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'الاسم المستعار',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال الاسم';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'الرجاء إدخال الاسم'
+                      : null,
                   onSaved: (value) => aliasName = value ?? '',
                 ),
                 const SizedBox(height: 16),
@@ -1125,16 +1373,12 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'رقم الجوال',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال رقم الجوال';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'الرجاء إدخال رقم الجوال'
+                      : null,
                   onSaved: (value) => mobileNumber = value ?? '',
                 ),
                 const SizedBox(height: 16),
@@ -1142,15 +1386,11 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'الموقع',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال الموقع';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'الرجاء إدخال الموقع'
+                      : null,
                   onSaved: (value) => location = value ?? '',
                 ),
                 const SizedBox(height: 16),
@@ -1158,8 +1398,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'الخدمات المقدمة',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => servicesProvided = value,
                 ),
@@ -1168,8 +1407,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'حساب تيليجرام',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => telegramAccount = value,
                 ),
@@ -1178,8 +1416,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'حسابات أخرى',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => otherAccounts = value,
                 ),
@@ -1188,43 +1425,44 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'التقييمات',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => reviews = value,
                 ),
                 const SizedBox(height: 16),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'الحالة:',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+                    Text('الحالة:',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     StatefulBuilder(
-                      builder: (context, setState) => Row(
+                      builder: (context, setState) => Column(
                         children: [
-                          Radio<bool>(
-                            value: true,
-                            groupValue: isTrusted,
-                            onChanged: (value) {
-                              setState(() => isTrusted = value!);
-                            },
+                          RadioListTile<int>(
+                            title: Text('موثوق', style: GoogleFonts.cairo()),
+                            value: 1,
+                            groupValue: role,
+                            onChanged: (value) => setState(() => role = value!),
                             activeColor: Colors.green,
+                            dense: true,
                           ),
-                          Text('موثوق', style: GoogleFonts.cairo()),
-                          const SizedBox(width: 16),
-                          Radio<bool>(
-                            value: false,
-                            groupValue: isTrusted,
-                            onChanged: (value) {
-                              setState(() => isTrusted = value!);
-                            },
+                          RadioListTile<int>(
+                            title: Text('معروف', style: GoogleFonts.cairo()),
+                            value: 2,
+                            groupValue: role,
+                            onChanged: (value) => setState(() => role = value!),
+                            activeColor: Colors.orange,
+                            dense: true,
+                          ),
+                          RadioListTile<int>(
+                            title: Text('نصاب', style: GoogleFonts.cairo()),
+                            value: 3,
+                            groupValue: role,
+                            onChanged: (value) => setState(() => role = value!),
                             activeColor: Colors.red,
+                            dense: true,
                           ),
-                          Text('نصاب', style: GoogleFonts.cairo()),
                         ],
                       ),
                     ),
@@ -1237,10 +1475,7 @@ class UsersListScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.cairo(),
-            ),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1256,42 +1491,30 @@ class UsersListScreen extends ConsumerWidget {
                   telegramAccount: telegramAccount,
                   otherAccounts: otherAccounts,
                   reviews: reviews,
-                  isTrusted: isTrusted,
+                  role: role, // Fixed parameter name
                 );
 
                 if (success) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        'تمت إضافة المستخدم بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
+                      content: Text('تمت إضافة المستخدم بنجاح',
+                          style: GoogleFonts.cairo()),
                       backgroundColor: Colors.green,
                     ),
                   );
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-            ),
-            child: Text(
-              'إضافة',
-              style: GoogleFonts.cairo(
-                color: Colors.white,
-              ),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+            child: Text('إضافة', style: GoogleFonts.cairo(color: Colors.white)),
           ),
         ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
-  // Dialog for editing a user
   void _showEditUserDialog(
       BuildContext context, WidgetRef ref, UserModel user) {
     final formKey = GlobalKey<FormState>();
@@ -1304,19 +1527,19 @@ class UsersListScreen extends ConsumerWidget {
     String telegramAccount = user.telegramAccount;
     String otherAccounts = user.otherAccounts;
     String reviews = user.reviews;
-    bool isTrusted = user.isTrusted;
+    int role = user.role; // Fixed variable name
+
     if (!ref.read(isAdminProvider)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'عذراً، فقط المشرفين يمكنهم تعديل المستخدمين',
-            style: GoogleFonts.cairo(),
-          ),
+          content: Text('عذراً، فقط المشرفين يمكنهم تعديل المستخدمين',
+              style: GoogleFonts.cairo()),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1324,12 +1547,8 @@ class UsersListScreen extends ConsumerWidget {
           children: [
             Icon(Icons.edit, color: primaryColor),
             const SizedBox(width: 8),
-            Text(
-              'تعديل مستخدم',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('تعديل مستخدم',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Form(
@@ -1343,15 +1562,11 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'الاسم المستعار',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال الاسم';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'الرجاء إدخال الاسم'
+                      : null,
                   onSaved: (value) => aliasName = value ?? '',
                 ),
                 const SizedBox(height: 16),
@@ -1360,16 +1575,12 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'رقم الجوال',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال رقم الجوال';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'الرجاء إدخال رقم الجوال'
+                      : null,
                   onSaved: (value) => mobileNumber = value ?? '',
                 ),
                 const SizedBox(height: 16),
@@ -1378,15 +1589,11 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'الموقع',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'الرجاء إدخال الموقع';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'الرجاء إدخال الموقع'
+                      : null,
                   onSaved: (value) => location = value ?? '',
                 ),
                 const SizedBox(height: 16),
@@ -1395,8 +1602,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'الخدمات المقدمة',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => servicesProvided = value ?? '',
                 ),
@@ -1406,8 +1612,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'حساب تيليجرام',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => telegramAccount = value ?? '',
                 ),
@@ -1417,8 +1622,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'حسابات أخرى',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => otherAccounts = value ?? '',
                 ),
@@ -1428,43 +1632,44 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: 'التقييمات',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onSaved: (value) => reviews = value ?? '',
                 ),
                 const SizedBox(height: 16),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'الحالة:',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+                    Text('الحالة:',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     StatefulBuilder(
-                      builder: (context, setState) => Row(
+                      builder: (context, setState) => Column(
                         children: [
-                          Radio<bool>(
-                            value: true,
-                            groupValue: isTrusted,
-                            onChanged: (value) {
-                              setState(() => isTrusted = value!);
-                            },
+                          RadioListTile<int>(
+                            title: Text('موثوق', style: GoogleFonts.cairo()),
+                            value: 1,
+                            groupValue: role,
+                            onChanged: (value) => setState(() => role = value!),
                             activeColor: Colors.green,
+                            dense: true,
                           ),
-                          Text('موثوق', style: GoogleFonts.cairo()),
-                          const SizedBox(width: 16),
-                          Radio<bool>(
-                            value: false,
-                            groupValue: isTrusted,
-                            onChanged: (value) {
-                              setState(() => isTrusted = value!);
-                            },
+                          RadioListTile<int>(
+                            title: Text('معروف', style: GoogleFonts.cairo()),
+                            value: 2,
+                            groupValue: role,
+                            onChanged: (value) => setState(() => role = value!),
+                            activeColor: Colors.orange,
+                            dense: true,
+                          ),
+                          RadioListTile<int>(
+                            title: Text('نصاب', style: GoogleFonts.cairo()),
+                            value: 3,
+                            groupValue: role,
+                            onChanged: (value) => setState(() => role = value!),
                             activeColor: Colors.red,
+                            dense: true,
                           ),
-                          Text('نصاب', style: GoogleFonts.cairo()),
                         ],
                       ),
                     ),
@@ -1477,10 +1682,7 @@ class UsersListScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.cairo(),
-            ),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1496,57 +1698,45 @@ class UsersListScreen extends ConsumerWidget {
                   telegramAccount: telegramAccount,
                   otherAccounts: otherAccounts,
                   reviews: reviews,
-                  isTrusted: isTrusted,
+                  role: role, // Fixed parameter name
                 );
 
                 if (success) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        'تم تحديث المستخدم بنجاح',
-                        style: GoogleFonts.cairo(),
-                      ),
+                      content: Text('تم تحديث المستخدم بنجاح',
+                          style: GoogleFonts.cairo()),
                       backgroundColor: Colors.green,
                     ),
                   );
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-            ),
-            child: Text(
-              'حفظ',
-              style: GoogleFonts.cairo(
-                color: Colors.white,
-              ),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+            child: Text('حفظ', style: GoogleFonts.cairo(color: Colors.white)),
           ),
         ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
-  // Confirmation dialog for deleting a user
   void _showDeleteConfirmation(
       BuildContext context, WidgetRef ref, UserModel user) {
     final homeNotifier = ref.read(homeProvider.notifier);
+
     if (!ref.read(isAdminProvider)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'عذراً، فقط المشرفين يمكنهم حذف المستخدمين',
-            style: GoogleFonts.cairo(),
-          ),
+          content: Text('عذراً، فقط المشرفين يمكنهم حذف المستخدمين',
+              style: GoogleFonts.cairo()),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1554,21 +1744,15 @@ class UsersListScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.delete, color: Colors.red),
             const SizedBox(width: 8),
-            Text(
-              'حذف مستخدم',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('حذف مستخدم',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'هل أنت متأكد من أنك تريد حذف هذا المستخدم؟',
-              style: GoogleFonts.cairo(),
-            ),
+            Text('هل أنت متأكد من أنك تريد حذف هذا المستخدم؟',
+                style: GoogleFonts.cairo()),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -1584,14 +1768,12 @@ class UsersListScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          user.aliasName,
-                          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          user.mobileNumber,
-                          style: GoogleFonts.cairo(color: Colors.grey.shade700),
-                        ),
+                        Text(user.aliasName,
+                            style:
+                                GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                        Text(user.mobileNumber,
+                            style:
+                                GoogleFonts.cairo(color: Colors.grey.shade700)),
                       ],
                     ),
                   ),
@@ -1602,19 +1784,14 @@ class UsersListScreen extends ConsumerWidget {
             Text(
               'هذا الإجراء لا يمكن التراجع عنه.',
               style: GoogleFonts.cairo(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
+                  color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.cairo(),
-            ),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1623,35 +1800,27 @@ class UsersListScreen extends ConsumerWidget {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      'تم حذف المستخدم بنجاح',
-                      style: GoogleFonts.cairo(),
-                    ),
+                    content: Text('تم حذف المستخدم بنجاح',
+                        style: GoogleFonts.cairo()),
                     backgroundColor: Colors.green,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: Text(
-              'حذف',
-              style: GoogleFonts.cairo(
-                color: Colors.white,
-              ),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('حذف', style: GoogleFonts.cairo(color: Colors.white)),
           ),
         ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 }
 
-// Make sure to update the UserDetailSidebar to include edit and delete options
+// Helper class for phone number visibility
+final visiblePhoneNumberProvider = StateProvider<String?>((ref) => null);
+
+// UserDetailSidebar widget
 class UserDetailSidebar extends ConsumerWidget {
   final UserModel user;
   final VoidCallback onClose;
@@ -1691,85 +1860,71 @@ class UserDetailSidebar extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   UserInfoCard(
-                    icon: Icons.person_rounded,
-                    title: "الاسم",
-                    value: user.aliasName,
-                  ),
+                      icon: Icons.person_rounded,
+                      title: "الاسم",
+                      value: user.aliasName),
                   const SizedBox(height: 12),
                   UserInfoCard(
-                    icon: Icons.phone_rounded,
-                    title: "رقم الجوال",
-                    value: user.mobileNumber,
-                  ),
+                      icon: Icons.phone_rounded,
+                      title: "رقم الجوال",
+                      value: user.mobileNumber),
                   const SizedBox(height: 12),
                   UserInfoCard(
-                    icon: Icons.location_on_rounded,
-                    title: "الموقع",
-                    value: user.location,
-                  ),
+                      icon: Icons.location_on_rounded,
+                      title: "الموقع",
+                      value: user.location),
                   const SizedBox(height: 12),
                   UserInfoCard(
-                    icon: Icons.settings_rounded,
-                    title: "الخدمات المقدمة",
-                    value: user.servicesProvided,
-                  ),
+                      icon: Icons.settings_rounded,
+                      title: "الخدمات المقدمة",
+                      value: user.servicesProvided),
                   const SizedBox(height: 12),
                   UserInfoCard(
-                    icon: Icons.telegram,
-                    title: "حساب تيليجرام",
-                    value: user.telegramAccount,
-                  ),
+                      icon: Icons.telegram,
+                      title: "حساب تيليجرام",
+                      value: user.telegramAccount),
                   const SizedBox(height: 12),
                   UserInfoCard(
-                    icon: Icons.link_rounded,
-                    title: "حسابات أخرى",
-                    value: user.otherAccounts,
-                  ),
+                      icon: Icons.link_rounded,
+                      title: "حسابات أخرى",
+                      value: user.otherAccounts),
                   const SizedBox(height: 12),
                   UserInfoCard(
-                    icon: Icons.star_rounded,
-                    title: "التقييمات",
-                    value: user.reviews,
-                  ),
+                      icon: Icons.star_rounded,
+                      title: "التقييمات",
+                      value: user.reviews),
                   const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (onEdit != null && ref.watch(isAdminProvider))
-                        ElevatedButton.icon(
-                          onPressed: onEdit,
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: Text(
-                            'تعديل',
-                            style: GoogleFonts.cairo(),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                  if (ref.watch(isAdminProvider))
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (onEdit != null)
+                          ElevatedButton.icon(
+                            onPressed: onEdit,
+                            icon: const Icon(Icons.edit, size: 18),
+                            label: Text('تعديل', style: GoogleFonts.cairo()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                           ),
-                        ),
-                      const SizedBox(width: 16),
-                      if (onDelete != null && ref.watch(isAdminProvider))
-                        ElevatedButton.icon(
-                          onPressed: onDelete,
-                          icon: const Icon(Icons.delete, size: 18),
-                          label: Text(
-                            'حذف',
-                            style: GoogleFonts.cairo(),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 16),
+                        if (onDelete != null)
+                          ElevatedButton.icon(
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete, size: 18),
+                            label: Text('حذف', style: GoogleFonts.cairo()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -1780,22 +1935,39 @@ class UserDetailSidebar extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    Color backgroundColor, borderColor;
+
+    switch (user.role) {
+      case 0: // Admin
+        backgroundColor = Colors.purple.shade50;
+        borderColor = Colors.purple.shade200;
+        break;
+      case 1: // Trusted
+        backgroundColor = Colors.green.shade50;
+        borderColor = Colors.green.shade200;
+        break;
+      case 2: // Known
+        backgroundColor = Colors.blue.shade50;
+        borderColor = Colors.blue.shade200;
+        break;
+      case 3: // Fraud
+        backgroundColor = Colors.red.shade50;
+        borderColor = Colors.red.shade200;
+        break;
+      default:
+        backgroundColor = Colors.grey.shade50;
+        borderColor = Colors.grey.shade200;
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: user.isTrusted ? Colors.green.shade50 : Colors.red.shade50,
+        color: backgroundColor,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
         ),
-        border: Border(
-          bottom: BorderSide(
-            color: user.isTrusted ? Colors.green.shade200 : Colors.red.shade200,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: borderColor)),
       ),
       child: Row(
         children: [
@@ -1812,12 +1984,7 @@ class UserDetailSidebar extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                StatusChip(
-                  isTrusted: user.isTrusted,
-                  role: (user.role as num?)
-                      ?.toInt(), // Convert to int if it exists
-                  compact: true,
-                ),
+                StatusChip(role: user.role, compact: true),
               ],
             ),
           ),
@@ -1829,11 +1996,7 @@ class UserDetailSidebar extends ConsumerWidget {
               onTap: onClose,
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 24,
-                  color: Colors.grey,
-                ),
+                child: Icon(Icons.close_rounded, size: 24, color: Colors.grey),
               ),
             ),
           ),

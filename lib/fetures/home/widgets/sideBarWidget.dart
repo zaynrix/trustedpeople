@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/status_chip.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/user_info_card.dart';
+
 class UserDetailSidebar extends ConsumerWidget {
   final UserModel user;
   final VoidCallback onClose;
@@ -89,20 +90,31 @@ class UserDetailSidebar extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final statusStyle = user.getStatusStyle();
+    final colorMap = {
+      'purple': Colors.purple,
+      'green': Colors.green,
+      'blue': Colors.blue,
+      'red': Colors.red,
+      'grey': Colors.grey,
+    };
+
+    final statusColor = colorMap[statusStyle['color']] ?? Colors.grey;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 20,
         vertical: 16,
       ),
       decoration: BoxDecoration(
-        color: user.isTrusted ? Colors.green.shade50 : Colors.red.shade50,
+        color: statusColor.shade50,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
         ),
         border: Border(
           bottom: BorderSide(
-            color: user.isTrusted ? Colors.green.shade200 : Colors.red.shade200,
+            color: statusColor.shade200,
           ),
         ),
       ),
@@ -121,7 +133,7 @@ class UserDetailSidebar extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                StatusChip(isTrusted: user.isTrusted),
+                StatusChip(role: user.role), // Updated to use role
               ],
             ),
           ),

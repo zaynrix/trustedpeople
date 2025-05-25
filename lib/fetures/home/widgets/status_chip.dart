@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class StatusChip extends StatelessWidget {
-  final bool isTrusted;
+  final int role; // Made required and removed isTrusted
   final bool compact;
-  final int? role; // Add role parameter
 
   const StatusChip({
     Key? key,
-    required this.isTrusted,
+    required this.role, // Now required
     this.compact = false,
-    this.role, // Pass the role
   }) : super(key: key);
 
   @override
@@ -56,20 +54,12 @@ class StatusChip extends StatelessWidget {
         iconData = Icons.warning;
         break;
 
-      default: // Fallback to the original logic for backward compatibility
-        if (isTrusted) {
-          bgColor = Colors.green.shade50;
-          textColor = Colors.green.shade700;
-          borderColor = Colors.green.shade300;
-          statusText = "موثوق"; // Trusted
-          iconData = Icons.verified_user;
-        } else {
-          bgColor = Colors.red.shade50;
-          textColor = Colors.red.shade700;
-          borderColor = Colors.red.shade300;
-          statusText = "نصاب"; // Fraud
-          iconData = Icons.warning;
-        }
+      default: // Fallback for unknown role values
+        bgColor = Colors.grey.shade50;
+        textColor = Colors.grey.shade700;
+        borderColor = Colors.grey.shade300;
+        statusText = "غير محدد"; // Unknown
+        iconData = Icons.help_outline;
     }
 
     return AnimatedContainer(

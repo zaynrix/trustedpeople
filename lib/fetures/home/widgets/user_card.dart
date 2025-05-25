@@ -71,7 +71,6 @@ class UserCard extends ConsumerWidget {
                         ),
                       ),
                       StatusChip(
-                        isTrusted: user.isTrusted,
                         role: user.role,
                         compact: true,
                       ),
@@ -150,104 +149,105 @@ class UserCard extends ConsumerWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: isPhoneVisible
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: phoneNumber.isNotEmpty
-                            ? () {
-                                Clipboard.setData(
-                                    ClipboardData(text: phoneNumber));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('تم النسخ'),
-                                    backgroundColor: Colors.blue.shade700,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
+            child: isPhoneVisible
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: phoneNumber.isNotEmpty
+                              ? () {
+                                  Clipboard.setData(
+                                      ClipboardData(text: phoneNumber));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('تم النسخ'),
+                                      backgroundColor: Colors.blue.shade700,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      width: 200,
+                                      duration: const Duration(seconds: 1),
                                     ),
-                                    width: 200,
-                                    duration: const Duration(seconds: 1),
+                                  );
+                                }
+                              : null,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  phoneNumber.isEmpty ? '-' : phoneNumber,
+                                  style: GoogleFonts.cairo(
+                                    color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                );
-                              }
-                            : null,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                phoneNumber.isEmpty ? '-' : phoneNumber,
-                                style: GoogleFonts.cairo(
-                                  color: Colors.green.shade700,
-                                  fontWeight: FontWeight.w600,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (phoneNumber.isNotEmpty) ...[
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.content_copy,
+                                  size: 14,
+                                  color: Colors.blue,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: onToggle,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.visibility_off,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : IntrinsicWidth(
+                    child: GestureDetector(
+                      onTap: onToggle,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade600,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.visibility,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'اظهر رقم الجوال',
+                              style: GoogleFonts.cairo(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            if (phoneNumber.isNotEmpty) ...[
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.content_copy,
-                                size: 14,
-                                color: Colors.blue,
-                              ),
-                            ],
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: onToggle,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Icon(
-                          Icons.visibility_off,
-                          size: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : GestureDetector(
-                  onTap: onToggle,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade600,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.visibility,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'اظهر رقم الجوال',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-        ),
+                  )),
       ],
     );
   }

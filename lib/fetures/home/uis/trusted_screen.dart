@@ -7,7 +7,7 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/usersTable.dart';
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
       .collection('userstransed')
-      .where("isTrusted", isEqualTo: true)
+      .where("role", whereIn: [0, 1, 2]) // ✅ Admin, Trusted, Known
       .snapshots();
 });
 

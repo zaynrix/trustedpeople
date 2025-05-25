@@ -362,7 +362,6 @@ class UsersDataTable extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   StatusChip(
-                    isTrusted: userData.isTrusted,
                     role: userData.role,
                     compact: true,
                   ),
@@ -484,7 +483,6 @@ class UsersDataTable extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               StatusChip(
-                isTrusted: userData.isTrusted,
                 role: userData.role,
                 compact: true,
               ),
@@ -513,33 +511,6 @@ class UsersDataTable extends ConsumerWidget {
             ],
           ),
         ),
-        // Services
-        // Expanded(
-        //   flex: 2,
-        //   child: userData.servicesProvided.isNotEmpty == true
-        //       ? Row(
-        //           children: [
-        //             Icon(Icons.work, size: 16, color: Colors.grey.shade600),
-        //             const SizedBox(width: 4),
-        //             Expanded(
-        //               child: Text(
-        //                 userData.servicesProvided,
-        //                 style: GoogleFonts.cairo(),
-        //                 overflow: TextOverflow.ellipsis,
-        //                 maxLines: 2,
-        //               ),
-        //             ),
-        //           ],
-        //         )
-        //       : Text(
-        //           'غير محدد',
-        //           style: GoogleFonts.cairo(
-        //             color: Colors.grey.shade500,
-        //             fontSize: 12,
-        //           ),
-        //         ),
-        // ),
-        // Reviews
         Expanded(
           flex: 1,
           child: userData.reviews.isNotEmpty == true
