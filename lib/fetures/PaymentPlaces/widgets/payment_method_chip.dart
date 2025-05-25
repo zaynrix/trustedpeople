@@ -7,10 +7,10 @@ class PaymentMethodChip extends StatelessWidget {
   final bool compact;
 
   const PaymentMethodChip({
-    Key? key,
+    super.key,
     required this.method,
     this.compact = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,28 +50,33 @@ class PaymentMethodChip extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.only(right: compact ? 4 : 8),
-      child: Chip(
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: compact
-            ? const VisualDensity(horizontal: -4, vertical: -4)
-            : VisualDensity.standard,
-        avatar: Icon(
-          icon,
-          color: Colors.white,
-          size: compact ? 14 : 18,
-        ),
-        label: Text(
-          method,
-          style: GoogleFonts.cairo(
-            color: Colors.white,
-            fontSize: compact ? 10 : 12,
-            fontWeight: FontWeight.bold,
+      child: Material(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 4 : 6,
           ),
-        ),
-        backgroundColor: color,
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 4 : 8,
-          vertical: compact ? 0 : 4,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: compact ? 14 : 18,
+              ),
+              SizedBox(width: compact ? 4 : 6),
+              Text(
+                method,
+                style: GoogleFonts.cairo(
+                  color: Colors.white,
+                  fontSize: compact ? 10 : 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

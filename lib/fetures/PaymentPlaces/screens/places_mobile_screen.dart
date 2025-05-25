@@ -6,8 +6,8 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/dialogs/payment_places_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/providers/payment_places_provider.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_card.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_detail_sidebar.dart';
+import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_mobile_tile.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/places_filter_chips.dart';
 import 'package:trustedtallentsvalley/services/auth_service.dart';
 
@@ -114,31 +114,30 @@ class PaymentPlacesMobileView extends ConsumerWidget {
               Expanded(
                 child: filteredPlaces.isEmpty
                     ? const EmptyStateWidget()
-                    : RefreshIndicator(
+                    :
+                RefreshIndicator(
                   onRefresh: () async {
                     // Refresh the data
                     ref.refresh(paymentPlacesStreamProvider);
                     return;
                   },
-                  child: GridView.builder(
-                    gridDelegate:
-                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 500,
-                      childAspectRatio: 0.9,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                  child:
+                  ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: filteredPlaces.length,
                     itemBuilder: (context, index) {
                       final place = PaymentPlaceModel.fromFirestore(
                           filteredPlaces[index]);
-                      return PlaceCard(
-                        place: place,
-                        onTap: () {
-                          placesNotifier.selectPlace(place);
-                          _showPlaceDetailBottomSheet(
-                              context, ref, place);
-                        },
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: PlaceMobileTile(
+                          place: place,
+                          onTap: () {
+                            placesNotifier.selectPlace(place);
+                            _showPlaceDetailBottomSheet(
+                                context, ref, place);
+                          },
+                        ),
                       );
                     },
                   ),
