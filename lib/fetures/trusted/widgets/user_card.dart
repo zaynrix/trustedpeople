@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/status_chip.dart';
 
-
 class UserCard extends ConsumerWidget {
   final UserModel user;
   final VoidCallback onTap;
@@ -43,8 +42,8 @@ class UserCard extends ConsumerWidget {
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
             child: Container(
-              constraints:
-                  const BoxConstraints(maxHeight: 200), // Increased height slightly
+              constraints: const BoxConstraints(
+                  maxHeight: 200), // Increased height slightly
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

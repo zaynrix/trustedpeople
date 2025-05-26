@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/widgets/user_info_card.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/status_chip.dart';
-import 'package:trustedtallentsvalley/core/widgets/user_info_card.dart';
 
 class UserDetailSidebar extends ConsumerWidget {
   final UserModel user;

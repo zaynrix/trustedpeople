@@ -1,5 +1,4 @@
-
-import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
+import '../../trusted/model/user_model.dart';
 
 class HomeState {
   final UserModel? userModel;

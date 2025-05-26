@@ -10,6 +10,7 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/analytics_r
 import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/visitor_chart.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/cards/admin_action_card.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
+import 'package:trustedtallentsvalley/fetures/maintenance/widgets/maintenance_management_widget.dart';
 import 'package:trustedtallentsvalley/fetures/services/models/service_model.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/service_requests_provider.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
@@ -22,7 +23,8 @@ class AdminDashboardWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final analyticsChartData = ref.watch(analyticsChartDataProvider);
     final analyticsData = ref.watch(analyticsDataProvider);
-    final constraints = BoxConstraints(maxWidth: MediaQuery.of(context).size.width);
+    final constraints =
+        BoxConstraints(maxWidth: MediaQuery.of(context).size.width);
 
     return SingleChildScrollView(
       child: Column(
@@ -77,6 +79,9 @@ class AdminDashboardWidget extends ConsumerWidget {
           const SizedBox(height: 32),
           // Notifications and New Requests
           _buildNotificationsAndRequests(context, ref),
+          const SizedBox(height: 32),
+          // *** ADD MAINTENANCE MANAGEMENT SECTION HERE ***
+          const MaintenanceManagementWidget(),
 
           const SizedBox(height: 32),
           // Visitor Analytics Section
@@ -127,23 +132,23 @@ class AdminDashboardWidget extends ConsumerWidget {
                   data: (data) {
                     return constraints.maxWidth > 768
                         ? Consumer(
-                      builder: (context, ref, child) {
-                        final analyticsAsync =
-                        ref.watch(analyticsDataProvider);
+                            builder: (context, ref, child) {
+                              final analyticsAsync =
+                                  ref.watch(analyticsDataProvider);
 
-                        return analyticsAsync.when(
-                          data: (data) => AnalyticsRow(data: data),
-                          loading: () => const Center(
-                              child: CircularProgressIndicator()),
-                          error: (error, stack) => Center(
-                            child: Text(
-                              'Error loading analytics: $error',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        );
-                      },
-                    )
+                              return analyticsAsync.when(
+                                data: (data) => AnalyticsRow(data: data),
+                                loading: () => const Center(
+                                    child: CircularProgressIndicator()),
+                                error: (error, stack) => Center(
+                                  child: Text(
+                                    'Error loading analytics: $error',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
                         : AnalyticsColumn(data: data);
                   },
                   loading: () => const Center(
@@ -202,17 +207,17 @@ class AdminDashboardWidget extends ConsumerWidget {
           const SizedBox(height: 32),
           Card(
               child: ListTile(
-                leading: const Icon(Icons.block, color: Colors.red),
-                title: Text('المستخدمين المحظورين', style: GoogleFonts.cairo()),
-                subtitle: Text(
-                  'إدارة المستخدمين المحظورين من الوصول للموقع',
-                  style: GoogleFonts.cairo(),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.arrow_forward),
-                  onPressed: () => context.pushNamed(ScreensNames.blockedUsers),
-                ),
-              )),
+            leading: const Icon(Icons.block, color: Colors.red),
+            title: Text('المستخدمين المحظورين', style: GoogleFonts.cairo()),
+            subtitle: Text(
+              'إدارة المستخدمين المحظورين من الوصول للموقع',
+              style: GoogleFonts.cairo(),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.arrow_forward),
+              onPressed: () => context.pushNamed(ScreensNames.blockedUsers),
+            ),
+          )),
           // Quick CRUD Activities
           const Row(
             children: [
@@ -371,8 +376,8 @@ class AdminDashboardWidget extends ConsumerWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: Text(
                     'عرض الطلبات',
@@ -417,12 +422,11 @@ class AdminDashboardWidget extends ConsumerWidget {
                     // Notification badge for contact messages
                     Consumer(
                       builder: (context, ref, child) {
-                        final unreadCount = ref
-                            .watch(unreadMessagesCountProvider)
-                            .maybeWhen(
-                          data: (count) => count,
-                          orElse: () => 0,
-                        );
+                        final unreadCount =
+                            ref.watch(unreadMessagesCountProvider).maybeWhen(
+                                  data: (count) => count,
+                                  orElse: () => 0,
+                                );
 
                         if (unreadCount > 0) {
                           return Positioned(
@@ -468,12 +472,11 @@ class AdminDashboardWidget extends ConsumerWidget {
                       ),
                       Consumer(
                         builder: (context, ref, child) {
-                          final unreadCount = ref
-                              .watch(unreadMessagesCountProvider)
-                              .maybeWhen(
-                            data: (count) => count,
-                            orElse: () => 0,
-                          );
+                          final unreadCount =
+                              ref.watch(unreadMessagesCountProvider).maybeWhen(
+                                    data: (count) => count,
+                                    orElse: () => 0,
+                                  );
 
                           return Text(
                             unreadCount > 0
@@ -496,8 +499,8 @@ class AdminDashboardWidget extends ConsumerWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: Text(
                     'عرض الرسائل',
@@ -556,7 +559,7 @@ class AdminDashboardWidget extends ConsumerWidget {
                 return ListView.separated(
                   itemCount: recentRequests.length,
                   separatorBuilder: (context, index) =>
-                  const Divider(height: 1),
+                      const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final request1 = recentRequests[index];
                     final isPending =
@@ -565,64 +568,60 @@ class AdminDashboardWidget extends ConsumerWidget {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor:
-                        request1.status.toString().contains('pending')
-                            ? Colors.blue.shade100
-                            : Colors.grey.shade100,
+                            request1.status.toString().contains('pending')
+                                ? Colors.blue.shade100
+                                : Colors.grey.shade100,
                         child: Icon(
                           Icons.assignment,
-                          color: request1.status
-                              .toString()
-                              .contains('pending')
+                          color: request1.status.toString().contains('pending')
                               ? Colors.blue
                               : Colors.grey,
                         ),
                       ),
                       title: Text(
                         request1.serviceName,
-                        style: GoogleFonts.cairo(
-                            fontWeight: FontWeight.bold),
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                         'من ${request1.clientName} - ${FormattingUtils.formatDate(request1.createdAt.toDate())}',
                         style: GoogleFonts.cairo(fontSize: 12),
                       ),
-                      trailing: request1.status
-                          .toString()
-                          .contains('pending')
+                      trailing: request1.status.toString().contains('pending')
                           ? Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'جديد',
-                          style: GoogleFonts.cairo(
-                            color: Colors.blue.shade800,
-                            fontSize: 12,
-                          ),
-                        ),
-                      )
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'جديد',
+                                style: GoogleFonts.cairo(
+                                  color: Colors.blue.shade800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            )
                           : Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: FormattingUtils.getStatusColorFromString(
-                              request1.status.toString())
-                              .withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          FormattingUtils.getStatusTextFromString(
-                              request1.status.toString()),
-                          style: GoogleFonts.cairo(
-                            color: FormattingUtils.getStatusColorFromString(
-                                request1.status.toString()),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: FormattingUtils.getStatusColorFromString(
+                                        request1.status.toString())
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                FormattingUtils.getStatusTextFromString(
+                                    request1.status.toString()),
+                                style: GoogleFonts.cairo(
+                                  color:
+                                      FormattingUtils.getStatusColorFromString(
+                                          request1.status.toString()),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                       onTap: () {
                         // Navigate to request details
                         context.pushNamed(
@@ -641,6 +640,7 @@ class AdminDashboardWidget extends ConsumerWidget {
     );
   }
 }
+
 final analyticsDataProvider = StreamProvider<Map<String, dynamic>>((ref) {
   final analytics = ref.watch(visitorAnalyticsProvider);
 

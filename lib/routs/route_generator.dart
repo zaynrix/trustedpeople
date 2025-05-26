@@ -1,3 +1,4 @@
+// Updated route_generator.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,8 @@ import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/fetures/main_screen.dart';
+import 'package:trustedtallentsvalley/fetures/maintenance/maintenance_service.dart';
+import 'package:trustedtallentsvalley/fetures/maintenance/screens/maintenance_screen.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/blackList_screen.dart';
@@ -22,6 +25,36 @@ import 'package:trustedtallentsvalley/fetures/trusted/screens/trusted_screen.dar
 import '../fetures/admin/screens/admin_service_requests_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+// Helper widget to check maintenance status
+class MaintenanceGuard extends ConsumerWidget {
+  final String screenName;
+  final Widget child;
+
+  const MaintenanceGuard({
+    required this.screenName,
+    required this.child,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final isUnderMaintenance = ref.watch(screenMaintenanceProvider(screenName));
+
+    // Allow admins to bypass maintenance mode
+    if (authState.isAdmin) {
+      return child;
+    }
+
+    // Show maintenance screen if the route is under maintenance
+    if (isUnderMaintenance) {
+      return MaintenanceScreen(screenName: screenName);
+    }
+
+    return child;
+  }
+}
 
 // Router provider that depends on auth state
 final routerProvider = Provider<GoRouter>((ref) {
@@ -46,27 +79,42 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: ScreensNames.trustedPath,
             name: ScreensNames.trusted,
-            builder: (context, state) => const TrustedUsersScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.trusted,
+              child: const TrustedUsersScreen(),
+            ),
           ),
           GoRoute(
             path: ScreensNames.untrustedPath,
             name: ScreensNames.untrusted,
-            builder: (context, state) => const BlackListUsersScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.untrusted,
+              child: const BlackListUsersScreen(),
+            ),
           ),
           GoRoute(
             path: ScreensNames.instructionPath,
             name: ScreensNames.instruction,
-            builder: (context, state) => const ProtectionGuideScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.instruction,
+              child: const ProtectionGuideScreen(),
+            ),
           ),
           GoRoute(
             path: ScreensNames.ortPath,
             name: ScreensNames.ort,
-            builder: (context, state) => const PaymentPlacesScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.ort,
+              child: const PaymentPlacesScreen(),
+            ),
           ),
           GoRoute(
             path: ScreensNames.contactUsPath,
             name: ScreensNames.contactUs,
-            builder: (context, state) => ContactUsScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.contactUs,
+              child: ContactUsScreen(),
+            ),
           ),
           // Add these new routes
           GoRoute(
@@ -80,7 +128,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               // Only allow admins to access
               if (authState.isAdmin) {
-                return const BlockedUsersScreen2();
+                return MaintenanceGuard(
+                  screenName: ScreensNames.blockedUsers,
+                  child: const BlockedUsersScreen2(),
+                );
               } else {
                 return const UnauthorizedScreen();
               }
@@ -91,7 +142,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/services',
             name: ScreensNames.services,
-            builder: (context, state) => const ServicesScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.services,
+              child: const ServicesScreen(),
+            ),
           ),
           GoRoute(
             path: '/service/:serviceId',
@@ -111,39 +165,48 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
 
-          // Admin routes
+          // Admin routes (no maintenance guard for admin routes)
           GoRoute(
             path: '/admin/services',
             name: ScreensNames.adminServices,
-            builder: (context, state) => AdminServicesScreen(),
+            builder: (context, state) {
+              if (authState.isAdmin) {
+                return MaintenanceGuard(
+                  screenName: ScreensNames.adminServices,
+                  child: AdminServicesScreen(),
+                );
+              } else {
+                return const UnauthorizedScreen();
+              }
+            },
           ),
           GoRoute(
             path: '/admin/service-requests',
             name: ScreensNames.adminServiceRequests,
-            builder: (context, state) => const AdminServiceRequestsScreen(),
+            builder: (context, state) {
+              if (authState.isAdmin) {
+                return MaintenanceGuard(
+                  screenName: ScreensNames.adminServiceRequests,
+                  child: const AdminServiceRequestsScreen(),
+                );
+              } else {
+                return const UnauthorizedScreen();
+              }
+            },
           ),
           GoRoute(
             path: ScreensNames.updatesPath,
             name: ScreensNames.updates,
-            builder: (context, state) => const AllUpdatesScreen(),
+            builder: (context, state) => MaintenanceGuard(
+              screenName: ScreensNames.updates,
+              child: const AllUpdatesScreen(),
+            ),
           ),
-          // GoRoute(
-          //   path: ScreensNames.adminPath,
-          //   name: ScreensNames.admin,
-          //   builder: (context, state) {
-          //     // Only allow admins to access admin page
-          //     if (authState.isAdmin) {
-          //       return const AdminDashboardScreen();
-          //     } else {
-          //       return const UnauthorizedScreen();
-          //     }
-          //   },
-          // ),
           GoRoute(
             path: ScreensNames.adminDashboardPath,
             name: ScreensNames.adminDashboard,
             builder: (context, state) {
-              // Only allow admins to access admin page
+              // Only allow admins to access admin page - NO maintenance guard for admin dashboard
               if (authState.isAdmin) {
                 return const AdminDashboard();
               } else {
@@ -166,7 +229,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/secure-admin-784512/dashboard', // Obscure path
             name: 'adminDashboard', // No constant reference in ScreensNames
             builder: (context, state) {
-              // Only allow authenticated admins
+              // Only allow authenticated admins - NO maintenance guard
               if (authState.isAdmin) {
                 return const AdminDashboardScreen();
               } else {
