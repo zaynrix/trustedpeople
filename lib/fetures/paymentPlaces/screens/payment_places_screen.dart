@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/trusted_help_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/dialogs/payment_places_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/providers/payment_places_provider.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_desktop_view.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_tablet_view.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/places_mobile_screen.dart';
+import 'package:trustedtallentsvalley/fetures/paymentPlaces/widgets/places_help_idalog.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
 class PaymentPlacesScreen extends ConsumerWidget {

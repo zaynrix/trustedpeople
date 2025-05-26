@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/Home/models/user_model.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/widgets/status_chip.dart';
 
-import '../../Home/widgets/status_chip.dart';
 
 class UserCard extends ConsumerWidget {
   final UserModel user;
@@ -13,12 +13,12 @@ class UserCard extends ConsumerWidget {
   final Function(String) onTogglePhoneNumber;
 
   const UserCard({
-    Key? key,
+    super.key,
     required this.user,
     required this.onTap,
     this.visiblePhoneNumberId,
     required this.onTogglePhoneNumber,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,7 +44,7 @@ class UserCard extends ConsumerWidget {
           child: SingleChildScrollView(
             child: Container(
               constraints:
-                  BoxConstraints(maxHeight: 200), // Increased height slightly
+                  const BoxConstraints(maxHeight: 200), // Increased height slightly
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

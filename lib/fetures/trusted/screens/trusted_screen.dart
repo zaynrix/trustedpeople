@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:trustedtallentsvalley/fetures/Home/widgets/usersTable.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/widgets/usersTable.dart';
 
 // Provider for trusted users stream
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {

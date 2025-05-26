@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/activityDetailScreen.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/blackList_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trade_screen.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_screen.dart';
 import 'package:trustedtallentsvalley/fetures/admin/screens/admin_services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/BlockedUsersScreen.dart';
@@ -18,6 +16,8 @@ import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/fetures/main_screen.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/services_screen.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/screens/blackList_screen.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/screens/trusted_screen.dart';
 
 import '../fetures/admin/screens/admin_service_requests_screen.dart';
 

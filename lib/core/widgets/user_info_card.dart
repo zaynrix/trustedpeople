@@ -10,12 +10,12 @@ class UserInfoCard extends StatelessWidget {
   final bool copyable;
 
   const UserInfoCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.value,
     this.copyable = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
