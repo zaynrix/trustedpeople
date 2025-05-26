@@ -8,20 +8,35 @@ import 'package:trustedtallentsvalley/fetures/services/providers/service_request
 
 import '../../../fetures/services/service_model.dart';
 
-class AdminServiceRequestsScreen extends ConsumerWidget {
+class AdminServiceRequestsScreen extends ConsumerStatefulWidget {
   const AdminServiceRequestsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminServiceRequestsScreen> createState() =>
+      _AdminServiceRequestsScreenState();
+}
+
+class _AdminServiceRequestsScreenState
+    extends ConsumerState<AdminServiceRequestsScreen> {
+  int selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final isAdmin = ref.watch(isAdminProvider);
     final requestsStream = ref.watch(allServiceRequestsProvider);
     final pendingRequestsCount = ref.watch(newRequestsCountProvider);
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
+    final isTablet = screenSize.width >= 768 && screenSize.width < 1200;
+    final isDesktop = screenSize.width >= 1200;
+
     if (!isAdmin) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: Text('غير مصرح بالوصول'),
+          child: Text(
+            'غير مصرح بالوصول',
+            style: GoogleFonts.cairo(fontSize: 18),
+          ),
         ),
       );
     }
@@ -30,13 +45,65 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final adminId = authState.user?.uid ?? '';
     final adminName = authState.user?.email?.split('@').first ?? 'مشرف';
-    final mainContent = DefaultTabController(
-      length: 4, // For the different request status tabs
+
+    return requestsStream.when(
+      data: (requests) {
+        if (isMobile) {
+          return _buildMobileLayout(
+            context,
+            ref,
+            requests,
+            adminId,
+            adminName,
+            pendingRequestsCount,
+          );
+        } else {
+          return _buildWebLayout(
+            context,
+            ref,
+            requests,
+            adminId,
+            adminName,
+            pendingRequestsCount,
+            isTablet,
+          );
+        }
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        body: Center(
+          child: Text(
+            'حدث خطأ: $error',
+            style: GoogleFonts.cairo(color: Colors.red),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Mobile Layout - Tab-based navigation
+  Widget _buildMobileLayout(
+    BuildContext context,
+    WidgetRef ref,
+    List<ServiceRequestModel> requests,
+    String adminId,
+    String adminName,
+    int pendingRequestsCount,
+  ) {
+    return DefaultTabController(
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 20,
-          automaticallyImplyLeading: isMobile,
           backgroundColor: Colors.teal,
+          title: Text(
+            'إدارة طلبات الخدمات',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
           bottom: TabBar(
             tabs: [
               Tab(
@@ -82,112 +149,436 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
             labelColor: Colors.white,
           ),
         ),
-        drawer: isMobile ? const AppDrawer() : null,
-        body: requestsStream.when(
-          data: (requests) {
-            // Filter requests based on status for each tab
-            final pendingRequests = requests
-                .where(
-                  (request) => request.status == ServiceRequestStatus.pending,
-                )
-                .toList();
+        drawer: const AppDrawer(),
+        body: TabBarView(
+          children: [
+            _buildMobileRequestsList(
+                context,
+                ref,
+                _filterRequestsByStatus(requests, ServiceRequestStatus.pending),
+                adminId,
+                adminName,
+                ServiceRequestStatus.pending),
+            _buildMobileRequestsList(
+                context,
+                ref,
+                _filterRequestsByStatus(
+                    requests, ServiceRequestStatus.inProgress),
+                adminId,
+                adminName,
+                ServiceRequestStatus.inProgress),
+            _buildMobileRequestsList(
+                context,
+                ref,
+                _filterRequestsByStatus(
+                    requests, ServiceRequestStatus.completed),
+                adminId,
+                adminName,
+                ServiceRequestStatus.completed),
+            _buildMobileRequestsList(
+                context,
+                ref,
+                _filterRequestsByStatus(
+                    requests, ServiceRequestStatus.cancelled),
+                adminId,
+                adminName,
+                ServiceRequestStatus.cancelled),
+          ],
+        ),
+      ),
+    );
+  }
 
-            final processingRequests = requests
-                .where(
-                  (request) =>
-                      request.status == ServiceRequestStatus.inProgress,
-                )
-                .toList();
-
-            final completedRequests = requests
-                .where(
-                  (request) => request.status == ServiceRequestStatus.completed,
-                )
-                .toList();
-
-            final cancelledRejectedRequests = requests
-                .where((request) =>
-                    request.status == ServiceRequestStatus.cancelled)
-                .toList();
-
-            return TabBarView(
+  // Web Layout - Sidebar navigation with main content area
+  Widget _buildWebLayout(
+    BuildContext context,
+    WidgetRef ref,
+    List<ServiceRequestModel> requests,
+    String adminId,
+    String adminName,
+    int pendingRequestsCount,
+    bool isTablet,
+  ) {
+    return Scaffold(
+      body: Row(
+        children: [
+          // Sidebar Navigation
+          Container(
+            width: isTablet ? 250 : 300,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              border: Border(
+                right: BorderSide(color: Colors.grey.shade300),
+              ),
+            ),
+            child: Column(
               children: [
-                // Pending requests tab
-                _buildRequestsTab(
-                  context,
-                  ref,
-                  pendingRequests,
-                  adminId,
-                  adminName,
-                  ServiceRequestStatus.pending,
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.teal,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings,
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'إدارة طلبات الخدمات',
+                        style: GoogleFonts.cairo(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
 
-                // Processing requests tab
-                _buildRequestsTab(
-                  context,
-                  ref,
-                  processingRequests,
-                  adminId,
-                  adminName,
-                  ServiceRequestStatus.inProgress,
+                const SizedBox(height: 24),
+
+                // Navigation Items
+                _buildWebNavItem(
+                  icon: Icons.pending_actions,
+                  label: 'قيد الانتظار',
+                  badge: pendingRequestsCount,
+                  isSelected: selectedIndex == 0,
+                  onTap: () => setState(() => selectedIndex = 0),
+                ),
+                _buildWebNavItem(
+                  icon: Icons.hourglass_top,
+                  label: 'قيد المعالجة',
+                  isSelected: selectedIndex == 1,
+                  onTap: () => setState(() => selectedIndex = 1),
+                ),
+                _buildWebNavItem(
+                  icon: Icons.check_circle,
+                  label: 'مكتملة',
+                  isSelected: selectedIndex == 2,
+                  onTap: () => setState(() => selectedIndex = 2),
+                ),
+                _buildWebNavItem(
+                  icon: Icons.cancel,
+                  label: 'ملغية/مرفوضة',
+                  isSelected: selectedIndex == 3,
+                  onTap: () => setState(() => selectedIndex = 3),
                 ),
 
-                // Completed requests tab
-                _buildRequestsTab(
-                  context,
-                  ref,
-                  completedRequests,
-                  adminId,
-                  adminName,
-                  ServiceRequestStatus.completed,
-                ),
+                const Spacer(),
 
-                // Cancelled/Rejected requests tab
-                _buildRequestsTab(
-                  context,
-                  ref,
-                  cancelledRejectedRequests,
-                  adminId,
-                  adminName,
-                  ServiceRequestStatus
-                      .cancelled, // Using cancelled as a representation
+                // Admin Info
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.teal,
+                        child: Text(
+                          adminName.substring(0, 1).toUpperCase(),
+                          style: GoogleFonts.cairo(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              adminName,
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'مشرف',
+                              style: GoogleFonts.cairo(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            );
-          },
-          loading: () => const Center(
-            child: CircularProgressIndicator(),
+            ),
           ),
-          error: (error, stack) => Center(
-            child: Text(
-              'حدث خطأ: $error',
-              style: GoogleFonts.cairo(color: Colors.red),
+
+          // Main Content Area
+          Expanded(
+            child: Column(
+              children: [
+                // Content Header
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        _getSelectedTabTitle(selectedIndex),
+                        style: GoogleFonts.cairo(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      _buildStatusSummary(requests),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Expanded(
+                  child: _buildWebRequestsContent(
+                    context,
+                    ref,
+                    _getFilteredRequests(requests, selectedIndex),
+                    adminId,
+                    adminName,
+                    _getStatusFromIndex(selectedIndex),
+                    isTablet,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebNavItem({
+    required IconData icon,
+    required String label,
+    int? badge,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Colors.teal.withOpacity(0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: isSelected
+                  ? Border.all(color: Colors.teal.withOpacity(0.3))
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Stack(
+                  children: [
+                    Icon(
+                      icon,
+                      color: isSelected ? Colors.teal : Colors.grey.shade600,
+                      size: 20,
+                    ),
+                    if (badge != null && badge > 0)
+                      Positioned(
+                        right: -8,
+                        top: -8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            badge.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.cairo(
+                      color: isSelected ? Colors.teal : Colors.grey.shade700,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
+  }
 
-    if (isMobile) {
-      return mainContent;
-    }
-    return Scaffold(
-      // appBar: AppBar(
-      //   backgroundColor: Colors.teal,
-      //   centerTitle: true,
-      //   title: Text(
-      //     'إدارة طلبات الخدمات',
-      //     style: GoogleFonts.cairo(
-      //       fontWeight: FontWeight.bold,
-      //       color: Colors.white,
-      //     ),
-      //   ),
-      // ),
-      body: Expanded(child: mainContent),
+  Widget _buildStatusSummary(List<ServiceRequestModel> requests) {
+    final pending =
+        requests.where((r) => r.status == ServiceRequestStatus.pending).length;
+    final processing = requests
+        .where((r) => r.status == ServiceRequestStatus.inProgress)
+        .length;
+    final completed = requests
+        .where((r) => r.status == ServiceRequestStatus.completed)
+        .length;
+    final cancelled = requests
+        .where((r) => r.status == ServiceRequestStatus.cancelled)
+        .length;
+
+    return Row(
+      children: [
+        _buildSummaryChip('قيد الانتظار', pending, Colors.amber),
+        const SizedBox(width: 8),
+        _buildSummaryChip('قيد المعالجة', processing, Colors.blue),
+        const SizedBox(width: 8),
+        _buildSummaryChip('مكتملة', completed, Colors.green),
+        const SizedBox(width: 8),
+        _buildSummaryChip('ملغية', cancelled, Colors.grey),
+      ],
     );
   }
 
-  Widget _buildRequestsTab(
+  Widget _buildSummaryChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            count.toString(),
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebRequestsContent(
+    BuildContext context,
+    WidgetRef ref,
+    List<ServiceRequestModel> requests,
+    String adminId,
+    String adminName,
+    ServiceRequestStatus status,
+    bool isTablet,
+  ) {
+    if (requests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getStatusIcon(status),
+              size: 80,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'لا توجد طلبات ${_getStatusText(status)}',
+              style: GoogleFonts.cairo(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'ستظهر الطلبات الجديدة هنا عند وصولها',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Grid layout for web
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: isTablet ? 1 : 2,
+          crossAxisSpacing: 24,
+          mainAxisSpacing: 24,
+          childAspectRatio:
+              isTablet ? 2.8 : 2.2, // Increased height for content
+        ),
+        itemCount: requests.length,
+        itemBuilder: (context, index) {
+          return _buildWebRequestCard(
+            context,
+            ref,
+            requests[index],
+            adminId,
+            adminName,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMobileRequestsList(
     BuildContext context,
     WidgetRef ref,
     List<ServiceRequestModel> requests,
@@ -224,7 +615,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
       itemCount: requests.length,
       itemBuilder: (context, index) {
         final request = requests[index];
-        return _buildRequestCard(
+        return _buildMobileRequestCard(
           context,
           ref,
           request,
@@ -235,7 +626,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRequestCard(
+  Widget _buildWebRequestCard(
     BuildContext context,
     WidgetRef ref,
     ServiceRequestModel request,
@@ -243,46 +634,247 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     String adminName,
   ) {
     final notifier = ref.read(serviceRequestsProvider.notifier);
+    final formattedDate = _formatDate(request.createdAt);
+    final statusColor = _getStatusColor(request.status);
+    final canProcess = _canProcess(request, adminId);
 
-    // Format the timestamp
-    final createdDate = request.createdAt;
-    String formattedDate = '';
-    // Convert Timestamp to DateTime
-    final dateTime = createdDate.toDate();
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: statusColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16), // Reduced padding
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              statusColor.withOpacity(0.02),
+            ],
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4), // Reduced padding
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: statusColor.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getStatusIcon(request.status),
+                          size: 12, // Smaller icon
+                          color: statusColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            request.status.displayName,
+                            style: GoogleFonts.cairo(
+                              fontSize: 10, // Smaller text
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '#${request.id.substring(0, 6)}', // Shorter ID
+                  style: GoogleFonts.cairo(
+                    color: Colors.grey.shade600,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
 
-    // Format: DD/MM/YYYY HH:MM
-    formattedDate = '${dateTime.day.toString().padLeft(2, '0')}/'
-        '${dateTime.month.toString().padLeft(2, '0')}/'
-        '${dateTime.year} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
-    // Determine card color based on status
-    Color statusColor;
-    switch (request.status) {
-      case ServiceRequestStatus.pending:
-        statusColor = Colors.amber;
-        break;
-      case ServiceRequestStatus.inProgress:
-        statusColor = Colors.blue;
-        break;
-      case ServiceRequestStatus.completed:
-        statusColor = Colors.green;
-        break;
-      // case ServiceRequestStatus.pending:
-      //   statusColor = Colors.red;
-      //   break;
-      case ServiceRequestStatus.cancelled:
-        statusColor = Colors.grey;
-        break;
-    }
+            const SizedBox(height: 12),
 
-    // Determine if this admin can process this request
-    bool canProcess = true;
-    if (request.status == ServiceRequestStatus.inProgress &&
-        request.assignedAdminId != null &&
-        request.assignedAdminId != adminId) {
-      canProcess = false;
-    }
+            // Service Info
+            Text(
+              request.serviceName,
+              style: GoogleFonts.cairo(
+                fontSize: 16, // Reduced font size
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 6),
+
+            Row(
+              children: [
+                Icon(Icons.person, size: 14, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    request.clientName,
+                    style: GoogleFonts.cairo(
+                      color: Colors.grey.shade700,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 4),
+
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 14, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    formattedDate,
+                    style: GoogleFonts.cairo(
+                      color: Colors.grey.shade600,
+                      fontSize: 10,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+
+            const Spacer(),
+
+            // Actions
+            Wrap(
+              // Changed from Row to Wrap for better responsiveness
+              spacing: 8,
+              runSpacing: 4,
+              alignment: WrapAlignment.end,
+              children: [
+                if (request.status == ServiceRequestStatus.pending) ...[
+                  TextButton(
+                    onPressed: () =>
+                        _showRejectDialog(context, ref, request.id),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 28),
+                    ),
+                    child: Text(
+                      'رفض',
+                      style: GoogleFonts.cairo(
+                        color: Colors.red,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => _startProcessing(
+                        context, ref, request.id, adminId, adminName),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      minimumSize: const Size(0, 28),
+                    ),
+                    child: Text(
+                      'بدء المعالجة',
+                      style: GoogleFonts.cairo(fontSize: 10),
+                    ),
+                  ),
+                ],
+                if (request.status == ServiceRequestStatus.inProgress &&
+                    canProcess) ...[
+                  ElevatedButton(
+                    onPressed: () =>
+                        _showCompleteDialog(context, ref, request.id),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      minimumSize: const Size(0, 28),
+                    ),
+                    child: Text(
+                      'إكمال',
+                      style: GoogleFonts.cairo(fontSize: 10),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        _showCancelProcessingDialog(context, ref, request.id),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 28),
+                    ),
+                    child: Text(
+                      'إلغاء المعالجة',
+                      style: GoogleFonts.cairo(
+                        color: Colors.orange,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
+                if (!canProcess &&
+                    request.status == ServiceRequestStatus.inProgress)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Text(
+                      'معالج بواسطة آخر',
+                      style: GoogleFonts.cairo(
+                        color: Colors.orange.shade700,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileRequestCard(
+    BuildContext context,
+    WidgetRef ref,
+    ServiceRequestModel request,
+    String adminId,
+    String adminName,
+  ) {
+    final notifier = ref.read(serviceRequestsProvider.notifier);
+    final formattedDate = _formatDate(request.createdAt);
+    final statusColor = _getStatusColor(request.status);
+    final canProcess = _canProcess(request, adminId);
 
     return Card(
       elevation: 2,
@@ -315,7 +907,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                     ),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min, // This is good, keep it
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         _getStatusIcon(request.status),
@@ -329,14 +921,12 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.bold,
                           color: statusColor,
                         ),
-                        // Add overflow handling
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Make ID flexible with ellipsis
                 Flexible(
                   child: Text(
                     '#${request.id.substring(0, 8)}',
@@ -347,10 +937,7 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                // Remove Spacer() if space is tight
-                // const Spacer(),
-                const SizedBox(width: 8), // Use fixed spacing instead
-                // Make date flexible with ellipsis
+                const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     formattedDate,
@@ -461,35 +1048,6 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
               ),
             ),
 
-            // Notes section (if available)
-            if (request.requirements.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.yellow.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.yellow.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ملاحظات:',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      request.requirements,
-                      style: GoogleFonts.cairo(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
             // Actions
             const SizedBox(height: 16),
             Divider(color: Colors.grey.shade200),
@@ -500,35 +1058,8 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                 // Action buttons based on status
                 if (request.status == ServiceRequestStatus.pending)
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      final success = await notifier.startProcessing(
-                        request.id,
-                        adminId,
-                        adminName,
-                      );
-
-                      if (!success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'تعذر بدء معالجة الطلب',
-                              style: GoogleFonts.cairo(),
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      } else if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'تم بدء معالجة الطلب بنجاح',
-                              style: GoogleFonts.cairo(),
-                            ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: () => _startProcessing(
+                        context, ref, request.id, adminId, adminName),
                     icon: const Icon(Icons.play_arrow),
                     label: Text(
                       'بدء المعالجة',
@@ -556,6 +1087,18 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () =>
+                        _showCancelProcessingDialog(context, ref, request.id),
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: Text(
+                      'إلغاء المعالجة',
+                      style: GoogleFonts.cairo(),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                    ),
+                  ),
                 ],
 
                 if (request.status == ServiceRequestStatus.pending) ...[
@@ -600,6 +1143,134 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  // Helper methods
+  List<ServiceRequestModel> _filterRequestsByStatus(
+      List<ServiceRequestModel> requests, ServiceRequestStatus status) {
+    return requests.where((request) => request.status == status).toList();
+  }
+
+  String _formatDate(dynamic timestamp) {
+    final dateTime = timestamp.toDate();
+    return '${dateTime.day.toString().padLeft(2, '0')}/'
+        '${dateTime.month.toString().padLeft(2, '0')}/'
+        '${dateTime.year} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:'
+        '${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  Color _getStatusColor(ServiceRequestStatus status) {
+    switch (status) {
+      case ServiceRequestStatus.pending:
+        return Colors.amber;
+      case ServiceRequestStatus.inProgress:
+        return Colors.blue;
+      case ServiceRequestStatus.completed:
+        return Colors.green;
+      case ServiceRequestStatus.cancelled:
+        return Colors.grey;
+    }
+  }
+
+  bool _canProcess(ServiceRequestModel request, String adminId) {
+    if (request.status == ServiceRequestStatus.inProgress &&
+        request.assignedAdminId != null &&
+        request.assignedAdminId != adminId) {
+      return false;
+    }
+    return true;
+  }
+
+  String _getSelectedTabTitle(int index) {
+    switch (index) {
+      case 0:
+        return 'الطلبات قيد الانتظار';
+      case 1:
+        return 'الطلبات قيد المعالجة';
+      case 2:
+        return 'الطلبات المكتملة';
+      case 3:
+        return 'الطلبات الملغية والمرفوضة';
+      default:
+        return 'الطلبات';
+    }
+  }
+
+  List<ServiceRequestModel> _getFilteredRequests(
+      List<ServiceRequestModel> requests, int index) {
+    switch (index) {
+      case 0:
+        return requests
+            .where((r) => r.status == ServiceRequestStatus.pending)
+            .toList();
+      case 1:
+        return requests
+            .where((r) => r.status == ServiceRequestStatus.inProgress)
+            .toList();
+      case 2:
+        return requests
+            .where((r) => r.status == ServiceRequestStatus.completed)
+            .toList();
+      case 3:
+        return requests
+            .where((r) => r.status == ServiceRequestStatus.cancelled)
+            .toList();
+      default:
+        return [];
+    }
+  }
+
+  ServiceRequestStatus _getStatusFromIndex(int index) {
+    switch (index) {
+      case 0:
+        return ServiceRequestStatus.pending;
+      case 1:
+        return ServiceRequestStatus.inProgress;
+      case 2:
+        return ServiceRequestStatus.completed;
+      case 3:
+        return ServiceRequestStatus.cancelled;
+      default:
+        return ServiceRequestStatus.pending;
+    }
+  }
+
+  Future<void> _startProcessing(
+    BuildContext context,
+    WidgetRef ref,
+    String requestId,
+    String adminId,
+    String adminName,
+  ) async {
+    final notifier = ref.read(serviceRequestsProvider.notifier);
+    final success = await notifier.startProcessing(
+      requestId,
+      adminId,
+      adminName,
+    );
+
+    if (!success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تعذر بدء معالجة الطلب',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تم بدء معالجة الطلب بنجاح',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   void _showCompleteDialog(
@@ -722,6 +1393,126 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
     );
   }
 
+  void _showCancelProcessingDialog(
+      BuildContext context, WidgetRef ref, String requestId) {
+    final reasonController = TextEditingController();
+    final notifier = ref.read(serviceRequestsProvider.notifier);
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.cancel_outlined, color: Colors.orange),
+              const SizedBox(width: 8),
+              Text(
+                'إلغاء معالجة الطلب',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'هل أنت متأكد من إلغاء معالجة هذا الطلب؟ سيتم إرجاع الطلب إلى حالة "قيد الانتظار".',
+                style: GoogleFonts.cairo(),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                decoration: InputDecoration(
+                  labelText: 'سبب الإلغاء (اختياري)',
+                  hintText: 'أدخل سبب إلغاء معالجة الطلب',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.cairo(),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      setState(() {
+                        isLoading = true;
+                      });
+
+                      final success = await notifier.cancelRequest(
+                        requestId,
+                        // reasonController.text.isEmpty
+                        //     ? null
+                        //     : reasonController.text,
+                      );
+
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'تم إلغاء معالجة الطلب وإرجاعه إلى قائمة الانتظار',
+                              style: GoogleFonts.cairo(),
+                            ),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      } else if (context.mounted) {
+                        setState(() {
+                          isLoading = false;
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'تعذر إلغاء معالجة الطلب',
+                              style: GoogleFonts.cairo(),
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'إلغاء المعالجة',
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showRejectDialog(
       BuildContext context, WidgetRef ref, String requestId) {
     final reasonController = TextEditingController();
@@ -763,12 +1554,6 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
                   alignLabelWithHint: true,
                 ),
                 maxLines: 3,
-                // : (value) {
-                //   if (value == null || value.isEmpty) {
-                //     return 'يرجى إدخال سبب الرفض';
-                //   }
-                //   return null;
-                // },
               ),
             ],
           ),
@@ -869,11 +1654,6 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
         return Icons.check_circle;
       case ServiceRequestStatus.cancelled:
         return Icons.cancel;
-      // case ServiceRequestStatus.cancelled:
-      //   return Icons.cancel_presentation;
-      // case ServiceRequestStatus.inProgress:
-      //   // TODO: Handle this case.
-      //   throw UnimplementedError();
     }
   }
 
@@ -887,8 +1667,6 @@ class AdminServiceRequestsScreen extends ConsumerWidget {
         return 'مكتمل';
       case ServiceRequestStatus.cancelled:
         return 'مرفوض';
-      // case ServiceRequestStatus.cancelled:
-      //   return 'ملغي';
     }
   }
 }

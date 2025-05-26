@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
 
 // Define the provider at top level instead of inline
@@ -84,14 +83,14 @@ class BlockedUsersScreen2 extends ConsumerWidget {
           ),
         ),
       ),
-      drawer: isMobile ? const AppDrawer() : null,
+      // drawer: isMobile ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (constraints.maxWidth > 768)
-                const AppDrawer(isPermanent: true),
+              // if (constraints.maxWidth > 768)
+              //   const AppDrawer(isPermanent: true),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
