@@ -37,11 +37,15 @@ class AnalyticItem extends StatelessWidget {
               children: [
                 Icon(icon, color: color, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                    ),
+                    maxLines: 2, // Allow up to 2 lines
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 // Show arrow icon only if onTap is provided

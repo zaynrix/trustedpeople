@@ -7,9 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/service_provider.dart';
 import 'package:trustedtallentsvalley/fetures/services/service_model.dart';
-import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 
 import '../providers/service_requests_provider.dart';
@@ -25,13 +25,15 @@ class ServicesScreen extends ConsumerWidget {
     final servicesState = ref.watch(servicesProvider);
     final filteredServices = ref.watch(filteredServicesProvider);
     final categories = ref.watch(serviceCategoriesProvider);
-// Add at the beginning of ServicesScreen build method
+
+    // Add debug prints
     debugPrint(
         "Building ServicesScreen with ${filteredServices.length} filtered services");
     debugPrint(
         "Filter category: ${ref.watch(servicesProvider).categoryFilter}");
     debugPrint(
         "isActive services: ${filteredServices.where((s) => s.isActive).length}");
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: isMobile,
@@ -54,84 +56,98 @@ class ServicesScreen extends ConsumerWidget {
               ),
       ),
       drawer: isMobile ? const AppDrawer() : null,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(24.0),
-              child: servicesState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      body: servicesState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : CustomScrollView(
+              slivers: [
+                // Hero section as sliver
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+                    child: _buildHeroSection(context, isMobile),
+                  ),
+                ),
+
+                // Search and filter section
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 16.0 : 24.0,
+                      vertical: 8.0,
+                    ),
+                    child: Column(
                       children: [
-                        // Header
-                        _buildHeroSection(context),
-                        const SizedBox(height: 24),
-
-                        // Search and filter
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SearchField(
-                                onChanged: (value) {
-                                  ref
-                                      .read(servicesProvider.notifier)
-                                      .setSearchQuery(value);
-                                },
-                                hintText: 'البحث في الخدمات المتوفرة...',
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            categories.when(
-                              data: (categoryStrings) {
-                                final serviceCategories = categoryStrings
-                                    .map(ServiceCategoryExtension.fromString)
-                                    .toList();
-
-                                return _buildCategoryFilter(
-                                    context, ref, serviceCategories);
-                              },
-                              loading: () => const Center(
-                                  child: CircularProgressIndicator()),
-                              error: (error, _) => const Center(
-                                  child: Text('حدث خطأ أثناء تحميل التصنيفات')),
-                            ),
-                          ],
+                        // Search bar
+                        SearchField(
+                          onChanged: (value) {
+                            ref
+                                .read(servicesProvider.notifier)
+                                .setSearchQuery(value);
+                          },
+                          hintText: 'البحث في الخدمات المتوفرة...',
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
-                        // Services grid
-                        if (servicesState.errorMessage != null)
-                          Center(
-                            child: Text(
-                              servicesState.errorMessage!,
-                              style: GoogleFonts.cairo(color: Colors.red),
-                            ),
-                          )
-                        else if (filteredServices.isEmpty)
-                          _buildEmptyState()
-                        else
-                          Expanded(
-                            child: _buildServicesGrid(
-                              ref,
-                              context,
-                              filteredServices,
-                              isMobile,
-                            ),
-                          ),
+                        // Category filter
+                        categories.when(
+                          data: (categoryStrings) {
+                            final serviceCategories = categoryStrings
+                                .map(ServiceCategoryExtension.fromString)
+                                .toList();
+                            return _buildCategoryFilter(
+                                context, ref, serviceCategories, isMobile);
+                          },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (error, _) => const Center(
+                              child: Text('حدث خطأ أثناء تحميل التصنيفات')),
+                        ),
                       ],
                     ),
+                  ),
+                ),
+
+                // Error or empty state
+                if (servicesState.errorMessage != null)
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Text(
+                          servicesState.errorMessage!,
+                          style: GoogleFonts.cairo(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                  )
+                else if (filteredServices.isEmpty)
+                  SliverToBoxAdapter(
+                    child: _buildEmptyState(),
+                  )
+                else
+                  // Services grid as sliver
+                  SliverPadding(
+                    padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+                    sliver: _buildServicesGrid(
+                        ref, context, filteredServices, isMobile),
+                  ),
+
+                // Bottom padding for better scrolling experience
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100),
+                ),
+              ],
             ),
-          );
-        },
-      ),
     );
   }
 
-  Widget _buildHeroSection(BuildContext context) {
+  Widget _buildHeroSection(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 20 : 24,
+        horizontal: isMobile ? 16 : 20,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.teal.shade700, Colors.teal.shade500],
@@ -150,49 +166,48 @@ class ServicesScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.design_services,
             color: Colors.white,
-            size: 48,
+            size: isMobile ? 40 : 48,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isMobile ? 12 : 16),
           Text(
             'خدمات متميزة تلبي احتياجاتك',
             style: GoogleFonts.cairo(
-              fontSize: 24,
+              fontSize: isMobile ? 20 : 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isMobile ? 6 : 8),
           Text(
             'تصفح خدماتنا المتنوعة واطلب ما يناسبك، وسنتواصل معك في أقرب وقت!',
             style: GoogleFonts.cairo(
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               color: Colors.white.withOpacity(0.9),
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Scroll to services section
-              Scrollable.ensureVisible(
-                context,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeInOut,
-              );
-            },
-            icon: const Icon(Icons.arrow_downward),
-            label: Text(
-              'تصفح الخدمات',
-              style: GoogleFonts.cairo(),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.teal.shade700,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
+          SizedBox(height: isMobile ? 12 : 16),
+          SizedBox(
+            width: isMobile ? double.infinity : null,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                // Scroll down smoothly (no specific target needed as it's already scrollable)
+              },
+              icon: const Icon(Icons.arrow_downward),
+              label: Text(
+                'تصفح الخدمات',
+                style: GoogleFonts.cairo(),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.teal.shade700,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 20,
+                  vertical: isMobile ? 10 : 12,
+                ),
               ),
             ),
           ),
@@ -205,92 +220,109 @@ class ServicesScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<ServiceCategory> categories,
+    bool isMobile,
   ) {
     final selectedCategory = ref.watch(servicesProvider).categoryFilter;
 
-    return PopupMenuButton<ServiceCategory?>(
-      tooltip: 'فلترة حسب التصنيف',
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      icon: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
+    return SizedBox(
+      width: double.infinity,
+      child: PopupMenuButton<ServiceCategory?>(
+        tooltip: 'فلترة حسب التصنيف',
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.filter_list),
-            const SizedBox(width: 8),
-            Text(
-              selectedCategory == null ? 'جميع التصنيفات' : selectedCategory,
-              style: GoogleFonts.cairo(),
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: null,
-          child: Row(
-            children: [
-              Icon(
-                Icons.all_inclusive,
-                color: selectedCategory == null
-                    ? Colors.teal
-                    : Colors.grey.shade700,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'جميع التصنيفات',
-                style: GoogleFonts.cairo(
-                  fontWeight: selectedCategory == null ? FontWeight.bold : null,
-                  color: selectedCategory == null
-                      ? Colors.teal
-                      : Colors.grey.shade800,
-                ),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.filter_list),
+                  const SizedBox(width: 8),
+                  Text(
+                    selectedCategory == null
+                        ? 'جميع التصنيفات'
+                        : selectedCategory,
+                    style: GoogleFonts.cairo(
+                      fontSize: isMobile ? 14 : 16,
+                    ),
+                  ),
+                ],
+              ),
+              const Icon(Icons.arrow_drop_down),
+            ],
+          ),
         ),
-        ...categories.map((category) {
-          return PopupMenuItem(
-            value: category,
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: null,
             child: Row(
               children: [
                 Icon(
-                  _getCategoryIcon(category),
-                  color: selectedCategory == category
+                  Icons.all_inclusive,
+                  color: selectedCategory == null
                       ? Colors.teal
                       : Colors.grey.shade700,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  category.displayName,
+                  'جميع التصنيفات',
                   style: GoogleFonts.cairo(
                     fontWeight:
-                        selectedCategory == category ? FontWeight.bold : null,
-                    color: selectedCategory == category
+                        selectedCategory == null ? FontWeight.bold : null,
+                    color: selectedCategory == null
                         ? Colors.teal
                         : Colors.grey.shade800,
                   ),
                 ),
               ],
             ),
-          );
-        }).toList(),
-      ],
-      onSelected: (category) {
-        ref.read(servicesProvider.notifier).setCategoryFilter(category!.name);
-      },
+          ),
+          ...categories.map((category) {
+            return PopupMenuItem(
+              value: category,
+              child: Row(
+                children: [
+                  Icon(
+                    _getCategoryIcon(category),
+                    color: selectedCategory == category
+                        ? Colors.teal
+                        : Colors.grey.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    category.displayName,
+                    style: GoogleFonts.cairo(
+                      fontWeight:
+                          selectedCategory == category ? FontWeight.bold : null,
+                      color: selectedCategory == category
+                          ? Colors.teal
+                          : Colors.grey.shade800,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+        onSelected: (category) {
+          ref.read(servicesProvider.notifier).setCategoryFilter(category?.name);
+        },
+      ),
     );
   }
 
@@ -314,48 +346,58 @@ class ServicesScreen extends ConsumerWidget {
   }
 
   Widget _buildServicesGrid(
-    ref,
+    WidgetRef ref,
     BuildContext context,
     List<ServiceModel> services,
     bool isMobile,
   ) {
     int crossAxisCount;
+    double childAspectRatio;
+
     if (MediaQuery.of(context).size.width > 1200) {
-      crossAxisCount = 4; // Large desktop screens
+      crossAxisCount = 4;
+      childAspectRatio = 0.8;
     } else if (MediaQuery.of(context).size.width > 900) {
-      crossAxisCount = 3; // Desktop screens
+      crossAxisCount = 3;
+      childAspectRatio = 0.8;
     } else if (MediaQuery.of(context).size.width > 600) {
-      crossAxisCount = 2; // Tablet screens
+      crossAxisCount = 2;
+      childAspectRatio = 0.85;
     } else {
-      crossAxisCount = 1; // Mobile screens
+      // Mobile: single column for better readability
+      crossAxisCount = 1;
+      childAspectRatio = 1.2; // Wider cards for mobile
     }
 
-    return GridView.builder(
+    return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: isMobile ? 12 : 16,
+        mainAxisSpacing: isMobile ? 12 : 16,
       ),
-      itemCount: services.length,
-      itemBuilder: (context, index) {
-        final service = services[index];
-        return ServiceCard(
-          service: service,
-          onTap: () {
-            ref.read(servicesProvider.notifier).selectService(service);
-            context.goNamed(
-              ScreensNames.serviceDetail,
-              pathParameters: {'serviceId': service.id},
-            );
-          },
-        );
-      },
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final service = services[index];
+          return ServiceCard(
+            service: service,
+            onTap: () {
+              ref.read(servicesProvider.notifier).selectService(service);
+              context.goNamed(
+                ScreensNames.serviceDetail,
+                pathParameters: {'serviceId': service.id},
+              );
+            },
+          );
+        },
+        childCount: services.length,
+      ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Expanded(
+    return Container(
+      height: 300,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -400,6 +442,7 @@ class ServiceDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final servicesState = ref.watch(servicesProvider);
+    final isMobile = MediaQuery.of(context).size.width < 768;
 
     // Find the service by ID
     final service = servicesState.services.firstWhere(
@@ -415,10 +458,12 @@ class ServiceDetailScreen extends ConsumerWidget {
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         backgroundColor: Colors.teal.shade600,
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(), // Better mobile scrolling
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -426,7 +471,7 @@ class ServiceDetailScreen extends ConsumerWidget {
             if (service.imageUrl.isNotEmpty)
               Container(
                 width: double.infinity,
-                height: 250,
+                height: isMobile ? 200 : 250,
                 decoration: BoxDecoration(
                   image: DecorationImage(
                     image: NetworkImage(service.imageUrl),
@@ -437,12 +482,12 @@ class ServiceDetailScreen extends ConsumerWidget {
             else
               Container(
                 width: double.infinity,
-                height: 250,
+                height: isMobile ? 200 : 250,
                 color: Colors.teal.shade100,
                 child: Center(
                   child: Icon(
                     _getCategoryIcon(service.category),
-                    size: 120,
+                    size: isMobile ? 80 : 120,
                     color: Colors.teal.shade700,
                   ),
                 ),
@@ -450,23 +495,22 @@ class ServiceDetailScreen extends ConsumerWidget {
 
             // Service details
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Service title and price
-                  Row(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          service.title,
-                          style: GoogleFonts.cairo(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Text(
+                        service.title,
+                        style: GoogleFonts.cairo(
+                          fontSize: isMobile ? 22 : 26,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -478,7 +522,7 @@ class ServiceDetailScreen extends ConsumerWidget {
                         child: Text(
                           '\$${service.price.toStringAsFixed(0)}',
                           style: GoogleFonts.cairo(
-                            fontSize: 20,
+                            fontSize: isMobile ? 18 : 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.teal.shade700,
                           ),
@@ -486,10 +530,12 @@ class ServiceDetailScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
 
                   // Category and delivery time
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       Chip(
                         avatar: Icon(
@@ -505,22 +551,21 @@ class ServiceDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         backgroundColor: Colors.teal.shade50,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 0),
                       ),
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'مدة التنفيذ: ${service.deliveryTimeInDays} ${service.deliveryTimeInDays > 1 ? 'أيام' : 'يوم'}',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
+                      Chip(
+                        avatar: Icon(
+                          Icons.access_time,
+                          size: 16,
                           color: Colors.grey.shade600,
                         ),
+                        label: Text(
+                          'مدة التنفيذ: ${service.deliveryTimeInDays} ${service.deliveryTimeInDays > 1 ? 'أيام' : 'يوم'}',
+                          style: GoogleFonts.cairo(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        backgroundColor: Colors.grey.shade50,
                       ),
                     ],
                   ),
@@ -539,7 +584,7 @@ class ServiceDetailScreen extends ConsumerWidget {
                     service.description,
                     style: GoogleFonts.cairo(
                       fontSize: 16,
-                      height: 1.5,
+                      height: 1.6,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -573,6 +618,7 @@ class ServiceDetailScreen extends ConsumerWidget {
                                 entry.value.toString(),
                                 style: GoogleFonts.cairo(
                                   fontSize: 16,
+                                  height: 1.5,
                                 ),
                               ),
                             ),
@@ -621,6 +667,8 @@ class ServiceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  // Extra bottom padding for mobile
+                  SizedBox(height: isMobile ? 32 : 16),
                 ],
               ),
             ),
@@ -646,9 +694,7 @@ class ServiceDetailScreen extends ConsumerWidget {
         return Icons.translate;
       case ServiceCategory.other:
         return Icons.category;
-      default:
-        return Icons.work;
-    }
+      }
   }
 }
 
@@ -741,10 +787,12 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
           children: [
             const Icon(Icons.check_circle, color: Colors.green),
             const SizedBox(width: 8),
-            Text(
-              'تم إرسال الطلب بنجاح',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'تم إرسال الطلب بنجاح',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -789,6 +837,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
   @override
   Widget build(BuildContext context) {
     final servicesState = ref.watch(servicesProvider);
+    final isMobile = MediaQuery.of(context).size.width < 768;
 
     // Find the service
     final service = servicesState.services.firstWhere(
@@ -804,12 +853,14 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         backgroundColor: Colors.teal.shade600,
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -819,84 +870,159 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.teal.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            _getCategoryIcon(service.category),
-                            size: 40,
-                            color: Colors.teal.shade700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
+                  padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
+                  child: isMobile
+                      ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              service.title,
-                              style: GoogleFonts.cairo(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              service.category.displayName,
-                              style: GoogleFonts.cairo(
-                                fontSize: 14,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
                             Row(
                               children: [
-                                Text(
-                                  'السعر: \$${service.price.toStringAsFixed(0)}',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal.shade700,
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      _getCategoryIcon(service.category),
+                                      size: 30,
+                                      color: Colors.teal.shade700,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 16),
-                                Text(
-                                  'مدة التنفيذ: ${service.deliveryTimeInDays} ${service.deliveryTimeInDays > 1 ? 'أيام' : 'يوم'}',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade700,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        service.title,
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        service.category.displayName,
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'السعر: \$${service.price.toStringAsFixed(0)}',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal.shade700,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    'مدة التنفيذ: ${service.deliveryTimeInDays} ${service.deliveryTimeInDays > 1 ? 'أيام' : 'يوم'}',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  _getCategoryIcon(service.category),
+                                  size: 40,
+                                  color: Colors.teal.shade700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    service.title,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    service.category.displayName,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'السعر: \$${service.price.toStringAsFixed(0)}',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.teal.shade700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Text(
+                                        'مدة التنفيذ: ${service.deliveryTimeInDays} ${service.deliveryTimeInDays > 1 ? 'أيام' : 'يوم'}',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 20 : 24),
 
               // Form title
               Text(
                 'يرجى تعبئة النموذج التالي لطلب الخدمة',
                 style: GoogleFonts.cairo(
-                  fontSize: 18,
+                  fontSize: isMobile ? 16 : 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isMobile ? 12 : 16),
 
               // Request form
               Form(
@@ -913,6 +1039,10 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         prefixIcon: const Icon(Icons.person),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: isMobile ? 12 : 16,
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -921,7 +1051,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: isMobile ? 12 : 16),
                     TextFormField(
                       controller: _emailController,
                       decoration: InputDecoration(
@@ -931,6 +1061,10 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         prefixIcon: const Icon(Icons.email),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: isMobile ? 12 : 16,
+                        ),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
@@ -943,7 +1077,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: isMobile ? 12 : 16),
                     TextFormField(
                       controller: _phoneController,
                       decoration: InputDecoration(
@@ -953,6 +1087,10 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         prefixIcon: const Icon(Icons.phone),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: isMobile ? 12 : 16,
+                        ),
                       ),
                       keyboardType: TextInputType.phone,
                       validator: (value) {
@@ -962,7 +1100,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: isMobile ? 12 : 16),
                     TextFormField(
                       controller: _requirementsController,
                       decoration: InputDecoration(
@@ -972,8 +1110,12 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         alignLabelWithHint: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: isMobile ? 12 : 16,
+                        ),
                       ),
-                      maxLines: 5,
+                      maxLines: isMobile ? 4 : 5,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'يرجى إدخال متطلبات الخدمة';
@@ -981,7 +1123,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: isMobile ? 20 : 24),
 
                     // Error message
                     if (_errorMessage.isNotEmpty)
@@ -1001,7 +1143,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         ),
                       ),
 
-                    const SizedBox(height: 16),
+                    SizedBox(height: isMobile ? 12 : 16),
 
                     // Submit button
                     SizedBox(
@@ -1013,7 +1155,8 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal.shade600,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: EdgeInsets.symmetric(
+                              vertical: isMobile ? 14 : 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1025,7 +1168,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                             : Text(
                                 'إرسال الطلب',
                                 style: GoogleFonts.cairo(
-                                  fontSize: 18,
+                                  fontSize: isMobile ? 16 : 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -1041,6 +1184,8 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                         ),
                       ),
                     ),
+                    // Extra bottom padding for mobile
+                    SizedBox(height: isMobile ? 32 : 16),
                   ],
                 ),
               ),

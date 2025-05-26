@@ -12,7 +12,6 @@ class PlacesFilterChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filterMode = ref.watch(placesFilterModeProvider);
     final placesNotifier = ref.read(paymentPlacesProvider.notifier);
-    final categories = ref.watch(placesCategoriesProvider);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
