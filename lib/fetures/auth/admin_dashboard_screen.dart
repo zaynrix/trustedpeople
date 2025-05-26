@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
 
-import '../../services/providers/service_requests_provider.dart';
+import '../../fetures/services/providers/service_requests_provider.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);

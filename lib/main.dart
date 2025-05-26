@@ -8,10 +8,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:trustedtallentsvalley/core/theme/app_theme.dart';
+import 'package:trustedtallentsvalley/fetures/services/block_service.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
-import 'package:trustedtallentsvalley/services/block_service.dart';
 
 import 'fetures/auth/blocked_screen.dart';
 
@@ -94,27 +94,23 @@ class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
     // Add listener to track route changes for ALL users
     router.routerDelegate.addListener(() {
       final location = router.routeInformationProvider.value.location;
-      if (location != null) {
-        // Extract page title from path
-        final segments = location.split('/');
-        final title =
-            segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
+      // Extract page title from path
+      final segments = location.split('/');
+      final title =
+          segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
 
-        // Record page view for analytics
-        ref.read(visitorAnalyticsProvider).recordPageView(location, title);
-        debugPrint('Page view recorded: $location, title: $title');
-      }
+      // Record page view for analytics
+      ref.read(visitorAnalyticsProvider).recordPageView(location, title);
+      debugPrint('Page view recorded: $location, title: $title');
     });
 
     // Record the initial page view
     final initialLocation = router.routeInformationProvider.value.location;
-    if (initialLocation != null) {
-      final segments = initialLocation.split('/');
-      final title =
-          segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
-      ref.read(visitorAnalyticsProvider).recordPageView(initialLocation, title);
-      debugPrint('Initial page view recorded: $initialLocation');
-    }
+    final segments = initialLocation.split('/');
+    final title =
+        segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
+    ref.read(visitorAnalyticsProvider).recordPageView(initialLocation, title);
+    debugPrint('Initial page view recorded: $initialLocation');
   }
 
   @override

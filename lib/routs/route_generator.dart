@@ -1,13 +1,12 @@
+// Updated route_generator.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/activityDetailScreen.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/blackList_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/uis/trade_screen.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/trusted_screen.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_screen.dart';
 import 'package:trustedtallentsvalley/fetures/admin/screens/admin_services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/BlockedUsersScreen.dart';
@@ -15,12 +14,49 @@ import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
-import 'package:trustedtallentsvalley/services/auth_service.dart';
-import 'package:trustedtallentsvalley/services/screens/services_screen.dart';
+import 'package:trustedtallentsvalley/fetures/main_screen.dart';
+import 'package:trustedtallentsvalley/fetures/maintenance/maintenance_service.dart';
+import 'package:trustedtallentsvalley/fetures/maintenance/screens/maintenance_screen.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/screens/service_detail_screen.dart';
+import 'package:trustedtallentsvalley/fetures/services/screens/service_request_screen.dart';
+import 'package:trustedtallentsvalley/fetures/services/screens/services_screen.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/screens/blackList_screen.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/screens/trusted_screen.dart';
 
 import '../fetures/admin/screens/admin_service_requests_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+// Helper widget to check maintenance status
+class MaintenanceGuard extends ConsumerWidget {
+  final String screenName;
+  final Widget child;
+
+  const MaintenanceGuard({
+    required this.screenName,
+    required this.child,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final isUnderMaintenance = ref.watch(screenMaintenanceProvider(screenName));
+
+    // Allow admins to bypass maintenance mode
+    if (authState.isAdmin) {
+      return child;
+    }
+
+    // Show maintenance screen if the route is under maintenance
+    if (isUnderMaintenance) {
+      return MaintenanceScreen(screenName: screenName);
+    }
+
+    return child;
+  }
+}
 
 // Router provider that depends on auth state
 final routerProvider = Provider<GoRouter>((ref) {
@@ -30,145 +66,185 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: ScreensNames.homePath,
     routes: [
-      GoRoute(
-        path: ScreensNames.homePath,
-        name: ScreensNames.home,
-        builder: (context, state) => HomeScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.trustedPath,
-        name: ScreensNames.trusted,
-        builder: (context, state) => const TrustedUsersScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.untrustedPath,
-        name: ScreensNames.untrusted,
-        builder: (context, state) => const BlackListUsersScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.instructionPath,
-        name: ScreensNames.instruction,
-        builder: (context, state) => const ProtectionGuideScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.ortPath,
-        name: ScreensNames.ort,
-        builder: (context, state) => const PaymentPlacesScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.contactUsPath,
-        name: ScreensNames.contactUs,
-        builder: (context, state) => ContactUsScreen(),
-      ),
-      // Add these new routes
-      GoRoute(
-        path: ScreensNames.loginPath,
-        name: ScreensNames.login,
-        builder: (context, state) => const AdminLoginScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.blockedUsersPath,
-        name: ScreensNames.blockedUsers,
-        builder: (context, state) {
-          // Only allow admins to access
-          if (authState.isAdmin) {
-            return const BlockedUsersScreen2();
-          } else {
-            return const UnauthorizedScreen();
-          }
+      // Wrap all routes with the AppShell
+      ShellRoute(
+        builder: (context, state, child) {
+          // Mobile drawer will be handled by AppShell based on screen size
+          return AppShell(child: child);
         },
-      ),
+        routes: [
+          GoRoute(
+            path: ScreensNames.homePath,
+            name: ScreensNames.home,
+            builder: (context, state) => HomeScreen(),
+          ),
+          GoRoute(
+            path: ScreensNames.trustedPath,
+            name: ScreensNames.trusted,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.trusted,
+              child: TrustedUsersScreen(),
+            ),
+          ),
+          GoRoute(
+            path: ScreensNames.untrustedPath,
+            name: ScreensNames.untrusted,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.untrusted,
+              child: BlackListUsersScreen(),
+            ),
+          ),
+          GoRoute(
+            path: ScreensNames.instructionPath,
+            name: ScreensNames.instruction,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.instruction,
+              child: ProtectionGuideScreen(),
+            ),
+          ),
+          GoRoute(
+            path: ScreensNames.ortPath,
+            name: ScreensNames.ort,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.ort,
+              child: PaymentPlacesScreen(),
+            ),
+          ),
+          GoRoute(
+            path: ScreensNames.contactUsPath,
+            name: ScreensNames.contactUs,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.contactUs,
+              child: ContactUsScreen(),
+            ),
+          ),
+          // Add these new routes
+          GoRoute(
+            path: ScreensNames.loginPath,
+            name: ScreensNames.login,
+            builder: (context, state) => const AdminLoginScreen(),
+          ),
+          GoRoute(
+            path: ScreensNames.blockedUsersPath,
+            name: ScreensNames.blockedUsers,
+            builder: (context, state) {
+              // Only allow admins to access
+              if (authState.isAdmin) {
+                return const MaintenanceGuard(
+                  screenName: ScreensNames.blockedUsers,
+                  child: BlockedUsersScreen2(),
+                );
+              } else {
+                return const UnauthorizedScreen();
+              }
+            },
+          ),
 
-      // Service routes
-      GoRoute(
-        path: '/services',
-        name: ScreensNames.services,
-        builder: (context, state) => const ServicesScreen(),
-      ),
-      GoRoute(
-        path: '/service/:serviceId',
-        name: ScreensNames.serviceDetail,
-        builder: (context, state) {
-          final serviceId = state.pathParameters[
-              'serviceId']!; // FIXED - parameter name matches path
-          return ServiceDetailScreen(serviceId: serviceId);
-        },
-      ),
-      GoRoute(
-        path: '/service-request/:serviceId',
-        name: ScreensNames.serviceRequest,
-        builder: (context, state) {
-          final serviceId = state.pathParameters['serviceId']!;
-          return ServiceRequestScreen(serviceId: serviceId);
-        },
-      ),
+          // Service routes
+          GoRoute(
+            path: '/services',
+            name: ScreensNames.services,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.services,
+              child: ServicesScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/service/:serviceId',
+            name: ScreensNames.serviceDetail,
+            builder: (context, state) {
+              final serviceId = state.pathParameters[
+                  'serviceId']!; // FIXED - parameter name matches path
+              return ServiceDetailScreen(serviceId: serviceId);
+            },
+          ),
+          GoRoute(
+            path: '/service-request/:serviceId',
+            name: ScreensNames.serviceRequest,
+            builder: (context, state) {
+              final serviceId = state.pathParameters['serviceId']!;
+              return ServiceRequestScreen(serviceId: serviceId);
+            },
+          ),
 
-      // Admin routes
-      GoRoute(
-        path: '/admin/services',
-        name: ScreensNames.adminServices,
-        builder: (context, state) => AdminServicesScreen(),
-      ),
-      GoRoute(
-        path: '/admin/service-requests',
-        name: ScreensNames.adminServiceRequests,
-        builder: (context, state) => const AdminServiceRequestsScreen(),
-      ),
-      GoRoute(
-        path: ScreensNames.updatesPath,
-        name: ScreensNames.updates,
-        builder: (context, state) => const AllUpdatesScreen(),
-      ),
-      // GoRoute(
-      //   path: ScreensNames.adminPath,
-      //   name: ScreensNames.admin,
-      //   builder: (context, state) {
-      //     // Only allow admins to access admin page
-      //     if (authState.isAdmin) {
-      //       return const AdminDashboardScreen();
-      //     } else {
-      //       return const UnauthorizedScreen();
-      //     }
-      //   },
-      // ),
-      GoRoute(
-        path: ScreensNames.adminDashboardPath,
-        name: ScreensNames.adminDashboard,
-        builder: (context, state) {
-          // Only allow admins to access admin page
-          if (authState.isAdmin) {
-            return const AdminDashboard();
-          } else {
-            return const UnauthorizedScreen();
-          }
-        },
-      ),
-      GoRoute(
-        path: '/secure-admin-784512/login',
-        name: 'adminLogin',
-        builder: (context, state) {
-          if (kDebugMode) {
-            print(
-                "🔐 Admin login route matched! Path: ${state.uri.toString()}");
-          }
-          return const AdminLoginScreen();
-        },
-      ),
-      GoRoute(
-        path: '/secure-admin-784512/dashboard', // Obscure path
-        name: 'adminDashboard', // No constant reference in ScreensNames
-        builder: (context, state) {
-          // Only allow authenticated admins
-          if (authState.isAdmin) {
-            return const AdminDashboardScreen();
-          } else {
-            return const Scaffold(
-              body: Center(
-                  child: Text('Page not found')), // Generic error for security
-            );
-          }
-        },
-      ),
+          // Admin routes (no maintenance guard for admin routes)
+          GoRoute(
+            path: '/admin/services',
+            name: ScreensNames.adminServices,
+            builder: (context, state) {
+              if (authState.isAdmin) {
+                return const MaintenanceGuard(
+                  screenName: ScreensNames.adminServices,
+                  child: AdminServicesScreen(),
+                );
+              } else {
+                return const UnauthorizedScreen();
+              }
+            },
+          ),
+          GoRoute(
+            path: '/admin/service-requests',
+            name: ScreensNames.adminServiceRequests,
+            builder: (context, state) {
+              if (authState.isAdmin) {
+                return const MaintenanceGuard(
+                  screenName: ScreensNames.adminServiceRequests,
+                  child: AdminServiceRequestsScreen(),
+                );
+              } else {
+                return const UnauthorizedScreen();
+              }
+            },
+          ),
+          GoRoute(
+            path: ScreensNames.updatesPath,
+            name: ScreensNames.updates,
+            builder: (context, state) => const MaintenanceGuard(
+              screenName: ScreensNames.updates,
+              child: AllUpdatesScreen(),
+            ),
+          ),
+          GoRoute(
+            path: ScreensNames.adminDashboardPath,
+            name: ScreensNames.adminDashboard,
+            builder: (context, state) {
+              // Only allow admins to access admin page - NO maintenance guard for admin dashboard
+              if (authState.isAdmin) {
+                return const AdminDashboard();
+              } else {
+                return const UnauthorizedScreen();
+              }
+            },
+          ),
+          GoRoute(
+            path: '/secure-admin-784512/login',
+            name: 'adminLogin',
+            builder: (context, state) {
+              if (kDebugMode) {
+                print(
+                    "🔐 Admin login route matched! Path: ${state.uri.toString()}");
+              }
+              return const AdminLoginScreen();
+            },
+          ),
+          GoRoute(
+            path: '/secure-admin-784512/dashboard', // Obscure path
+            name: 'adminDashboard', // No constant reference in ScreensNames
+            builder: (context, state) {
+              // Only allow authenticated admins - NO maintenance guard
+              if (authState.isAdmin) {
+                return const AdminDashboardScreen();
+              } else {
+                return const Scaffold(
+                  body: Center(
+                      child:
+                          Text('Page not found')), // Generic error for security
+                );
+              }
+            },
+          ),
+        ],
+      )
     ],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),

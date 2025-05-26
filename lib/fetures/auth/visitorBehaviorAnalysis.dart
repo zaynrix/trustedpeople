@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:trustedtallentsvalley/services/visitor_analytics_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/visitor_analytics_service.dart';
 
 // Provider for user behavior data
 final userBehaviorDataProvider = FutureProvider.autoDispose((ref) async {
@@ -511,8 +511,8 @@ class VisitorBehaviorAnalysis extends ConsumerWidget {
 
   Widget _buildDemographicsCard(Map<String, dynamic> demographicData,
       bool isSmallScreen, BuildContext context) {
-    final countries =
-        demographicData['countries'] as List<Map<String, dynamic>>? ?? [];
+    // final countries =
+    //     demographicData['countries'] as List<Map<String, dynamic>>? ?? [];
 
     // Create view tabs for different demographics
     return Card(
