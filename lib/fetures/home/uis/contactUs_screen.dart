@@ -340,10 +340,10 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
       BuildContext context, WidgetRef ref, bool isDesktop) {
     final maxWidth = isDesktop ? 800.0 : 600.0;
 
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SingleChildScrollView(
+    return SingleChildScrollView(
+      child: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Padding(
             padding: EdgeInsets.all(isDesktop ? 32.0 : 24.0),
             child: Column(
