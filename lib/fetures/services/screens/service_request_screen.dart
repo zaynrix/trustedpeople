@@ -13,9 +13,9 @@ class ServiceRequestScreen extends ConsumerStatefulWidget {
   final String serviceId;
 
   const ServiceRequestScreen({
-    Key? key,
+    super.key,
     required this.serviceId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ServiceRequestScreen> createState() =>
@@ -257,7 +257,10 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
         elevation: 1,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () =>  context.goNamed(
+            ScreensNames.serviceDetail,
+            pathParameters: {'serviceId': service.id},
+          ),
         ),
       );
     }

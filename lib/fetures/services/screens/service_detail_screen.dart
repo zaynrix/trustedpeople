@@ -71,7 +71,7 @@ class ServiceDetailScreen extends ConsumerWidget {
         elevation: 1,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.goNamed(ScreensNames.services),
         ),
         actions: [
           IconButton(

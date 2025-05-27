@@ -353,17 +353,17 @@ class ServicesScreen extends ConsumerWidget {
 
     if (MediaQuery.of(context).size.width > 1200) {
       crossAxisCount = 4;
-      childAspectRatio = 0.8;
+      childAspectRatio = 1.3;
     } else if (MediaQuery.of(context).size.width > 900) {
       crossAxisCount = 3;
       childAspectRatio = 0.8;
     } else if (MediaQuery.of(context).size.width > 600) {
       crossAxisCount = 2;
-      childAspectRatio = 0.85;
+      childAspectRatio = 1;
     } else {
       // Mobile: single column for better readability
       crossAxisCount = 1;
-      childAspectRatio = 1.2; // Wider cards for mobile
+      childAspectRatio = 1.5; // Wider cards for mobile
     }
 
     return SliverGrid(
