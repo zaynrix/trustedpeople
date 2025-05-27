@@ -41,14 +41,14 @@ class AllUpdatesScreen extends ConsumerWidget {
           ),
         ),
       ),
-      drawer: isMobile ? const AppDrawer() : null,
+      // drawer: isMobile ? const AppDrawer() : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (constraints.maxWidth > 768)
-                const AppDrawer(isPermanent: true),
+              // if (constraints.maxWidth > 768)
+              //   const AppDrawer(isPermanent: true),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),

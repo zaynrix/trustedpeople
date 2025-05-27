@@ -67,7 +67,7 @@ class HomeContentWidget extends StatelessWidget {
               const SizedBox(height: 48),
               _buildWebStatsSection(isDesktop),
               const SizedBox(height: 48),
-              _buildWebActivitySection(isDesktop),
+              _buildWebActivitySection(isDesktop, context),
               const SizedBox(height: 48),
             ],
           ),
@@ -635,7 +635,7 @@ class HomeContentWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildWebActivitySection(bool isDesktop) {
+  Widget _buildWebActivitySection(bool isDesktop, context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -664,6 +664,8 @@ class HomeContentWidget extends StatelessWidget {
             ),
             OutlinedButton.icon(
               onPressed: () {
+                context.pushNamed(ScreensNames.updates);
+
                 // Handle view all
               },
               icon: const Icon(Icons.arrow_forward),

@@ -56,9 +56,7 @@ class ServiceCard extends StatelessWidget {
                     // Category chip
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.teal.shade50,
                         borderRadius: BorderRadius.circular(20),
@@ -73,34 +71,36 @@ class ServiceCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
 
-                    // Title
-                    Text(
-                      service.title,
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    // Title - Use Flexible to prevent overflow
+                    Flexible(
+                      child: Text(
+                        service.title,
+                        style: GoogleFonts.cairo(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
+
+                    // Push bottom content to bottom
+                    const Spacer(),
+
                     // Rating and time
                     Row(
                       children: [
-                        const Icon(
-                          Icons.timer,
-                          color: Colors.grey,
-                          size: 16,
-                        ),
+                        const Icon(Icons.timer, color: Colors.grey, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           '${service.deliveryTimeInDays} د',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12,
-                          ),
+                          style: GoogleFonts.cairo(fontSize: 12),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+
                     // Price and order button
                     Row(
                       children: [
@@ -115,9 +115,7 @@ class ServiceCard extends StatelessWidget {
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.teal,
                             borderRadius: BorderRadius.circular(8),

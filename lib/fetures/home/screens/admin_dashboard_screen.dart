@@ -1,8 +1,8 @@
+// File: lib/features/Home/widgets/enhanced_admin_dashboard_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/Home/uis/contactUs_screen.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/adminActivitiesWidget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/analytics_column.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/analytics_row.dart';
@@ -10,7 +10,8 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/visitor_cha
 import 'package:trustedtallentsvalley/fetures/Home/widgets/cards/admin_action_card.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/maintenance/widgets/maintenance_management_widget.dart';
-import 'package:trustedtallentsvalley/fetures/services/providers/service_requests_provider.dart';
+import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analytics_provider.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 
@@ -21,6 +22,10 @@ class AdminDashboardWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
+    // Initialize system monitoring
+    ref.watch(systemMonitorProvider);
+    ref.watch(dailySummaryProvider);
 
     // Define breakpoints
     final isMobile = screenWidth < 768;
@@ -42,6 +47,8 @@ class AdminDashboardWidget extends ConsumerWidget {
           children: [
             _buildMobileWelcomeBanner(),
             const SizedBox(height: 20),
+            _buildNotificationStatusCard(ref),
+            const SizedBox(height: 20),
             _buildMobileQuickStats(ref),
             const SizedBox(height: 20),
             _buildMobileNotificationsCard(context, ref),
@@ -53,6 +60,8 @@ class AdminDashboardWidget extends ConsumerWidget {
             _buildMobileManagementCards(context),
             const SizedBox(height: 20),
             _buildMobileRecentActivity(ref),
+            const SizedBox(height: 20),
+            _buildNotificationSettingsCard(),
             const SizedBox(height: 32),
           ],
         ),
@@ -72,6 +81,10 @@ class AdminDashboardWidget extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildWebHeader(ref),
+              const SizedBox(height: 32),
+
+              // Notification status row
+              _buildNotificationStatusCard(ref),
               const SizedBox(height: 32),
 
               // First row: Quick stats and notifications
@@ -116,8 +129,21 @@ class AdminDashboardWidget extends ConsumerWidget {
 
               const SizedBox(height: 32),
 
-              // Third row: Recent activity
-              _buildWebRecentActivity(ref, isDesktop),
+              // Third row: Recent activity and notification settings
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _buildWebRecentActivity(ref, isDesktop),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    flex: 2,
+                    child: _buildNotificationSettingsCard(),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 32),
             ],
@@ -127,52 +153,82 @@ class AdminDashboardWidget extends ConsumerWidget {
     );
   }
 
-  // Mobile-specific widgets
-  Widget _buildMobileWelcomeBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green.shade800, Colors.green.shade600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  // New notification status card
+  Widget _buildNotificationStatusCard(WidgetRef ref) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade50, Colors.green.shade50],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.admin_panel_settings,
-                  color: Colors.white, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'لوحة تحكم المشرف',
-                  style: GoogleFonts.cairo(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.notifications_active,
+                color: Colors.green,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'نظام الإشعارات نشط',
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
+                  Text(
+                    'سيتم إرسال التحديثات عبر WhatsApp و Telegram',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'متصل',
+                style: GoogleFonts.cairo(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'مرحباً بك في لوحة التحكم',
-            style: GoogleFonts.cairo(
-              color: Colors.white,
-              fontSize: 14,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  Widget _buildNotificationSettingsCard() {
+    return const NotificationSettingsWidget();
+  }
+
+  // Updated methods to use enhanced providers
   Widget _buildMobileQuickStats(WidgetRef ref) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -181,18 +237,53 @@ class AdminDashboardWidget extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'إحصائيات سريعة',
-              style: GoogleFonts.cairo(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'إحصائيات سريعة',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'مراقبة مباشرة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 10,
+                          color: Colors.green.shade800,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Consumer(
               builder: (context, ref, child) {
-                final serviceRequests = ref.watch(serviceRequestsProvider);
-                final analyticsData = ref.watch(analyticsDataProvider);
+                final serviceRequests =
+                    ref.watch(enhancedServiceRequestsProvider);
+                final analyticsData = ref.watch(enhancedAnalyticsDataProvider);
 
                 return Row(
                   children: [
@@ -282,12 +373,40 @@ class AdminDashboardWidget extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'الإشعارات والطلبات',
-              style: GoogleFonts.cairo(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'الإشعارات والطلبات',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.send, size: 12, color: Colors.blue),
+                      const SizedBox(width: 4),
+                      Text(
+                        'إشعارات فورية',
+                        style: GoogleFonts.cairo(
+                          fontSize: 10,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildMobileNotificationItem(
@@ -343,8 +462,12 @@ class AdminDashboardWidget extends ConsumerWidget {
               Consumer(
                 builder: (context, ref, child) {
                   final count = isServiceRequests
-                      ? ref.watch(serviceRequestsProvider).newRequestsCount
-                      : ref.watch(unreadMessagesCountProvider).maybeWhen(
+                      ? ref
+                          .watch(enhancedServiceRequestsProvider)
+                          .newRequestsCount
+                      : ref
+                          .watch(enhancedUnreadMessagesCountProvider)
+                          .maybeWhen(
                             data: (count) => count,
                             orElse: () => 0,
                           );
@@ -394,14 +517,18 @@ class AdminDashboardWidget extends ConsumerWidget {
                 Consumer(
                   builder: (context, ref, child) {
                     final count = isServiceRequests
-                        ? ref.watch(serviceRequestsProvider).newRequestsCount
-                        : ref.watch(unreadMessagesCountProvider).maybeWhen(
+                        ? ref
+                            .watch(enhancedServiceRequestsProvider)
+                            .newRequestsCount
+                        : ref
+                            .watch(enhancedUnreadMessagesCountProvider)
+                            .maybeWhen(
                               data: (count) => count,
                               orElse: () => 0,
                             );
 
                     return Text(
-                      count > 0 ? '$count جديد' : 'لا توجد',
+                      count > 0 ? '$count جديد (سيتم الإشعار)' : 'لا توجد',
                       style: GoogleFonts.cairo(
                         color: Colors.grey.shade600,
                         fontSize: 12,
@@ -417,7 +544,7 @@ class AdminDashboardWidget extends ConsumerWidget {
               if (isServiceRequests) {
                 context.goNamed(ScreensNames.serviceRequest);
                 ref
-                    .read(serviceRequestsProvider.notifier)
+                    .read(enhancedServiceRequestsProvider.notifier)
                     .clearNewRequestsBadge();
               } else {
                 context.goNamed(ScreensNames.contactUs);
@@ -430,6 +557,7 @@ class AdminDashboardWidget extends ConsumerWidget {
     );
   }
 
+  // Continue with other methods using enhanced providers...
   Widget _buildMaintenanceCard() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -441,7 +569,7 @@ class AdminDashboardWidget extends ConsumerWidget {
   }
 
   Widget _buildMobileAnalyticsCard(WidgetRef ref) {
-    final analyticsData = ref.watch(analyticsDataProvider);
+    final analyticsData = ref.watch(enhancedAnalyticsDataProvider);
     final analyticsChartData = ref.watch(analyticsChartDataProvider);
 
     return Card(
@@ -461,12 +589,29 @@ class AdminDashboardWidget extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    ref.refresh(analyticsServiceProvider);
-                    ref.refresh(analyticsChartDataProvider);
-                  },
-                  icon: const Icon(Icons.refresh, size: 20),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active,
+                        size: 12,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () {
+                        ref.refresh(analyticsServiceProvider);
+                        ref.refresh(analyticsChartDataProvider);
+                      },
+                      icon: const Icon(Icons.refresh, size: 20),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -581,7 +726,64 @@ class AdminDashboardWidget extends ConsumerWidget {
     );
   }
 
-  // Web-specific widgets
+  // Web-specific widgets with enhanced providers
+  Widget _buildMobileWelcomeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green.shade800, Colors.green.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.admin_panel_settings,
+                  color: Colors.white, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'لوحة تحكم المشرف',
+                  style: GoogleFonts.cairo(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.notifications_active,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'مرحباً بك في لوحة التحكم - الإشعارات مفعلة',
+            style: GoogleFonts.cairo(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWebHeader(WidgetRef ref) {
     return Container(
       width: double.infinity,
@@ -620,17 +822,49 @@ class AdminDashboardWidget extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'لوحة تحكم المشرف',
-                  style: GoogleFonts.cairo(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'لوحة تحكم المشرف',
+                      style: GoogleFonts.cairo(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.notifications_active,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'إشعارات فعالة',
+                            style: GoogleFonts.cairo(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'مرحباً بك في لوحة التحكم الشاملة - يمكنك إدارة المستخدمين ومراقبة النشاط وتحليل البيانات',
+                  'مرحباً بك في لوحة التحكم الشاملة - يمكنك إدارة المستخدمين ومراقبة النشاط وتحليل البيانات مع إشعارات فورية',
                   style: GoogleFonts.cairo(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 16,
@@ -642,9 +876,10 @@ class AdminDashboardWidget extends ConsumerWidget {
           ),
           Consumer(
             builder: (context, ref, child) {
-              final serviceRequests = ref.watch(serviceRequestsProvider);
+              final serviceRequests =
+                  ref.watch(enhancedServiceRequestsProvider);
               final unreadMessages =
-                  ref.watch(unreadMessagesCountProvider).maybeWhen(
+                  ref.watch(enhancedUnreadMessagesCountProvider).maybeWhen(
                         data: (count) => count,
                         orElse: () => 0,
                       );
@@ -701,18 +936,53 @@ class AdminDashboardWidget extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'إحصائيات سريعة',
-            style: GoogleFonts.cairo(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'إحصائيات سريعة',
+                style: GoogleFonts.cairo(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'مراقبة مباشرة',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        color: Colors.green.shade800,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, child) {
-              final serviceRequests = ref.watch(serviceRequestsProvider);
-              final analyticsData = ref.watch(analyticsDataProvider);
+              final serviceRequests =
+                  ref.watch(enhancedServiceRequestsProvider);
+              final analyticsData = ref.watch(enhancedAnalyticsDataProvider);
 
               return analyticsData.when(
                 data: (data) => Column(
@@ -722,6 +992,7 @@ class AdminDashboardWidget extends ConsumerWidget {
                       label: 'طلبات جديدة',
                       value: serviceRequests.newRequestsCount.toString(),
                       color: Colors.blue,
+                      hasNotification: serviceRequests.newRequestsCount > 0,
                     ),
                     const SizedBox(height: 16),
                     _buildWebStatItem(
@@ -729,6 +1000,7 @@ class AdminDashboardWidget extends ConsumerWidget {
                       label: 'زيارات اليوم',
                       value: data['todayVisitors']?.toString() ?? '0',
                       color: Colors.green,
+                      hasNotification: true,
                     ),
                     const SizedBox(height: 16),
                     _buildWebStatItem(
@@ -759,6 +1031,7 @@ class AdminDashboardWidget extends ConsumerWidget {
     required String label,
     required String value,
     required Color color,
+    bool hasNotification = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -769,13 +1042,31 @@ class AdminDashboardWidget extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 24),
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              if (hasNotification)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -790,12 +1081,35 @@ class AdminDashboardWidget extends ConsumerWidget {
                     color: color,
                   ),
                 ),
-                Text(
-                  label,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    if (hasNotification) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'إشعار',
+                          style: GoogleFonts.cairo(
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -823,12 +1137,39 @@ class AdminDashboardWidget extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'الإشعارات والطلبات الجديدة',
-            style: GoogleFonts.cairo(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'الإشعارات والطلبات الجديدة',
+                style: GoogleFonts.cairo(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.send, size: 14, color: Colors.green),
+                    const SizedBox(width: 4),
+                    Text(
+                      'إشعارات فورية',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           _buildWebNotificationItem(
@@ -888,8 +1229,12 @@ class AdminDashboardWidget extends ConsumerWidget {
               Consumer(
                 builder: (context, ref, child) {
                   final count = isServiceRequests
-                      ? ref.watch(serviceRequestsProvider).newRequestsCount
-                      : ref.watch(unreadMessagesCountProvider).maybeWhen(
+                      ? ref
+                          .watch(enhancedServiceRequestsProvider)
+                          .newRequestsCount
+                      : ref
+                          .watch(enhancedUnreadMessagesCountProvider)
+                          .maybeWhen(
                             data: (count) => count,
                             orElse: () => 0,
                           );
@@ -941,15 +1286,19 @@ class AdminDashboardWidget extends ConsumerWidget {
                 Consumer(
                   builder: (context, ref, child) {
                     final count = isServiceRequests
-                        ? ref.watch(serviceRequestsProvider).newRequestsCount
-                        : ref.watch(unreadMessagesCountProvider).maybeWhen(
+                        ? ref
+                            .watch(enhancedServiceRequestsProvider)
+                            .newRequestsCount
+                        : ref
+                            .watch(enhancedUnreadMessagesCountProvider)
+                            .maybeWhen(
                               data: (count) => count,
                               orElse: () => 0,
                             );
 
                     return Text(
                       count > 0
-                          ? '$count جديد - $subtitle'
+                          ? '$count جديد - $subtitle (تم الإشعار)'
                           : 'لا توجد إشعارات جديدة',
                       style: GoogleFonts.cairo(
                         color: Colors.grey.shade600,
@@ -966,7 +1315,7 @@ class AdminDashboardWidget extends ConsumerWidget {
               if (isServiceRequests) {
                 context.goNamed(ScreensNames.serviceRequest);
                 ref
-                    .read(serviceRequestsProvider.notifier)
+                    .read(enhancedServiceRequestsProvider.notifier)
                     .clearNewRequestsBadge();
               } else {
                 context.goNamed(ScreensNames.contactUs);
@@ -988,7 +1337,7 @@ class AdminDashboardWidget extends ConsumerWidget {
   }
 
   Widget _buildWebAnalyticsCard(WidgetRef ref, bool isDesktop) {
-    final analyticsData = ref.watch(analyticsDataProvider);
+    final analyticsData = ref.watch(enhancedAnalyticsDataProvider);
     final analyticsChartData = ref.watch(analyticsChartDataProvider);
 
     return Container(
@@ -1017,13 +1366,30 @@ class AdminDashboardWidget extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  ref.refresh(analyticsServiceProvider);
-                  ref.refresh(analyticsChartDataProvider);
-                },
-                icon: const Icon(Icons.refresh),
-                label: Text('تحديث', style: GoogleFonts.cairo()),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active,
+                      size: 16,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      ref.refresh(analyticsServiceProvider);
+                      ref.refresh(analyticsChartDataProvider);
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: Text('تحديث', style: GoogleFonts.cairo()),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1210,7 +1576,7 @@ class AdminDashboardWidget extends ConsumerWidget {
         const SizedBox(height: 12),
         Consumer(
           builder: (context, ref, child) {
-            final state = ref.watch(serviceRequestsProvider);
+            final state = ref.watch(enhancedServiceRequestsProvider);
 
             if (state.isLoading) {
               return const Center(child: CircularProgressIndicator());
@@ -1236,19 +1602,39 @@ class AdminDashboardWidget extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor:
-                            request.status.toString().contains('pending')
-                                ? Colors.blue.shade100
-                                : Colors.grey.shade100,
-                        child: Icon(
-                          Icons.assignment,
-                          size: 16,
-                          color: request.status.toString().contains('pending')
-                              ? Colors.blue
-                              : Colors.grey,
-                        ),
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor:
+                                request.status.toString().contains('pending')
+                                    ? Colors.blue.shade100
+                                    : Colors.grey.shade100,
+                            child: Icon(
+                              Icons.assignment,
+                              size: 16,
+                              color:
+                                  request.status.toString().contains('pending')
+                                      ? Colors.blue
+                                      : Colors.grey,
+                            ),
+                          ),
+                          if (request.status.toString().contains('pending'))
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border:
+                                      Border.all(color: Colors.white, width: 1),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1282,12 +1668,23 @@ class AdminDashboardWidget extends ConsumerWidget {
                             color: Colors.blue.shade100,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text(
-                            'جديد',
-                            style: GoogleFonts.cairo(
-                              color: Colors.blue.shade800,
-                              fontSize: 10,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'جديد',
+                                style: GoogleFonts.cairo(
+                                  color: Colors.blue.shade800,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.notifications,
+                                size: 8,
+                                color: Colors.blue.shade800,
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -1301,13 +1698,3 @@ class AdminDashboardWidget extends ConsumerWidget {
     );
   }
 }
-
-final analyticsDataProvider = StreamProvider<Map<String, dynamic>>((ref) {
-  final analytics = ref.watch(visitorAnalyticsProvider);
-
-  // Create a stream that refreshes every 30 seconds
-  return Stream.periodic(const Duration(seconds: 30), (_) async {
-    final data = await analytics.getVisitorStats();
-    return data;
-  }).asyncMap((future) => future);
-});
