@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:trustedtallentsvalley/config/app_config.dart';
 import 'package:trustedtallentsvalley/core/theme/app_theme.dart';
+import 'package:trustedtallentsvalley/core/utils/notification_helper.dart';
 import 'package:trustedtallentsvalley/fetures/services/block_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analytics_provider.dart';
@@ -27,14 +29,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar', null);
 
-  // Initialize Firebase for web
+  // Initialize Firebase for web with environment variables
   if (kIsWeb) {
     await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyC_xVfBVGpI6s371eh5m7zQIxy_s0LEqag",
-        appId: "1:511012871086:web:3d64951c90d03b7a39463f",
-        messagingSenderId: "511012871086",
-        projectId: "truested-776cd",
+      options: FirebaseOptions(
+        apiKey: AppConfig.firebaseApiKey,
+        appId: AppConfig.firebaseAppId,
+        messagingSenderId: AppConfig.firebaseMessagingSenderId,
+        projectId: AppConfig.firebaseProjectId,
       ),
     );
   }
@@ -44,6 +46,9 @@ void main() async {
 
   // Setup provider container
   final container = ProviderContainer();
+
+  // Initialize notification system first
+  await NotificationHelper.initializeNotificationsStarts(container);
 
   // Check if user is blocked
   bool isBlocked = false;
@@ -92,16 +97,32 @@ class TrustedGazianApp extends ConsumerStatefulWidget {
   ConsumerState<TrustedGazianApp> createState() => _TrustedGazianAppState();
 }
 
-class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
+class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+
+    // Add lifecycle observer for app state changes
+    WidgetsBinding.instance.addObserver(this);
 
     // Set up analytics tracking after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupAnalyticsTracking();
       _initializeNotificationSystem();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _handleAppLifecycle(state);
   }
 
   void _setupAnalyticsTracking() {
@@ -161,24 +182,119 @@ class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
     if (isBlocked) return;
 
     try {
-      // Send user activity notification for important pages
+      // Convert location to Arabic page names
+      final pageMap = {
+        '/admin': 'لوحة التحكم',
+        '/dashboard': 'الرئيسية',
+        '/service-request': 'طلبات الخدمة',
+        '/contact': 'تواصل معنا',
+        '/services': 'الخدمات',
+        '/about': 'من نحن',
+        '/trusted': 'الموثوقين',
+        '/untrusted': 'النصابين',
+        '/blocked-users': 'المحظورين',
+      };
+
+      // Get Arabic page name
+      String arabicPageName = pageMap[location] ?? title;
+
+      // Send detailed page visit notification
+      final notificationManager = ref.read(adminNotificationManagerProvider);
+      notificationManager.notifyPageVisit(
+        pageName: arabicPageName,
+        visitorCount: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        userAgent:
+            kIsWeb ? html.window.navigator.userAgent : 'Flutter Mobile App',
+        timestamp: DateTime.now(),
+      );
+
+      // Send additional notification for important pages
       final importantPages = [
         '/admin',
         '/dashboard',
         '/service-request',
         '/contact'
       ];
-
       if (importantPages.any((page) => location.contains(page))) {
-        final notificationManager = ref.read(adminNotificationManagerProvider);
         notificationManager.notifyUserActivity(
           activityType: 'زيارة صفحة مهمة',
           userName: 'زائر',
-          details: 'تم الوصول إلى صفحة: $title',
+          details: 'تم الوصول إلى صفحة: $arabicPageName',
         );
       }
     } catch (e) {
       debugPrint('Error sending page view notification: $e');
+    }
+  }
+
+  /// Handle application lifecycle for notifications
+  void _handleAppLifecycle(AppLifecycleState state) {
+    final isBlocked = ref.read(isUserBlockedProvider);
+    final notificationsEnabled = ref.read(notificationsEnabledProvider);
+
+    if (isBlocked || !notificationsEnabled) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App resumed, refresh analytics and check for updates
+        try {
+          ref.refresh(enhancedAnalyticsDataProvider);
+          debugPrint('App resumed - analytics refreshed');
+        } catch (e) {
+          debugPrint('Error refreshing analytics on resume: $e');
+        }
+        break;
+      case AppLifecycleState.paused:
+        // App paused, send activity summary
+        _sendActivitySummary();
+        break;
+      case AppLifecycleState.detached:
+        // App closing, send session end notification if needed
+        _sendSessionEndNotification();
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _sendActivitySummary() {
+    try {
+      // Only send summary for longer sessions (avoid spam)
+      final notificationManager = ref.read(adminNotificationManagerProvider);
+      notificationManager.notifyUserActivity(
+        activityType: 'إيقاف مؤقت للجلسة',
+        userName: 'زائر',
+        details: 'تم إيقاف التطبيق مؤقتاً',
+      );
+    } catch (e) {
+      debugPrint('Error sending activity summary: $e');
+    }
+  }
+
+  void _sendSessionEndNotification() {
+    try {
+      final notificationManager = ref.read(adminNotificationManagerProvider);
+      notificationManager.notifyUserActivity(
+        activityType: 'انتهاء الجلسة',
+        userName: 'زائر',
+        details: 'تم إنهاء جلسة التصفح',
+      );
+    } catch (e) {
+      debugPrint('Error sending session end notification: $e');
+    }
+  }
+
+  /// Send a test notification to verify the system is working
+  Future<void> sendTestNotification() async {
+    try {
+      final notificationManager = ref.read(adminNotificationManagerProvider);
+      await notificationManager.notifySystemAlert(
+        alertType: 'اختبار النظام',
+        description: 'تم تشغيل النظام بنجاح وجميع الإشعارات تعمل بشكل صحيح',
+        priority: 'متوسط',
+      );
+    } catch (e) {
+      debugPrint('Error sending test notification: $e');
     }
   }
 
@@ -204,9 +320,13 @@ class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
         // Add notification system initialization here for better lifecycle management
         if (!isBlocked) {
           // Initialize enhanced providers to start monitoring
-          ref.read(enhancedAnalyticsDataProvider);
-          ref.read(enhancedServiceRequestsProvider);
-          ref.read(enhancedMessagesProvider);
+          try {
+            ref.read(enhancedAnalyticsDataProvider);
+            ref.read(enhancedServiceRequestsProvider);
+            ref.read(enhancedMessagesProvider);
+          } catch (e) {
+            debugPrint('Error initializing enhanced providers: $e');
+          }
         }
 
         return Directionality(textDirection: TextDirection.rtl, child: child!);
@@ -220,51 +340,75 @@ class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp> {
   }
 }
 
-// Extension to add notification helper methods
-extension NotificationHelpers on ConsumerState<TrustedGazianApp> {
-  /// Send a test notification to verify the system is working
-  Future<void> sendTestNotification() async {
+// Utility class for notification management in main app
+class AppNotificationManager {
+  final WidgetRef ref;
+
+  AppNotificationManager(this.ref);
+
+  /// Initialize all notification-related providers and services
+  Future<void> initializeNotificationSystem() async {
     try {
-      final notificationManager = ref.read(adminNotificationManagerProvider);
-      await notificationManager.notifySystemAlert(
-        alertType: 'اختبار النظام',
-        description: 'تم تشغيل النظام بنجاح وجميع الإشعارات تعمل بشكل صحيح',
-        priority: 'متوسط',
-      );
+      // Initialize notification helper
+      await NotificationHelper.initializeNotifications(ref);
+
+      // Check if notifications are configured
+      final isConfigured =
+          await NotificationHelper.areNotificationsConfiguredRef(ref);
+      debugPrint('Notifications configured: $isConfigured');
+
+      if (isConfigured) {
+        // Send system startup notification
+        final notificationManager = ref.read(adminNotificationManagerProvider);
+        await notificationManager.notifySystemAlert(
+          alertType: 'بدء تشغيل النظام',
+          description: 'تم تشغيل التطبيق بنجاح وبدء مراقبة النشاط',
+          priority: 'منخفض',
+        );
+      }
     } catch (e) {
-      debugPrint('Error sending test notification: $e');
+      debugPrint('Error in AppNotificationManager initialization: $e');
     }
   }
 
-  /// Handle application lifecycle for notifications
-  void handleAppLifecycle(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        // App resumed, refresh analytics and check for updates
-        ref.refresh(enhancedAnalyticsDataProvider);
-        break;
-      case AppLifecycleState.paused:
-        // App paused, potentially send activity summary
-        break;
-      case AppLifecycleState.detached:
-        // App closing, send session end notification if needed
-        _sendSessionEndNotification();
-        break;
-      default:
-        break;
+  /// Send welcome notification for new visitors
+  Future<void> sendWelcomeNotification(Map<String, dynamic> visitorData) async {
+    try {
+      final notificationManager = ref.read(adminNotificationManagerProvider);
+      await notificationManager.notifyNewVisitor(visitorData: visitorData);
+    } catch (e) {
+      debugPrint('Error sending welcome notification: $e');
     }
   }
 
-  void _sendSessionEndNotification() {
+  /// Track and notify page changes
+  void trackPageChange(String path, String title) {
     try {
+      final pageMap = {
+        '/': 'الصفحة الرئيسية',
+        '/admin': 'لوحة التحكم',
+        '/dashboard': 'لوحة المراقبة',
+        '/service-request': 'طلبات الخدمة',
+        '/contact': 'تواصل معنا',
+        '/services': 'الخدمات',
+        '/about': 'من نحن',
+        '/trusted': 'المستخدمين الموثوقين',
+        '/untrusted': 'المستخدمين النصابين',
+        '/blocked-users': 'المستخدمين المحظورين',
+      };
+
+      final arabicPageName = pageMap[path] ?? title;
+
       final notificationManager = ref.read(adminNotificationManagerProvider);
-      notificationManager.notifyUserActivity(
-        activityType: 'انتهاء الجلسة',
-        userName: 'زائر',
-        details: 'تم إنهاء جلسة التصفح',
+      notificationManager.notifyPageVisit(
+        pageName: arabicPageName,
+        visitorCount: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        userAgent:
+            kIsWeb ? html.window.navigator.userAgent : 'Flutter Mobile App',
+        timestamp: DateTime.now(),
       );
     } catch (e) {
-      debugPrint('Error sending session end notification: $e');
+      debugPrint('Error tracking page change: $e');
     }
   }
 }
