@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/theme/app_colors.dart';
 import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
@@ -13,12 +14,12 @@ import 'package:trustedtallentsvalley/fetures/trusted/widgets/user_table.dart';
 
 class DesktopUsersView extends ConsumerWidget {
   final List<UserModel> filteredUsers;
-  final Color primaryColor;
+  final bool isTrusted;
 
   const DesktopUsersView({
     super.key,
     required this.filteredUsers,
-    required this.primaryColor,
+    required this.isTrusted,
   });
 
   @override
@@ -67,7 +68,7 @@ class DesktopUsersView extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 16),
-            SortButton(primaryColor: primaryColor),
+            SortButton(primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor),
             if (isAdmin) ...[
               const SizedBox(width: 16),
               _buildPredefinedUsersButton(context, ref),
@@ -79,7 +80,7 @@ class DesktopUsersView extends ConsumerWidget {
 
         // Filter chips
         FilterChipsRow(
-          primaryColor: primaryColor,
+          primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
           onLocationFilter: () {},
         ),
 
@@ -108,7 +109,7 @@ class DesktopUsersView extends ConsumerWidget {
             ),
             child: UserTable(
               users: displayedUsers,
-              primaryColor: primaryColor,
+              primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
             ),
           ),
         ),
@@ -119,7 +120,7 @@ class DesktopUsersView extends ConsumerWidget {
             currentPage: currentPage,
             totalPages: totalPages,
             pageSize: pageSize,
-            primaryColor: primaryColor,
+            primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
             totalItems: filteredUsers.length,
           ),
       ],

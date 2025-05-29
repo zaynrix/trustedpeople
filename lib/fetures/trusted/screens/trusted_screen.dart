@@ -62,6 +62,7 @@ class TrustedUsersScreen extends ConsumerWidget {
       backgroundColor: Colors.white,
       drawer: isMobile ? const AppDrawer() : null,
       body: UsersListScreen(
+        isTrusted: true,
         title: "قائمة الموثوقين",
         usersStream: usersStream,
       ),

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/theme/app_colors.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
@@ -16,14 +17,14 @@ import 'package:trustedtallentsvalley/fetures/trusted/widgets/tablet_users_view.
 class UsersListScreen extends ConsumerWidget {
   final String title;
   final AsyncValue<QuerySnapshot> usersStream;
-  final Color primaryColor;
+  final bool isTrusted;
   final Color backgroundColor;
 
   const UsersListScreen({
     super.key,
     required this.title,
     required this.usersStream,
-    this.primaryColor = Colors.green,
+    required this.isTrusted,
     this.backgroundColor = Colors.white,
   });
 
@@ -47,7 +48,7 @@ class UsersListScreen extends ConsumerWidget {
           : _buildMainContent(context, ref, isMobile, isTablet),
       floatingActionButton: isAdmin
           ? FloatingActionButton(
-        backgroundColor: primaryColor,
+        backgroundColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
         onPressed: () => AddUserDialog.show(context, ref),
         child: const Icon(Icons.add),
       )
@@ -117,16 +118,16 @@ class UsersListScreen extends ConsumerWidget {
                             child: isMobile
                                 ? MobileUsersView(
                               filteredUsers: filteredUsers,
-                              primaryColor: primaryColor,
+                              primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
                             )
                                 : isTablet
                                 ? TabletUsersView(
                               filteredUsers: filteredUsers,
-                              primaryColor: primaryColor,
+                              primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
                             )
                                 : DesktopUsersView(
                               filteredUsers: filteredUsers,
-                              primaryColor: primaryColor,
+                              isTrusted: isTrusted,
                             ),
                           ),
 

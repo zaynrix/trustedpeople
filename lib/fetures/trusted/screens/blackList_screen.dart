@@ -64,6 +64,7 @@ class BlackListUsersScreen extends ConsumerWidget {
       backgroundColor: Colors.white,
       drawer: isMobile ? const AppDrawer() : null,
       body: UsersListScreen(
+        isTrusted: false,
         title: "قائمة النصابين",
         usersStream: usersStream,
         // appBarColor: Colors.red,
