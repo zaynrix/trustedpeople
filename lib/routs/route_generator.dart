@@ -9,20 +9,27 @@ import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_screen.dart';
 import 'package:trustedtallentsvalley/fetures/admin/screens/admin_services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/BlockedUsersScreen.dart';
-import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
 import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/screens/protection_guide_screen.dart';
+import 'package:trustedtallentsvalley/fetures/home/screens/admin_dash_status_screen.dart';
 import 'package:trustedtallentsvalley/fetures/main_screen.dart';
 import 'package:trustedtallentsvalley/fetures/maintenance/maintenance_service.dart';
 import 'package:trustedtallentsvalley/fetures/maintenance/screens/maintenance_screen.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/screens/application_status.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_dashboard.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_login.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_register.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/service_detail_screen.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/service_request_screen.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/blackList_screen.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/trusted_screen.dart';
+
+// Import the missing screens that need to be created
+// import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_dashboard.dart';
 
 import '../fetures/admin/screens/admin_service_requests_screen.dart';
 
@@ -65,6 +72,49 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: ScreensNames.homePath,
+    redirect: (context, state) {
+      final isAuthenticated = authState.isAuthenticated;
+      final isAdmin = authState.isAdmin;
+      final isTrustedUser = authState.isTrustedUser ?? false; // Add null safety
+      final isLoading = authState.isLoading;
+
+      // Show loading while checking auth state
+      if (isLoading) return null;
+
+      // Handle admin routes - redirect non-admins trying to access admin areas
+      if (state.uri.toString().startsWith('/secure-admin-') && !isAdmin) {
+        return '/secure-admin-784512/login';
+      }
+
+      // Handle trusted user dashboard - redirect non-trusted users
+      if (state.uri.toString() == '/secure-trusted-895623/trusted-dashboard' &&
+          !isTrustedUser) {
+        return '/secure-trusted-895623/login';
+      }
+
+      // Handle admin user applications route - only admins
+      if (state.uri
+              .toString()
+              .startsWith('/secure-trusted-895623/user-applications') &&
+          !isAdmin) {
+        return '/secure-admin-784512/login';
+      }
+
+      // Redirect authenticated users away from login pages
+      if (isAuthenticated &&
+          isAdmin &&
+          state.uri.toString().contains('/secure-admin-784512/login')) {
+        return '/secure-admin-784512/dashboard';
+      }
+
+      if (isAuthenticated &&
+          isTrustedUser &&
+          state.uri.toString() == '/secure-trusted-895623/login') {
+        return '/secure-trusted-895623/trusted-dashboard';
+      }
+
+      return null; // No redirect needed
+    },
     routes: [
       // Wrap all routes with the AppShell
       ShellRoute(
@@ -73,6 +123,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return AppShell(child: child);
         },
         routes: [
+          // ========== PUBLIC ROUTES ==========
           GoRoute(
             path: ScreensNames.homePath,
             name: ScreensNames.home,
@@ -118,7 +169,23 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: ContactUsScreen(),
             ),
           ),
-          // Add these new routes
+
+          // ========== PUBLIC TRUSTED USER ROUTES ==========
+          // Public registration route
+          GoRoute(
+            path: ScreensNames.registerPath,
+            name: ScreensNames.register,
+            builder: (context, state) => const RegistrationScreen(),
+          ),
+
+          // Public application status check route
+          GoRoute(
+            path: ScreensNames.applicationStatusPath,
+            name: ScreensNames.applicationStatus,
+            builder: (context, state) => const ApplicationStatusScreen(),
+          ),
+
+          // ========== ADMIN ROUTES ==========
           GoRoute(
             path: ScreensNames.loginPath,
             name: ScreensNames.login,
@@ -128,7 +195,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: ScreensNames.blockedUsersPath,
             name: ScreensNames.blockedUsers,
             builder: (context, state) {
-              // Only allow admins to access
               if (authState.isAdmin) {
                 return const MaintenanceGuard(
                   screenName: ScreensNames.blockedUsers,
@@ -140,7 +206,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
 
-          // Service routes
+          // ========== SERVICE ROUTES ==========
           GoRoute(
             path: '/services',
             name: ScreensNames.services,
@@ -153,8 +219,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/service/:serviceId',
             name: ScreensNames.serviceDetail,
             builder: (context, state) {
-              final serviceId = state.pathParameters[
-                  'serviceId']!; // FIXED - parameter name matches path
+              final serviceId = state.pathParameters['serviceId']!;
               return ServiceDetailScreen(serviceId: serviceId);
             },
           ),
@@ -167,7 +232,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
 
-          // Admin routes (no maintenance guard for admin routes)
+          // ========== ADMIN SERVICE ROUTES ==========
           GoRoute(
             path: '/admin/services',
             name: ScreensNames.adminServices,
@@ -196,6 +261,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               }
             },
           ),
+
           GoRoute(
             path: ScreensNames.updatesPath,
             name: ScreensNames.updates,
@@ -204,18 +270,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: AllUpdatesScreen(),
             ),
           ),
-          GoRoute(
-            path: ScreensNames.adminDashboardPath,
-            name: ScreensNames.adminDashboard,
-            builder: (context, state) {
-              // Only allow admins to access admin page - NO maintenance guard for admin dashboard
-              if (authState.isAdmin) {
-                return const AdminDashboard();
-              } else {
-                return const UnauthorizedScreen();
-              }
-            },
-          ),
+
+          // ========== SECURE ADMIN ROUTES ==========
           GoRoute(
             path: '/secure-admin-784512/login',
             name: 'adminLogin',
@@ -228,17 +284,102 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
-            path: '/secure-admin-784512/dashboard', // Obscure path
-            name: 'adminDashboard', // No constant reference in ScreensNames
+            path: '/secure-admin-784512/dashboard',
+            name: 'adminDashboard',
             builder: (context, state) {
-              // Only allow authenticated admins - NO maintenance guard
               if (authState.isAdmin) {
                 return const AdminDashboardScreen();
               } else {
                 return const Scaffold(
-                  body: Center(
-                      child:
-                          Text('Page not found')), // Generic error for security
+                  body: Center(child: Text('Page not found')),
+                );
+              }
+            },
+          ),
+
+          // ========== TRUSTED USER ROUTES ==========
+          // Trusted user login (separate from admin)
+          GoRoute(
+            path: '/secure-trusted-895623/login',
+            name: 'trustedUserLogin',
+            builder: (context, state) {
+              if (kDebugMode) {
+                print(
+                    "🔐 Trusted user login route matched! Path: ${state.uri.toString()}");
+              }
+              return const TrustedUserLoginScreen();
+            },
+          ),
+
+          // Trusted user registration
+          GoRoute(
+            path: '/secure-trusted-895623/register',
+            name: 'trustedUserRegister',
+            builder: (context, state) {
+              if (kDebugMode) {
+                print(
+                    "🔐 Trusted user register route matched! Path: ${state.uri.toString()}");
+              }
+              return const RegistrationScreen();
+            },
+          ),
+
+          // Trusted user dashboard (protected - only for approved trusted users)
+          GoRoute(
+            path: '/secure-trusted-895623/trusted-dashboard',
+            name: 'trustedUserDashboard',
+            builder: (context, state) {
+              if (authState.isAuthenticated &&
+                  (authState.isTrustedUser ?? false)) {
+                return const TrustedUserDashboard(); //
+                //   // TODO: Create TrustedUserDashboard screen
+                // Check if user is authenticated trusted user (not admin)
+                //   // return Scaffold(
+                //   //   appBar: AppBar(title: Text('Trusted User Dashboard')),
+                //   //   body: const Center(
+                //   //     child: Column(
+                //   //       mainAxisAlignment: MainAxisAlignment.center,
+                //   //       children: [
+                //   //         Text('Welcome to Trusted User Dashboard'),
+                //   //         Text('This screen needs to be created'),
+                //   //       ],
+                //   //     ),
+                //   //   ),
+                //   // );
+                //  Uncomment when screen is created
+              } else {
+                return const Scaffold(
+                  body: Center(child: Text('غير مصرح')),
+                );
+              }
+            },
+          ),
+
+          // Admin dashboard for managing applications (different from trusted user dashboard)
+          GoRoute(
+            path: '/secure-trusted-895623/dashboard',
+            name: 'mouthoqDashboard',
+            builder: (context, state) {
+              if (authState.isAdmin) {
+                return const ApplicationStatusScreen(); // Your existing admin screen
+              } else {
+                return const Scaffold(
+                  body: Center(child: Text('Page not found')),
+                );
+              }
+            },
+          ),
+
+          // ========== ADMIN USER APPLICATIONS MANAGEMENT ==========
+          GoRoute(
+            path: '/secure-trusted-895623/user-applications',
+            name: ScreensNames.adminUserApplications,
+            builder: (context, state) {
+              if (authState.isAdmin) {
+                return AdminDashboardStatusScreen(); // Your existing admin screen
+              } else {
+                return const Scaffold(
+                  body: Center(child: Text('Page not found')),
                 );
               }
             },
@@ -273,15 +414,21 @@ class ScreensNames {
   static const String instruction = 'instruction';
   static const String contactUs = 'contactUs';
   static const String ort = 'ort';
-  static const String login = 'login'; // Add this
-  static const String admin = 'admin'; // Add this
-  static const String adminDashboard = 'admin_dashboard'; // Add this
+  static const String login = 'login';
+  static const String admin = 'admin';
+  static const String adminDashboard = 'admin_dashboard';
   static const String blockedUsers = 'blockedUsers';
   static const String updates = 'updates';
-  static const String homePath = '/';
-  // paths (must start with "/")
 
-  // Add service routes
+  // Trusted user route names
+  static const String register = 'register';
+  static const String applicationStatus = 'application_status';
+  static const String adminUserApplications = 'admin_user_applications';
+  static const String trustedUserLogin = 'trusted_user_login';
+  static const String trustedUserRegister = 'trusted_user_register';
+  static const String trustedUserDashboard = 'trusted_user_dashboard';
+
+  // Service routes
   static const String services = 'services';
   static const String serviceDetail = 'service_detail';
   static const String serviceRequest = 'service_request';
@@ -289,6 +436,9 @@ class ScreensNames {
   // Admin routes
   static const String adminServices = 'admin_services';
   static const String adminServiceRequests = 'admin_service_requests';
+
+  // paths (must start with "/")
+  static const String homePath = '/';
   static const String updatesPath = '/updates';
   static const String blockedUsersPath = '/blocked-users';
   static const String trustedPath = '/trusted';
@@ -296,7 +446,16 @@ class ScreensNames {
   static const String instructionPath = '/instruction';
   static const String contactUsPath = '/contact-us';
   static const String ortPath = '/bank-payment-locations';
-  static const String loginPath = '/login'; // Add this
-  static const String adminPath = '/admin'; // Add this
-  static const String adminDashboardPath = '/admin_dashboard'; // Add this
+  static const String loginPath = '/login';
+  static const String adminPath = '/admin';
+  static const String adminDashboardPath = '/admin_dashboard';
+
+  // Trusted user paths
+  static const String registerPath = '/register';
+  static const String applicationStatusPath = '/application-status';
+  static const String trustedUserLoginPath = '/secure-trusted-895623/login';
+  static const String trustedUserRegisterPath =
+      '/secure-trusted-895623/register';
+  static const String trustedUserDashboardPath =
+      '/secure-trusted-895623/trusted-dashboard';
 }

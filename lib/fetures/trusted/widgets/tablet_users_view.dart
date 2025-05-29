@@ -90,28 +90,31 @@ class TabletUsersView extends ConsumerWidget {
         Expanded(
           child: displayedUsers.isEmpty
               ? TrustedEmptyStateWidget(
-            isFiltered: filteredUsers.isEmpty,
-            searchQuery: searchQuery,
-            filterMode: filterMode,
-          )
+                  isFiltered: filteredUsers.isEmpty,
+                  searchQuery: searchQuery,
+                  filterMode: filterMode,
+                )
               : GridView.builder(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 400,
-              childAspectRatio: 1.2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: displayedUsers.length,
-            itemBuilder: (context, index) {
-              final user = displayedUsers[index];
-              return UserCard(
-                user: user,
-                visiblePhoneNumberId: visiblePhoneNumberId,
-                onTogglePhoneNumber: (userId) => _togglePhoneNumberVisibility(ref, userId),
-                onTap: () => ref.read(homeProvider.notifier).visibleBar(selected: user),
-              );
-            },
-          ),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 400,
+                    childAspectRatio: 1.2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: displayedUsers.length,
+                  itemBuilder: (context, index) {
+                    final user = displayedUsers[index];
+                    return UserCard(
+                      user: user,
+                      visiblePhoneNumberId: visiblePhoneNumberId,
+                      onTogglePhoneNumber: (userId) =>
+                          _togglePhoneNumberVisibility(ref, userId),
+                      onTap: () => ref
+                          .read(homeProvider.notifier)
+                          .visibleBar(selected: user),
+                    );
+                  },
+                ),
         ),
 
         // Pagination
@@ -141,22 +144,21 @@ class TabletUsersView extends ConsumerWidget {
 
     return ElevatedButton.icon(
       onPressed: () async {
-        final success = await homeNotifier.batchAddPredefinedUsers(ref: ref);
-        if (success) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('تم إضافة جميع المستخدمين بنجاح!',
-                    style: GoogleFonts.cairo()),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        }
+        // final success = await homeNotifier.batchAddPredefinedUsers(ref: ref);
+        // if (success) {
+        //   if (context.mounted) {
+        //     ScaffoldMessenger.of(context).showSnackBar(
+        //       SnackBar(
+        //         content: Text('تم إضافة جميع المستخدمين بنجاح!',
+        //             style: GoogleFonts.cairo()),
+        //         backgroundColor: Colors.green,
+        //       ),
+        //     );
+        //   }
+        // }
       },
       icon: const Icon(Icons.group_add),
-      label: Text('إضافة المستخدمين الافتراضيين',
-          style: GoogleFonts.cairo()),
+      label: Text('إضافة المستخدمين الافتراضيين', style: GoogleFonts.cairo()),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,

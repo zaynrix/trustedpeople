@@ -1,0 +1,916 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+
+class TrustedUserLoginScreen extends ConsumerStatefulWidget {
+  const TrustedUserLoginScreen({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<TrustedUserLoginScreen> createState() =>
+      _TrustedUserLoginScreenState();
+}
+
+class _TrustedUserLoginScreenState
+    extends ConsumerState<TrustedUserLoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        print(
+            '🔐 Starting trusted user login for: ${_emailController.text.trim()}');
+
+        final authNotifier = ref.read(authProvider.notifier);
+
+        // Use the new signInTrustedUser method instead of signIn
+        await authNotifier.signInTrustedUser(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+
+        print('🔐 signInTrustedUser completed, checking auth state...');
+
+        // Check if login was successful
+        final authState = ref.read(authProvider);
+
+        print('🔐 Auth State:');
+        print('  - isAuthenticated: ${authState.isAuthenticated}');
+        print('  - isAdmin: ${authState.isAdmin}');
+        print('  - isTrustedUser: ${authState.isTrustedUser}');
+        print('  - user: ${authState.user?.email}');
+
+        if (authState.isAuthenticated && authState.isTrustedUser) {
+          print('🔐 Login successful! Navigating to trusted dashboard...');
+          if (mounted) {
+            // Navigate to trusted user dashboard
+            context.go('/secure-trusted-895623/trusted-dashboard');
+          }
+        } else if (authState.isAuthenticated && authState.isAdmin) {
+          // Handle case where admin tries to login via trusted user login
+          setState(() {
+            _errorMessage = 'هذا حساب إداري، يرجى استخدام تسجيل دخول الإدارة';
+            _isLoading = false;
+          });
+          print('🔐 Admin tried to login via trusted user login');
+        } else {
+          setState(() {
+            _errorMessage = 'فشل تسجيل الدخول، يرجى التحقق من بياناتك';
+            _isLoading = false;
+          });
+          print('🔐 Login failed - user not authenticated or not trusted user');
+        }
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'حدث خطأ أثناء تسجيل الدخول: ${e.toString()}';
+          _isLoading = false;
+        });
+        print('🔐 Login error: $e');
+      }
+    } else {
+      print('🔐 Form validation failed');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 768;
+    final isTablet = size.width >= 768 && size.width < 1024;
+    final isDesktop = size.width >= 1024;
+
+    return Scaffold(
+      appBar: _buildAppBar(context, isMobile),
+      body: isMobile
+          ? _buildMobileLayout(context)
+          : _buildWebLayout(context, isDesktop),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, bool isMobile) {
+    if (isMobile) {
+      return AppBar(
+        title: Text(
+          'تسجيل دخول الموثوق',
+          style: GoogleFonts.cairo(
+            color: Colors.white,
+            fontSize: 18,
+          ),
+        ),
+        backgroundColor: Colors.blue.shade800,
+        elevation: 0,
+        centerTitle: true,
+      );
+    } else {
+      return AppBar(
+        backgroundColor: Colors.blue.shade900,
+        elevation: 0,
+        toolbarHeight: 40,
+        automaticallyImplyLeading: false,
+      );
+    }
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              _buildMobileHeader(),
+              const SizedBox(height: 40),
+              _buildMobileForm(),
+              const SizedBox(height: 32),
+              _buildNavigationLinks(),
+              if (kDebugMode) ...[
+                const SizedBox(height: 20),
+                _buildDebugSection(),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebLayout(BuildContext context, bool isDesktop) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.shade900,
+            Colors.blue.shade800,
+            Colors.blue.shade700,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: isDesktop ? 450 : 400,
+            maxHeight: isDesktop ? 650 : 600,
+          ),
+          child: Card(
+            elevation: isDesktop ? 20 : 15,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(isDesktop ? 16 : 12),
+            ),
+            child: Container(
+              padding: EdgeInsets.all(isDesktop ? 48 : 40),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isDesktop ? 16 : 12),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // _buildWebHeader(isDesktop),
+                    SizedBox(height: isDesktop ? 40 : 32),
+                    _buildWebForm(isDesktop),
+                    const SizedBox(height: 20),
+                    _buildNavigationLinks(),
+                    if (kDebugMode) ...[
+                      const SizedBox(height: 20),
+                      _buildDebugSection(),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade100,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.blue.shade300,
+              width: 2,
+            ),
+          ),
+          child: Icon(
+            Icons.verified_user,
+            size: 48,
+            color: Colors.blue.shade700,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'تسجيل دخول الموثوق',
+          style: GoogleFonts.cairo(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue.shade800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'أدخل بيانات اعتمادك للوصول إلى حسابك',
+          style: GoogleFonts.cairo(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWebHeader(bool isDesktop) {
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.all(isDesktop ? 16 : 12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.verified_user,
+            size: isDesktop ? 40 : 32,
+            color: Colors.blue.shade700,
+          ),
+        ),
+        SizedBox(height: isDesktop ? 24 : 20),
+        Text(
+          'Trusted User Login',
+          style: GoogleFonts.cairo(
+            fontSize: isDesktop ? 28 : 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue.shade800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'المستخدمين الموثوقين فقط',
+          style: GoogleFonts.cairo(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileForm() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: _buildFormContent(true),
+    );
+  }
+
+  Widget _buildWebForm(bool isDesktop) {
+    return _buildFormContent(false);
+  }
+
+  Widget _buildFormContent(bool isMobile) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildEmailField(isMobile),
+          const SizedBox(height: 20),
+          _buildPasswordField(isMobile),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 16),
+            _buildErrorMessage(isMobile),
+          ],
+          const SizedBox(height: 24),
+          _buildLoginButton(isMobile),
+          const SizedBox(height: 16),
+          _buildSecurityNotice(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmailField(bool isMobile) {
+    return TextFormField(
+      controller: _emailController,
+      decoration: InputDecoration(
+        labelText: 'البريد الإلكتروني',
+        labelStyle: GoogleFonts.cairo(),
+        hintText: 'trusted@example.com',
+        prefixIcon: Icon(
+          Icons.email_outlined,
+          color: Colors.blue.shade600,
+          size: isMobile ? 20 : 22,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: isMobile ? 16 : 18,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      style: GoogleFonts.cairo(),
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'الرجاء إدخال البريد الإلكتروني';
+        }
+        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+          return 'البريد الإلكتروني غير صحيح';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPasswordField(bool isMobile) {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      decoration: InputDecoration(
+        labelText: 'كلمة المرور',
+        labelStyle: GoogleFonts.cairo(),
+        hintText: '••••••••',
+        prefixIcon: Icon(
+          Icons.lock_outlined,
+          color: Colors.blue.shade600,
+          size: isMobile ? 20 : 22,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: Colors.blue.shade600,
+            size: isMobile ? 20 : 22,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: isMobile ? 16 : 18,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      style: GoogleFonts.cairo(),
+      autocorrect: false,
+      enableSuggestions: false,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'الرجاء إدخال كلمة المرور';
+        }
+        if (value.length < 6) {
+          return 'كلمة المرور قصيرة جداً';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildErrorMessage(bool isMobile) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: Colors.red.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: GoogleFonts.cairo(
+                color: Colors.red.shade800,
+                fontSize: isMobile ? 14 : 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginButton(bool isMobile) {
+    return ElevatedButton(
+      onPressed: _isLoading ? null : _login,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue.shade800,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: Colors.grey.shade400,
+        padding: EdgeInsets.symmetric(
+          vertical: isMobile ? 16 : 18,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        elevation: 2,
+      ),
+      child: _isLoading
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'جارٍ تسجيل الدخول...',
+                  style: GoogleFonts.cairo(
+                    fontSize: isMobile ? 16 : 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.login,
+                  size: isMobile ? 20 : 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'تسجيل الدخول',
+                  style: GoogleFonts.cairo(
+                    fontSize: isMobile ? 16 : 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildSecurityNotice() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.verified_user,
+            color: Colors.blue.shade700,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'الوصول للمستخدمين الموثوقين فقط',
+              style: GoogleFonts.cairo(
+                color: Colors.blue.shade800,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Enhanced debug section for your trusted user login screen
+  Widget _buildDebugSection() {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        const Divider(),
+        const SizedBox(height: 10),
+        Text(
+          'Debug Section - Trusted User Login Testing',
+          style: GoogleFonts.cairo(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 15),
+
+        // Step 1: Check what exists
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'الخطوة 1: فحص النظام',
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _listAllUsers(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'عرض جميع المستخدمين',
+                        style: GoogleFonts.cairo(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _checkCurrentEmail(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'فحص البريد المدخل',
+                        style: GoogleFonts.cairo(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Step 2: Create test users
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'الخطوة 2: إنشاء مستخدمين تجريبيين',
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => _createCompleteTrustedUser(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(
+                  'إنشاء مستخدم موثوق كامل (trusteduser@example.com)',
+                  style: GoogleFonts.cairo(fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Step 3: Test login
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'الخطوة 3: اختبار تسجيل الدخول',
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _testTrustedUserLogin(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'تسجيل دخول تجريبي',
+                        style: GoogleFonts.cairo(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _testCurrentCredentials(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepOrange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'اختبار البيانات المدخلة',
+                        style: GoogleFonts.cairo(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+// Add these debug methods to your trusted user login screen class
+  Future<void> _listAllUsers() async {
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      await authNotifier.debugListAllUsers();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم عرض جميع المستخدمين - راجع وحدة التحكم',
+                style: GoogleFonts.cairo()),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error listing users: $e');
+    }
+  }
+
+  Future<void> _checkCurrentEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('أدخل بريد إلكتروني أولاً', style: GoogleFonts.cairo()),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      final results = await authNotifier.checkEmailEverywhere(email);
+
+      String message = 'فحص $email:\n';
+      message +=
+          'Firebase Auth: ${results['firebase_auth'] == true ? '✅' : '❌'}\n';
+      message +=
+          'مجموعة الإدارة: ${results['admins_collection'] == true ? '✅' : '❌'}\n';
+      message +=
+          'مجموعة المستخدمين: ${results['users_collection'] == true ? '✅' : '❌'}\n';
+      message +=
+          'طلبات التسجيل: ${results['user_applications'] == true ? '✅' : '❌'}';
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('نتائج الفحص', style: GoogleFonts.cairo()),
+            content: Text(message, style: GoogleFonts.cairo()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('حسناً', style: GoogleFonts.cairo()),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error checking email: $e');
+    }
+  }
+
+  Future<void> _createCompleteTrustedUser() async {
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      await authNotifier.createCompleteTrustedUser();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم إنشاء مستخدم موثوق كامل!\nالبريد: trusteduser@example.com\nكلمة المرور: 123456',
+              style: GoogleFonts.cairo(),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error creating trusted user: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('خطأ في إنشاء المستخدم: $e', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _testTrustedUserLogin() async {
+    _emailController.text = 'trusteduser@example.com';
+    _passwordController.text = '123456';
+
+    // Test the credentials first
+    await _testCurrentCredentials();
+
+    // Small delay then try login
+    await Future.delayed(const Duration(milliseconds: 1000));
+    await _login();
+  }
+
+  Future<void> _testCurrentCredentials() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('أدخل البريد الإلكتروني وكلمة المرور أولاً',
+              style: GoogleFonts.cairo()),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      await authNotifier.testLoginWithCredentials(email, password);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم اختبار البيانات بنجاح - راجع وحدة التحكم',
+                style: GoogleFonts.cairo()),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error testing credentials: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('خطأ في اختبار البيانات: $e', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildNavigationLinks() {
+    return Column(
+      children: [
+        // Register link
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'لا تملك حساب؟ ',
+              style: GoogleFonts.cairo(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.go('/trusted-register'),
+              child: Text(
+                'سجل الآن',
+                style: GoogleFonts.cairo(
+                  color: Colors.blue.shade700,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // Status check link
+        TextButton(
+          onPressed: () => context.go('/application-status'),
+          child: Text(
+            'تحقق من حالة طلبك',
+            style: GoogleFonts.cairo(
+              color: Colors.blue.shade600,
+              fontSize: 14,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

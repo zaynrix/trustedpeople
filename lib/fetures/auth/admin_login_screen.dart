@@ -149,7 +149,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         child: Container(
           constraints: BoxConstraints(
             maxWidth: isDesktop ? 450 : 400,
-            maxHeight: isDesktop ? 600 : 550,
+            maxHeight: isDesktop ? 700 : 600,
           ),
           child: Card(
             elevation: isDesktop ? 20 : 15,

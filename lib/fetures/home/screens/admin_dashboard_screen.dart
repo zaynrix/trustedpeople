@@ -10,6 +10,7 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/visitor_cha
 import 'package:trustedtallentsvalley/fetures/Home/widgets/cards/admin_action_card.dart';
 import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/maintenance/widgets/maintenance_management_widget.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/widgets/status_section_widget.dart';
 import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analytics_provider.dart';
 import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
@@ -53,6 +54,8 @@ class AdminDashboardWidget extends ConsumerWidget {
             const SizedBox(height: 20),
             _buildMobileNotificationsCard(context, ref),
             const SizedBox(height: 20),
+            // const UserApplicationsNavigationSection(),
+            const SizedBox(height: 20),
             _buildMaintenanceCard(),
             const SizedBox(height: 20),
             _buildMobileAnalyticsCard(ref),
@@ -86,7 +89,7 @@ class AdminDashboardWidget extends ConsumerWidget {
               // Notification status row
               _buildNotificationStatusCard(ref),
               const SizedBox(height: 32),
-
+              SimpleUserApplicationsCard(),
               // First row: Quick stats and notifications
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -676,7 +679,7 @@ class AdminDashboardWidget extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
+        const Row(
           children: [
             Expanded(
               child: AdminActionCard(
@@ -687,7 +690,7 @@ class AdminDashboardWidget extends ConsumerWidget {
                 routeName: ScreensNames.trusted,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: AdminActionCard(
                 title: 'إدارة النصابين',
@@ -1471,6 +1474,7 @@ class AdminDashboardWidget extends ConsumerWidget {
   Widget _buildWebManagementGrid(BuildContext context, bool isDesktop) {
     return Column(
       children: [
+        // const UserApplicationsNavigationSection(),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1503,7 +1507,7 @@ class AdminDashboardWidget extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
+        const Row(
           children: [
             Expanded(
               child: AdminActionCard(
@@ -1514,7 +1518,7 @@ class AdminDashboardWidget extends ConsumerWidget {
                 routeName: ScreensNames.trusted,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: AdminActionCard(
                 title: 'النصابين',
@@ -1694,6 +1698,7 @@ class AdminDashboardWidget extends ConsumerWidget {
             );
           },
         ),
+        const SizedBox(height: 16),
       ],
     );
   }
