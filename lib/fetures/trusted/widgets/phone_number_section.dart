@@ -65,7 +65,7 @@ class PhoneNumberSection extends ConsumerWidget {
 
     return ElevatedButton.icon(
       onPressed: () => _togglePhoneNumberVisibility(ref, user.id),
-      icon: const Icon(Icons.visibility, size: 16),
+      icon: const Icon(Icons.visibility, size: 16, color: Colors.white,),
       label: Text('اظهر رقم الجوال', style: GoogleFonts.cairo(fontSize: 12)),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.green.shade600,

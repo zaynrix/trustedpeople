@@ -42,41 +42,6 @@ class UsersListScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        automaticallyImplyLeading: isMobile,
-        title: Text(
-          title,
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        elevation: 0,
-        actions: [
-          if (!isMobile && isAdmin)
-            IconButton(
-              icon: const Icon(Icons.download_rounded),
-              onPressed: () => ExportDialog.show(context, ref, primaryColor),
-              tooltip: 'تصدير البيانات',
-            ),
-          IconButton(
-            icon: const Icon(Icons.help_outline_rounded),
-            onPressed: () => HelpDialog.show(context),
-            tooltip: 'المساعدة',
-          ),
-          const SizedBox(width: 8),
-        ],
-        shape: isMobile
-            ? null
-            : const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          ),
-        ),
-      ),
-      drawer: isMobile ? const AppDrawer() : null,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildMainContent(context, ref, isMobile, isTablet),

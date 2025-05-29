@@ -44,15 +44,8 @@ class UserTable extends ConsumerWidget {
               final isPhoneVisible = visiblePhoneNumberId == user.id;
               final isSelected = user.id == selectedUser?.id;
 
-              return _buildTableRow(
-                  context,
-                  ref,
-                  user,
-                  isPhoneVisible,
-                  isSelected,
-                  index,
-                  isAdmin
-              );
+              return _buildTableRow(context, ref, user, isPhoneVisible,
+                  isSelected, index, isAdmin);
             },
           ),
         ),
@@ -75,54 +68,70 @@ class UserTable extends ConsumerWidget {
         children: [
           Expanded(
               flex: 2,
-              child: Text('الاسم والحالة',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              child: Center(
+                child: Text('الاسم والحالة',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              )),
           Expanded(
               flex: 2,
-              child: Text('رقم الجوال',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              child: Center(
+                child: Text('رقم الجوال',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              )),
           Expanded(
               flex: 2,
-              child: Text('الموقع',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              child: Center(
+                child: Text('الموقع',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              )),
           Expanded(
               flex: 1,
-              child: Text('التقييمات',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              child: Center(
+                child: Text('التقييمات',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              )),
           Expanded(
               flex: 1,
-              child: Text('تيليجرام',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              child: Center(
+                child: Text('تيليجرام',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              )),
           if (isAdmin) ...[
             Expanded(
                 flex: 1,
-                child: Text('تم بواسطة',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+                child: Center(
+                  child: Text('تم بواسطة',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                )),
             Expanded(
                 flex: 1,
-                child: Text('إجراءات',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center)),
+                child: Center(
+                  child: Text('إجراءات',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center),
+                )),
           ] else
             Expanded(
                 flex: 1,
-                child: Text('تفاصيل',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center)),
+                child: Center(
+                  child: Text('تفاصيل',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center),
+                )),
         ],
       ),
     );
   }
 
   Widget _buildTableRow(
-      BuildContext context,
-      WidgetRef ref,
-      UserModel user,
-      bool isPhoneVisible,
-      bool isSelected,
-      int index,
-      bool isAdmin,
-      ) {
+    BuildContext context,
+    WidgetRef ref,
+    UserModel user,
+    bool isPhoneVisible,
+    bool isSelected,
+    int index,
+    bool isAdmin,
+  ) {
     final homeNotifier = ref.read(homeProvider.notifier);
 
     return Container(
@@ -131,16 +140,16 @@ class UserTable extends ConsumerWidget {
         color: isSelected
             ? primaryColor.withOpacity(0.08)
             : user.role == 0
-            ? Colors.purple.shade50
-            : index % 2 == 0
-            ? Colors.white
-            : Colors.grey.shade50,
+                ? Colors.purple.shade50
+                : index % 2 == 0
+                    ? Colors.white
+                    : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8),
         border: user.role == 0
             ? Border.all(color: Colors.purple.shade200, width: 1)
             : isSelected
-            ? Border.all(color: primaryColor.withOpacity(0.3), width: 1)
-            : null,
+                ? Border.all(color: primaryColor.withOpacity(0.3), width: 1)
+                : null,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
@@ -153,7 +162,7 @@ class UserTable extends ConsumerWidget {
               Expanded(
                 flex: 2,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
                       user.aliasName,
@@ -163,8 +172,8 @@ class UserTable extends ConsumerWidget {
                         color: isSelected
                             ? primaryColor
                             : user.role == 0
-                            ? Colors.purple.shade700
-                            : Colors.black87,
+                                ? Colors.purple.shade700
+                                : Colors.black87,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -177,75 +186,68 @@ class UserTable extends ConsumerWidget {
               // Phone Number
               Expanded(
                 flex: 2,
-                child: PhoneNumberSection(
-                  user: user,
-                  isPhoneVisible: isPhoneVisible,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 70),
+                  child: PhoneNumberSection(
+                    user: user,
+                    isPhoneVisible: isPhoneVisible,
+                  ),
                 ),
               ),
 
               // Location
               Expanded(
                 flex: 2,
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on,
-                        size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        user.location.isEmpty
-                            ? 'غير محدد'
-                            : user.location,
-                        style: GoogleFonts.cairo(),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                child: Center(
+                  child: Text(
+                    user.location.isEmpty ? 'غير محدد' : "🌍${user.location}",
+                    style: GoogleFonts.cairo(),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
 
               // Reviews
               Expanded(
                 flex: 1,
-                child: user.reviews.isNotEmpty
-                    ? Row(
-                  children: [
-                    const Icon(Icons.star,
-                        size: 16, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(user.reviews,
-                          style: GoogleFonts.cairo(),
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                )
-                    : Text('لا يوجد',
-                    style: GoogleFonts.cairo(
-                        color: Colors.grey.shade500,
-                        fontSize: 12)),
+                child: Center(
+                  child: user.reviews.isNotEmpty
+                      ? Row(
+                          children: [
+                            const Icon(Icons.star,
+                                size: 16, color: Colors.amber),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(user.reviews,
+                                  style: GoogleFonts.cairo(),
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        )
+                      : Text('لا يوجد',
+                          style: GoogleFonts.cairo(
+                              color: Colors.grey.shade500, fontSize: 12)),
+                ),
               ),
 
               // Telegram
               Expanded(
                 flex: 1,
-                child: user.telegramAccount.isNotEmpty
+                child: Center(child:  user.telegramAccount.isNotEmpty
                     ? Row(
-                  children: [
-                    const Icon(Icons.telegram,
-                        size: 16, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    Text('متوفر',
-                        style: GoogleFonts.cairo(
-                            color: Colors.blue.shade600,
-                            fontSize: 12)),
-                  ],
-                )
+                        children: [
+                          const Icon(Icons.telegram,
+                              size: 16, color: Colors.blue),
+                          const SizedBox(width: 4),
+                          Text('متوفر',
+                              style: GoogleFonts.cairo(
+                                  color: Colors.blue.shade600, fontSize: 12)),
+                        ],
+                      )
                     : Text('غير متوفر',
-                    style: GoogleFonts.cairo(
-                        color: Colors.grey.shade500,
-                        fontSize: 12)),
-              ),
+                        style: GoogleFonts.cairo(
+                            color: Colors.grey.shade500, fontSize: 12)),
+              ),),
 
               // Admin columns or actions
               if (isAdmin) ...[
@@ -265,7 +267,8 @@ class UserTable extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        onPressed: () => homeNotifier.visibleBar(selected: user),
+                        onPressed: () =>
+                            homeNotifier.visibleBar(selected: user),
                         icon: const Icon(Icons.visibility, size: 16),
                         tooltip: 'عرض التفاصيل',
                         style: IconButton.styleFrom(
@@ -276,7 +279,8 @@ class UserTable extends ConsumerWidget {
                       ),
                       const SizedBox(width: 4),
                       IconButton(
-                        onPressed: () => EditUserDialog.show(context, ref, user),
+                        onPressed: () =>
+                            EditUserDialog.show(context, ref, user),
                         icon: const Icon(Icons.edit, size: 16),
                         tooltip: 'تعديل',
                         style: IconButton.styleFrom(
@@ -287,7 +291,8 @@ class UserTable extends ConsumerWidget {
                       ),
                       const SizedBox(width: 4),
                       IconButton(
-                        onPressed: () => DeleteUserDialog.show(context, ref, user),
+                        onPressed: () =>
+                            DeleteUserDialog.show(context, ref, user),
                         icon: const Icon(Icons.delete, size: 16),
                         tooltip: 'حذف',
                         style: IconButton.styleFrom(
@@ -306,7 +311,8 @@ class UserTable extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        onPressed: () => homeNotifier.visibleBar(selected: user),
+                        onPressed: () =>
+                            homeNotifier.visibleBar(selected: user),
                         icon: const Icon(Icons.visibility, size: 18),
                         tooltip: 'عرض التفاصيل',
                         style: IconButton.styleFrom(
