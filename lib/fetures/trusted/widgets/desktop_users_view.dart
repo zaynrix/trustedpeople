@@ -68,7 +68,10 @@ class DesktopUsersView extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 16),
-            SortButton(primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor),
+            SortButton(
+                primaryColor: isTrusted
+                    ? AppColors.trustedColor
+                    : AppColors.unTrustedColor),
             if (isAdmin) ...[
               const SizedBox(width: 16),
               _buildPredefinedUsersButton(context, ref),
@@ -80,7 +83,8 @@ class DesktopUsersView extends ConsumerWidget {
 
         // Filter chips
         FilterChipsRow(
-          primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
+          primaryColor:
+              isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
           onLocationFilter: () {},
         ),
 
@@ -90,28 +94,30 @@ class DesktopUsersView extends ConsumerWidget {
         Expanded(
           child: displayedUsers.isEmpty
               ? TrustedEmptyStateWidget(
-            isFiltered: filteredUsers.isEmpty,
-            searchQuery: searchQuery,
-            filterMode: filterMode,
-          )
+                  isFiltered: filteredUsers.isEmpty,
+                  searchQuery: searchQuery,
+                  filterMode: filterMode,
+                )
               : Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: UserTable(
+                    users: displayedUsers,
+                    primaryColor: isTrusted
+                        ? AppColors.trustedColor
+                        : AppColors.unTrustedColor,
+                  ),
                 ),
-              ],
-            ),
-            child: UserTable(
-              users: displayedUsers,
-              primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
-            ),
-          ),
         ),
 
         // Pagination
@@ -120,7 +126,8 @@ class DesktopUsersView extends ConsumerWidget {
             currentPage: currentPage,
             totalPages: totalPages,
             pageSize: pageSize,
-            primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
+            primaryColor:
+                isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
             totalItems: filteredUsers.length,
           ),
       ],
@@ -132,22 +139,21 @@ class DesktopUsersView extends ConsumerWidget {
 
     return ElevatedButton.icon(
       onPressed: () async {
-        final success = await homeNotifier.batchAddPredefinedUsers(ref: ref);
-        if (success) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('تم إضافة جميع المستخدمين بنجاح!',
-                    style: GoogleFonts.cairo()),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        }
+        // final success = await homeNotifier.batchAddPredefinedUsers(ref: ref);
+        // if (success) {
+        //   if (context.mounted) {
+        //     ScaffoldMessenger.of(context).showSnackBar(
+        //       SnackBar(
+        //         content: Text('تم إضافة جميع المستخدمين بنجاح!',
+        //             style: GoogleFonts.cairo()),
+        //         backgroundColor: Colors.green,
+        //       ),
+        //     );
+        //   }
+        // }
       },
       icon: const Icon(Icons.group_add),
-      label: Text('إضافة المستخدمين الافتراضيين',
-          style: GoogleFonts.cairo()),
+      label: Text('إضافة المستخدمين الافتراضيين', style: GoogleFonts.cairo()),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
