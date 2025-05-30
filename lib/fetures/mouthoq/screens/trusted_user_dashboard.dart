@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,36 +26,70 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
   }
 
   Future<void> _loadUserData() async {
-    debugPrint("This start load");
+    print("🏠 Dashboard: Starting to load user data");
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final authNotifier = ref.read(authProvider.notifier);
       final authState = ref.read(authProvider);
 
-      if (authState.user != null) {
-        // Get user data
+      print("🏠 Dashboard: Auth state:");
+      print("  - isAuthenticated: ${authState.isAuthenticated}");
+      print("  - isApproved: ${authState.isApproved}");
+      print("  - isTrustedUser: ${authState.isTrustedUser}");
+      print("  - user: ${authState.user?.email}");
+      print("  - userEmail: ${authState.userEmail}");
+      print("  - userData available: ${authState.userData != null}");
+      print(
+          "  - applicationData available: ${authState.applicationData != null}");
+
+      if (authState.isApproved && authState.user != null) {
+        print("🏠 Dashboard: Loading data for APPROVED user");
+        // Approved user - get Firebase user data
+        final authNotifier = ref.read(authProvider.notifier);
         _userData = await authNotifier.getCurrentUserData();
 
-        // Get application data if available
+        print("🏠 Dashboard: Got user data: ${_userData != null}");
+
         if (_userData != null && _userData!['email'] != null) {
           try {
             _applicationData =
                 await authNotifier.getApplicationStatus(_userData!['email']);
+            print(
+                "🏠 Dashboard: Got application data: ${_applicationData != null}");
           } catch (e) {
-            // Application data might not exist for some users
-            print('No application data found: $e');
+            print('🏠 Dashboard: No application data found: $e');
           }
         }
+      } else if (!authState.isApproved && authState.applicationData != null) {
+        print("🏠 Dashboard: Loading data for PENDING user");
+        // Pending user - use application data
+        _applicationData = authState.applicationData;
+        _userData =
+            authState.userData; // This should now be set from the signin method
+
+        print("🏠 Dashboard: Pending user data:");
+        print("  - userData: ${_userData != null}");
+        print("  - applicationData: ${_applicationData != null}");
+        print("  - user name: ${_userData?['fullName']}");
+      } else {
+        print("🏠 Dashboard: No valid auth state found");
+        setState(() {
+          _errorMessage = 'لم يتم العثور على بيانات المستخدم';
+          _isLoading = false;
+        });
+        return;
       }
 
       setState(() {
         _isLoading = false;
       });
+
+      print("🏠 Dashboard: Data loading completed successfully");
     } catch (e) {
+      print("🏠 Dashboard: Error loading user data: $e");
       setState(() {
         _errorMessage = 'خطأ في تحميل البيانات: ${e.toString()}';
         _isLoading = false;
@@ -118,7 +153,8 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
+    final authState = ref.watch(authProvider);
+    final isApproved = authState.isApproved;
 
     return Scaffold(
       appBar: AppBar(
@@ -126,7 +162,8 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
           'لوحة تحكم الموثوق',
           style: GoogleFonts.cairo(color: Colors.white, fontSize: 18),
         ),
-        backgroundColor: Colors.blue.shade800,
+        backgroundColor:
+            isApproved ? Colors.blue.shade800 : Colors.orange.shade800,
         elevation: 0,
         centerTitle: true,
         actions: [
@@ -152,15 +189,17 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildWelcomeSection(),
+                        // Show status banner for pending users
+                        if (!isApproved) _buildPendingStatusBanner(),
+                        _buildWelcomeSection(isApproved),
                         const SizedBox(height: 20),
                         if (_applicationData != null) ...[
                           _buildApplicationStatusCard(),
                           const SizedBox(height: 20),
                         ],
-                        _buildUserInfoCard(),
+                        _buildUserInfoCard(isApproved),
                         const SizedBox(height: 20),
-                        _buildQuickActionsCard(),
+                        _buildQuickActionsCard(isApproved),
                         const SizedBox(height: 20),
                         _buildHelpSection(),
                       ],
@@ -170,80 +209,318 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
     );
   }
 
-  Widget _buildWelcomeSection() {
-    final userName =
-        _userData?['fullName'] ?? _userData?['displayName'] ?? 'المستخدم';
+  Widget _buildPendingStatusBanner() {
+    final status = _applicationData?['status'] ?? 'in_progress';
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade700,
-              Colors.blue.shade500,
-            ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.hourglass_empty,
+            color: Colors.orange.shade700,
+            size: 32,
           ),
-          borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 8),
+          Text(
+            'طلبك قيد المراجعة',
+            style: GoogleFonts.cairo(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange.shade800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'سيتم تفعيل جميع الميزات بعد موافقة الإدارة على طلبك',
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              color: Colors.orange.shade700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection(bool isApproved) {
+    final userName = _userData?['fullName'] ?? 'المستخدم';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isApproved
+              ? [Colors.blue.shade700, Colors.blue.shade500]
+              : [Colors.orange.shade700, Colors.orange.shade500],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: (isApproved ? Colors.blue : Colors.orange).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.white.withOpacity(0.2),
+            child: Icon(
+              isApproved ? Icons.verified_user : Icons.person,
+              color: Colors.white,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  child: Icon(
-                    Icons.verified_user,
-                    size: 35,
+                Text(
+                  'مرحباً، $userName',
+                  style: GoogleFonts.cairo(
                     color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'مرحباً، $userName',
-                        style: GoogleFonts.cairo(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'مستخدم موثوق',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 4),
+                Text(
+                  isApproved ? 'مستخدم موثوق ومُفعل' : 'في انتظار الموافقة',
+                  style: GoogleFonts.cairo(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsCard(bool isApproved) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              'أهلاً بك في لوحة تحكم المستخدمين الموثوقين',
+              'الإجراءات السريعة',
               style: GoogleFonts.cairo(
-                fontSize: 14,
-                color: Colors.white.withOpacity(0.9),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
               ),
+            ),
+            const SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.5,
+              children: [
+                _buildActionButton(
+                  icon: Icons.edit,
+                  title: 'تحديث البيانات',
+                  subtitle: isApproved ? 'تحديث معلوماتك' : 'غير متاح',
+                  color: isApproved ? Colors.blue : Colors.grey,
+                  enabled: isApproved,
+                  onTap: isApproved
+                      ? () {
+                          // Navigate to update profile
+                        }
+                      : null,
+                ),
+                _buildActionButton(
+                  icon: Icons.history,
+                  title: 'تاريخ الطلبات',
+                  subtitle: isApproved ? 'عرض الطلبات' : 'غير متاح',
+                  color: isApproved ? Colors.green : Colors.grey,
+                  enabled: isApproved,
+                  onTap: isApproved
+                      ? () {
+                          // Navigate to history
+                        }
+                      : null,
+                ),
+                _buildActionButton(
+                  icon: Icons.info,
+                  title: 'حالة الطلب',
+                  subtitle: 'عرض التفاصيل',
+                  color: Colors.orange,
+                  enabled: true,
+                  onTap: () {
+                    // Show application status
+                  },
+                ),
+                _buildActionButton(
+                  icon: Icons.support,
+                  title: 'الدعم الفني',
+                  subtitle: 'تواصل معنا',
+                  color: Colors.purple,
+                  enabled: true,
+                  onTap: () {
+                    // Contact support
+                  },
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required bool enabled,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color:
+              enabled ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color:
+                enabled ? color.withOpacity(0.3) : Colors.grey.withOpacity(0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: enabled ? color : Colors.grey,
+              size: 24,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: enabled ? color : Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: GoogleFonts.cairo(
+                fontSize: 10,
+                color: enabled ? Colors.grey.shade600 : Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget _buildWelcomeSection() {
+  //   final userName =
+  //       _userData?['fullName'] ?? _userData?['displayName'] ?? 'المستخدم';
+  //
+  //   return Card(
+  //     elevation: 4,
+  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //     child: Container(
+  //       width: double.infinity,
+  //       padding: const EdgeInsets.all(20),
+  //       decoration: BoxDecoration(
+  //         gradient: LinearGradient(
+  //           begin: Alignment.topLeft,
+  //           end: Alignment.bottomRight,
+  //           colors: [
+  //             Colors.blue.shade700,
+  //             Colors.blue.shade500,
+  //           ],
+  //         ),
+  //         borderRadius: BorderRadius.circular(12),
+  //       ),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               CircleAvatar(
+  //                 radius: 30,
+  //                 backgroundColor: Colors.white.withOpacity(0.2),
+  //                 child: Icon(
+  //                   Icons.verified_user,
+  //                   size: 35,
+  //                   color: Colors.white,
+  //                 ),
+  //               ),
+  //               const SizedBox(width: 16),
+  //               Expanded(
+  //                 child: Column(
+  //                   crossAxisAlignment: CrossAxisAlignment.start,
+  //                   children: [
+  //                     Text(
+  //                       'مرحباً، $userName',
+  //                       style: GoogleFonts.cairo(
+  //                         fontSize: 20,
+  //                         fontWeight: FontWeight.bold,
+  //                         color: Colors.white,
+  //                       ),
+  //                     ),
+  //                     const SizedBox(height: 4),
+  //                     Text(
+  //                       'مستخدم موثوق',
+  //                       style: GoogleFonts.cairo(
+  //                         fontSize: 14,
+  //                         color: Colors.white.withOpacity(0.9),
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 16),
+  //           Text(
+  //             'أهلاً بك في لوحة تحكم المستخدمين الموثوقين',
+  //             style: GoogleFonts.cairo(
+  //               fontSize: 14,
+  //               color: Colors.white.withOpacity(0.9),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildApplicationStatusCard() {
     final status = _applicationData!['status'] ?? 'unknown';
@@ -496,7 +773,7 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
     }
   }
 
-  Widget _buildUserInfoCard() {
+  Widget _buildUserInfoCard(bool isApproved) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -507,7 +784,11 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.person, color: Colors.blue.shade700, size: 24),
+                Icon(Icons.person,
+                    color: isApproved
+                        ? Colors.blue.shade700
+                        : Colors.orange.shade700,
+                    size: 24),
                 const SizedBox(width: 8),
                 Text(
                   'معلوماتك الشخصية',
@@ -517,30 +798,183 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
                     color: Colors.grey.shade800,
                   ),
                 ),
+                const Spacer(),
+                // Status indicator
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isApproved
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isApproved
+                          ? Colors.green.shade300
+                          : Colors.orange.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isApproved ? Icons.verified : Icons.pending,
+                        size: 14,
+                        color: isApproved
+                            ? Colors.green.shade700
+                            : Colors.orange.shade700,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isApproved ? 'مُفعل' : 'في الانتظار',
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isApproved
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
+
             if (_userData != null) ...[
               _buildInfoRow(
-                  'الاسم الكامل', _userData!['fullName'] ?? 'غير محدد'),
+                'الاسم الكامل',
+                _userData!['fullName'] ?? 'غير محدد',
+                isEditable: isApproved,
+              ),
               _buildInfoRow(
-                  'البريد الإلكتروني', _userData!['email'] ?? 'غير محدد'),
+                'البريد الإلكتروني',
+                _userData!['email'] ?? 'غير محدد',
+                isEditable: false, // Email is never editable
+              ),
               _buildInfoRow(
-                  'رقم الهاتف', _userData!['phoneNumber'] ?? 'غير محدد'),
+                'رقم الهاتف',
+                _userData!['phoneNumber'] ?? 'غير محدد',
+                isEditable: isApproved,
+              ),
               if (_userData!['additionalPhone']?.isNotEmpty == true)
-                _buildInfoRow('رقم هاتف إضافي', _userData!['additionalPhone']),
-              _buildInfoRow(
-                  'مقدم الخدمة', _userData!['serviceProvider'] ?? 'غير محدد'),
-              _buildInfoRow('الموقع', _userData!['location'] ?? 'غير محدد'),
-              if (_userData!['createdAt'] != null)
                 _buildInfoRow(
-                    'تاريخ إنشاء الحساب', _formatDate(_userData!['createdAt'])),
+                  'رقم هاتف إضافي',
+                  _userData!['additionalPhone'],
+                  isEditable: isApproved,
+                ),
+              _buildInfoRow(
+                'مقدم الخدمة',
+                _userData!['serviceProvider'] ?? 'غير محدد',
+                isEditable: isApproved,
+              ),
+              _buildInfoRow(
+                'الموقع',
+                _userData!['location'] ?? 'غير محدد',
+                isEditable: isApproved,
+              ),
+
+              // Show different date fields based on approval status
+              if (isApproved && _userData!['createdAt'] != null)
+                _buildInfoRow(
+                  'تاريخ إنشاء الحساب',
+                  _formatDate(_userData!['createdAt']),
+                  isEditable: false,
+                ),
+
+              if (!isApproved && _applicationData?['createdAt'] != null)
+                _buildInfoRow(
+                  'تاريخ تقديم الطلب',
+                  _formatDate(_applicationData!['createdAt']),
+                  isEditable: false,
+                ),
+
+              // Show role/status
+              _buildInfoRow(
+                'نوع الحساب',
+                isApproved ? 'مستخدم موثوق' : 'في انتظار الموافقة',
+                isEditable: false,
+                showStatusColor: true,
+                statusColor: isApproved ? Colors.green : Colors.orange,
+              ),
             ] else ...[
-              Text(
-                'لا توجد معلومات متاحة',
-                style: GoogleFonts.cairo(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.grey.shade600),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'لا توجد معلومات متاحة حالياً',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Show edit button for approved users
+            if (isApproved && _userData != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Navigate to edit profile screen
+                    _showEditProfileDialog();
+                  },
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: Text(
+                    'تحديث المعلومات',
+                    style: GoogleFonts.cairo(fontSize: 14),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            // Show note for pending users
+            if (!isApproved) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.blue.shade600, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'سيتم إتاحة تحديث المعلومات بعد موافقة الإدارة على طلبك',
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -550,29 +984,173 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  // Widget _buildInfoRow(String label, String value) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 6),
+  //     child: Row(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(
+  //           width: 130,
+  //           child: Text(
+  //             '$label:',
+  //             style: GoogleFonts.cairo(
+  //               fontSize: 14,
+  //               color: Colors.grey.shade600,
+  //               fontWeight: FontWeight.w500,
+  //             ),
+  //           ),
+  //         ),
+  //         Expanded(
+  //           child: Text(
+  //             value,
+  //             style: GoogleFonts.cairo(
+  //               fontSize: 14,
+  //               color: Colors.grey.shade800,
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
+  // Widget _buildQuickActionsCard() {
+  //   return Card(
+  //     elevation: 4,
+  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(20),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               Icon(Icons.dashboard, color: Colors.blue.shade700, size: 24),
+  //               const SizedBox(width: 8),
+  //               Text(
+  //                 'إجراءات سريعة',
+  //                 style: GoogleFonts.cairo(
+  //                   fontSize: 18,
+  //                   fontWeight: FontWeight.bold,
+  //                   color: Colors.grey.shade800,
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 16),
+  //
+  //           // Quick action buttons
+  //           Wrap(
+  //             spacing: 12,
+  //             runSpacing: 12,
+  //             children: [
+  //               _buildQuickActionButton(
+  //                 'تحديث البيانات',
+  //                 Icons.edit,
+  //                 Colors.blue,
+  //                 () => _showUpdateDataDialog(),
+  //               ),
+  //               _buildQuickActionButton(
+  //                 'تحقق من الحالة',
+  //                 Icons.refresh,
+  //                 Colors.green,
+  //                 () => _loadUserData(),
+  //               ),
+  //               _buildQuickActionButton(
+  //                 'تواصل معنا',
+  //                 Icons.support_agent,
+  //                 Colors.orange,
+  //                 () => _showContactDialog(),
+  //               ),
+  //               _buildQuickActionButton(
+  //                 'الإعدادات',
+  //                 Icons.settings,
+  //                 Colors.grey,
+  //                 () => _showSettingsDialog(),
+  //               ),
+  //             ],
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  Widget _buildInfoRow(
+    String label,
+    String value, {
+    bool isEditable = false,
+    bool showStatusColor = false,
+    Color? statusColor,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 130,
+            width: 120,
             child: Text(
-              '$label:',
+              label,
               style: GoogleFonts.cairo(
                 fontSize: 14,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
               ),
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.cairo(
-                fontSize: 14,
-                color: Colors.grey.shade800,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: showStatusColor
+                    ? statusColor?.withOpacity(0.1)
+                    : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: showStatusColor
+                      ? statusColor?.withOpacity(0.3) ?? Colors.grey.shade300
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: Row(
+                children: [
+                  if (showStatusColor && statusColor != null) ...[
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: Text(
+                      value,
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: showStatusColor
+                            ? statusColor
+                            : Colors.grey.shade800,
+                        fontWeight: showStatusColor
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  if (isEditable) ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.edit,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -581,66 +1159,48 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
     );
   }
 
-  Widget _buildQuickActionsCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.dashboard, color: Colors.blue.shade700, size: 24),
-                const SizedBox(width: 8),
-                Text(
-                  'إجراءات سريعة',
-                  style: GoogleFonts.cairo(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Quick action buttons
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _buildQuickActionButton(
-                  'تحديث البيانات',
-                  Icons.edit,
-                  Colors.blue,
-                  () => _showUpdateDataDialog(),
-                ),
-                _buildQuickActionButton(
-                  'تحقق من الحالة',
-                  Icons.refresh,
-                  Colors.green,
-                  () => _loadUserData(),
-                ),
-                _buildQuickActionButton(
-                  'تواصل معنا',
-                  Icons.support_agent,
-                  Colors.orange,
-                  () => _showContactDialog(),
-                ),
-                _buildQuickActionButton(
-                  'الإعدادات',
-                  Icons.settings,
-                  Colors.grey,
-                  () => _showSettingsDialog(),
-                ),
-              ],
-            ),
-          ],
+  void _showEditProfileDialog() {
+    // Show dialog or navigate to edit screen
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'تحديث المعلومات',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
+        content: Text(
+          'ستتمكن من تحديث معلوماتك قريباً',
+          style: GoogleFonts.cairo(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'حسناً',
+              style: GoogleFonts.cairo(),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _formatDate(dynamic date) {
+    try {
+      DateTime dateTime;
+
+      if (date is Timestamp) {
+        dateTime = date.toDate();
+      } else if (date is String) {
+        dateTime = DateTime.parse(date);
+      } else {
+        return 'غير محدد';
+      }
+
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    } catch (e) {
+      return 'غير محدد';
+    }
   }
 
   Widget _buildQuickActionButton(
@@ -770,17 +1330,17 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
     );
   }
 
-  String _formatDate(dynamic timestamp) {
-    try {
-      if (timestamp is String) {
-        final date = DateTime.parse(timestamp);
-        return '${date.day}/${date.month}/${date.year}';
-      }
-      return timestamp.toString();
-    } catch (e) {
-      return 'غير محدد';
-    }
-  }
+  // String _formatDate(dynamic timestamp) {
+  //   try {
+  //     if (timestamp is String) {
+  //       final date = DateTime.parse(timestamp);
+  //       return '${date.day}/${date.month}/${date.year}';
+  //     }
+  //     return timestamp.toString();
+  //   } catch (e) {
+  //     return 'غير محدد';
+  //   }
+  // }
 
   void _showLogoutDialog() {
     showDialog(

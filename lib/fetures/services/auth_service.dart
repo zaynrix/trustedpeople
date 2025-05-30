@@ -21,42 +21,75 @@ enum UserRole {
   }
 }
 
+// Updated AuthState with toString method for better debugging
 class AuthState {
-  final User? user;
-  final UserRole role;
   final bool isLoading;
-  final String? error;
+  final bool isAuthenticated;
+  final UserRole role;
+  final User? user;
   final Map<String, dynamic>? userData;
-  final bool isTrustedUser; // Add this for trusted users
+  final Map<String, dynamic>? applicationData; // For pending users
+  final String? userEmail; // For pending users without Firebase auth
+  final bool isTrustedUser;
+  final bool isApproved; // Whether trusted user is approved
+  final String? error;
 
-  bool get isAdmin => role == UserRole.admin;
-  bool get isAuthenticated => user != null;
-
-  AuthState({
-    this.user,
-    this.role = UserRole.common,
+  const AuthState({
     this.isLoading = false,
-    this.error,
+    this.isAuthenticated = false,
+    this.role = UserRole.common,
+    this.user,
     this.userData,
+    this.applicationData,
+    this.userEmail,
     this.isTrustedUser = false,
+    this.isApproved = false,
+    this.error,
   });
 
+  // Computed getters for compatibility
+  bool get isAdmin => role == UserRole.admin;
+
   AuthState copyWith({
-    User? user,
-    UserRole? role,
     bool? isLoading,
-    String? error,
+    bool? isAuthenticated,
+    UserRole? role,
+    User? user,
     Map<String, dynamic>? userData,
+    Map<String, dynamic>? applicationData,
+    String? userEmail,
     bool? isTrustedUser,
+    bool? isApproved,
+    String? error,
   }) {
     return AuthState(
-      user: user ?? this.user,
-      role: role ?? this.role,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      role: role ?? this.role,
+      user: user ?? this.user,
       userData: userData ?? this.userData,
+      applicationData: applicationData ?? this.applicationData,
+      userEmail: userEmail ?? this.userEmail,
       isTrustedUser: isTrustedUser ?? this.isTrustedUser,
+      isApproved: isApproved ?? this.isApproved,
+      error: error ?? this.error,
     );
+  }
+
+  @override
+  String toString() {
+    return 'AuthState('
+        'isLoading: $isLoading, '
+        'isAuthenticated: $isAuthenticated, '
+        'role: $role, '
+        'user: ${user?.email ?? 'null'}, '
+        'isTrustedUser: $isTrustedUser, '
+        'isApproved: $isApproved, '
+        'userEmail: $userEmail, '
+        'hasUserData: ${userData != null}, '
+        'hasApplicationData: ${applicationData != null}, '
+        'error: $error'
+        ')';
   }
 }
 
@@ -512,10 +545,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return results;
   }
 
+// Updated _fetchUserData method
   Future<void> _fetchUserData(User user) async {
     try {
       state = state.copyWith(isLoading: true);
-
       print('🔍 Fetching user data for UID: ${user.uid}');
 
       // First, check if user is an admin
@@ -530,9 +563,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(
           user: user,
           role: UserRole.fromInt(roleValue),
+          isAuthenticated: true,
           isLoading: false,
           userData: adminData,
-          isTrustedUser: false, // Admin is not a trusted user
+          isTrustedUser: false,
+          isApproved: true, // Admins are always approved
         );
         return;
       }
@@ -548,12 +583,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Check if it's a trusted user
         final isTrustedUser = userRole == 'user' || userRole == 'trusted_user';
 
+        // Get application data if available
+        Map<String, dynamic>? applicationData;
+        if (isTrustedUser && userData['applicationId'] != null) {
+          try {
+            final appDoc = await _firestore
+                .collection('user_applications')
+                .doc(userData['applicationId'])
+                .get();
+            if (appDoc.exists) {
+              applicationData = appDoc.data();
+            }
+          } catch (e) {
+            print('🔍 Could not fetch application data: $e');
+          }
+        }
+
         state = state.copyWith(
           user: user,
           role: isTrustedUser ? UserRole.trusted : UserRole.common,
+          isAuthenticated: true,
           isLoading: false,
           userData: userData,
+          applicationData: applicationData,
           isTrustedUser: isTrustedUser,
+          isApproved:
+              isTrustedUser, // If they have a Firebase account, they're approved
         );
         return;
       }
@@ -563,18 +618,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
         user: user,
         role: UserRole.common,
+        isAuthenticated: true,
         isLoading: false,
         userData: null,
         isTrustedUser: false,
+        isApproved: false,
       );
     } catch (e) {
       debugPrint('Error fetching user data: $e');
       state = state.copyWith(
         user: user,
         role: UserRole.common,
+        isAuthenticated: true,
         isLoading: false,
         error: 'Failed to fetch user data',
         isTrustedUser: false,
+        isApproved: false,
       );
     }
   }
@@ -614,64 +673,159 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Trusted user sign in method
+// Corrected signInTrustedUser method using your UserRole enum
   Future<void> signInTrustedUser(String email, String password) async {
     try {
-      state = state.copyWith(isLoading: true, error: null);
-      print('🔐 Trusted user sign in attempt for: $email');
+      print('🔐 =================================');
+      print('🔐 STARTING TRUSTED USER SIGN IN');
+      print('🔐 =================================');
 
-      // Add debugging
-      print('🔐 Email length: ${email.length}');
+      state = state.copyWith(isLoading: true, error: null);
+      print('🔐 Initial state set to loading');
+      print('🔐 Email: $email');
       print('🔐 Password length: ${password.length}');
-      print('🔐 Email trimmed: "${email.trim()}"');
 
-      state = state.copyWith(isLoading: true, error: null);
-      print('🔐 Trusted user sign in attempt for: $email');
+      // First, check if there's an application for this email
+      print('🔍 Searching for application...');
+      final applicationQuery = await _firestore
+          .collection('user_applications')
+          .where('email', isEqualTo: email.toLowerCase())
+          .get();
 
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      print(
+          '🔍 Query completed. Found ${applicationQuery.docs.length} applications');
+
+      if (applicationQuery.docs.isEmpty) {
+        print('🔐 No application found for email: $email');
+        throw Exception('لم يتم العثور على طلب تسجيل بهذا البريد الإلكتروني');
+      }
+
+      final applicationDoc = applicationQuery.docs.first;
+      final applicationData = applicationDoc.data();
+      final applicationStatus = applicationData['status'] ?? '';
+
+      print('🔍 Application found:');
+      print('  - Document ID: ${applicationDoc.id}');
+      print('  - Status: "$applicationStatus"');
+      print('  - Email: ${applicationData['email']}');
+      print('  - Full Name: ${applicationData['fullName']}');
+      print('  - Stored Password: ${applicationData['password']}');
+      print('  - Provided Password: $password');
+
+      // Check if application is rejected
+      if (applicationStatus.toLowerCase() == 'rejected') {
+        print('🔐 Application status is REJECTED');
+        throw Exception('تم رفض طلب التسجيل الخاص بك');
+      }
+
+      // Verify password matches the one in application
+      if (applicationData['password'] != password) {
+        print('🔐 PASSWORD MISMATCH!');
+        print('🔐 Stored: "${applicationData['password']}"');
+        print('🔐 Provided: "$password"');
+        throw Exception('كلمة المرور غير صحيحة');
+      }
+
+      print('🔐 Password verification PASSED');
+
+      // Check the exact status
+      print('🔐 Checking application status: "$applicationStatus"');
+      print('🔐 Status lowercase: "${applicationStatus.toLowerCase()}"');
+
+      // If approved, try Firebase Auth login
+      if (applicationStatus.toLowerCase() == 'approved') {
+        print('🔐 Status is APPROVED - attempting Firebase Auth');
+        try {
+          final credential = await _auth.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+
+          print('🔐 Firebase Auth successful for approved user');
+          print('🔐 User UID: ${credential.user?.uid}');
+
+          // Let the auth state listener handle the rest via _fetchUserData
+          return; // _fetchUserData will be called by the auth listener
+        } catch (e) {
+          print('🔐 Firebase Auth failed: $e');
+          if (e is FirebaseAuthException && e.code == 'user-not-found') {
+            print('🔐 User not found in Firebase Auth, creating account...');
+            // Approved but Firebase account not created yet - create it
+            await _createFirebaseAccountForApprovedUser(
+                applicationDoc.id, applicationData);
+
+            // Try login again
+            print('🔐 Attempting login again after account creation...');
+            final credential = await _auth.signInWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+
+            print('🔐 Second login attempt successful');
+            return; // _fetchUserData will be called by the auth listener
+          }
+          throw Exception('حدث خطأ في النظام، يرجى التواصل مع الإدارة');
+        }
+      }
+
+      // For pending applications
+      print('🔐 Status is NOT approved - treating as pending');
+      print('🔐 Preparing pending user state...');
+
+      // Create user data from application for pending users
+      final pendingUserData = {
+        'fullName': applicationData['fullName'],
+        'email': applicationData['email'],
+        'phoneNumber': applicationData['phoneNumber'],
+        'additionalPhone': applicationData['additionalPhone'] ?? '',
+        'serviceProvider': applicationData['serviceProvider'],
+        'location': applicationData['location'],
+        'role': 'pending',
+        'status': applicationStatus,
+      };
+
+      print('🔐 Pending user data created:');
+      print('  - Full Name: ${pendingUserData['fullName']}');
+      print('  - Email: ${pendingUserData['email']}');
+      print('  - Role: ${pendingUserData['role']}');
+
+      print('🔐 Current state BEFORE update: ${state.toString()}');
+
+      // Update state for pending user - USING YOUR UserRole.trusted
+      final newState = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        role: UserRole.trusted, // Using YOUR enum value
+        isTrustedUser: true,
+        isApproved: false,
+        userData: pendingUserData,
+        applicationData: applicationData,
+        userEmail: email,
+        error: null, // Clear any previous errors
       );
 
-      print('🔐 Firebase Auth successful, checking trusted user status...');
+      state = newState;
 
-      // Check if user is a trusted user
-      final userDoc =
-          await _firestore.collection('users').doc(credential.user!.uid).get();
+      print('🔐 State AFTER update:');
+      print('  - isLoading: ${state.isLoading}');
+      print('  - isAuthenticated: ${state.isAuthenticated}');
+      print('  - role: ${state.role}');
+      print('  - isTrustedUser: ${state.isTrustedUser}');
+      print('  - isApproved: ${state.isApproved}');
+      print('  - userEmail: ${state.userEmail}');
+      print('  - userData != null: ${state.userData != null}');
+      print('  - applicationData != null: ${state.applicationData != null}');
+      print('  - error: ${state.error}');
 
-      if (!userDoc.exists) {
-        print('🔐 User document does not exist, signing out...');
-        await _auth.signOut();
-        throw Exception('المستخدم غير موجود أو لم يتم تفعيل الحساب بعد');
-      }
+      print('🔐 =================================');
+      print('🔐 TRUSTED USER SIGN IN COMPLETED');
+      print('🔐 =================================');
+    } catch (e, stackTrace) {
+      print('🔐 ❌ ERROR in signInTrustedUser:');
+      print('🔐 Error type: ${e.runtimeType}');
+      print('🔐 Error message: $e');
+      print('🔐 Stack trace: $stackTrace');
 
-      final userData = userDoc.data()!;
-      final role = userData['role'] ?? '';
-      final isTrustedUser = role == 'user' || role == 'trusted_user';
-
-      if (!isTrustedUser) {
-        print('🔐 User is not a trusted user, signing out...');
-        await _auth.signOut();
-        throw Exception('لا تملك صلاحيات المستخدم الموثوق');
-      }
-
-      // Check if account is active
-      final isActive = userData['isActive'] ?? false;
-      if (!isActive) {
-        print('🔐 User account is not active, signing out...');
-        await _auth.signOut();
-        throw Exception('حسابك غير نشط، يرجى التواصل مع الإدارة');
-      }
-
-      // Auth state listener will update the state
-      print('🔐 Trusted user login successful');
-    } catch (e) {
-      print('🔐 Detailed error: ${e.runtimeType} - $e');
-      if (e is FirebaseAuthException) {
-        print('🔐 Firebase error code: ${e.code}');
-        print('🔐 Firebase error message: ${e.message}');
-      }
-      print('🔐 Trusted user login error: $e');
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -680,7 +834,67 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+// Helper method to create Firebase account for approved users
+  Future<void> _createFirebaseAccountForApprovedUser(
+      String applicationId, Map<String, dynamic> applicationData) async {
+    try {
+      print('🔧 Creating Firebase account for approved user...');
+
+      final email = applicationData['email'];
+      final password = applicationData['password'];
+      final fullName = applicationData['fullName'];
+
+      print('🔧 Creating auth account for: $email');
+
+      // Create Firebase Auth account
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      print(
+          '🔧 Firebase Auth account created, UID: ${userCredential.user?.uid}');
+
+      // Update display name
+      await userCredential.user?.updateDisplayName(fullName);
+
+      // Create user document in Firestore
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'email': email,
+        'fullName': fullName,
+        'phoneNumber': applicationData['phoneNumber'],
+        'additionalPhone': applicationData['additionalPhone'] ?? '',
+        'serviceProvider': applicationData['serviceProvider'],
+        'location': applicationData['location'],
+        'role': 'user', // Trusted user role
+        'applicationId': applicationId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isActive': true,
+      });
+
+      print('🔧 User document created in Firestore');
+
+      // Update application with user ID
+      await _firestore
+          .collection('user_applications')
+          .doc(applicationId)
+          .update({
+        'firebaseUid': userCredential.user!.uid,
+        'accountCreated': true,
+        'accountCreatedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('🔧 Application updated with Firebase UID');
+      print('🔧 Firebase account creation completed successfully');
+    } catch (e) {
+      print('🔧 Error creating Firebase account: $e');
+      rethrow;
+    }
+  }
+
   // Registration method for trusted users
+// Updated registration method - no changes needed, but shown for completeness
   Future<void> registerUser({
     required String fullName,
     required String email,
@@ -734,70 +948,66 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Get application status by email
-  Future<Map<String, dynamic>> getApplicationStatus(String email) async {
-    try {
-      final applications = await _firestore
-          .collection('user_applications')
-          .where('email', isEqualTo: email.toLowerCase())
-          .get();
-
-      if (applications.docs.isEmpty) {
-        throw Exception('لم يتم العثور على طلب بهذا البريد الإلكتروني');
-      }
-
-      final applicationData = applications.docs.first.data();
-
-      // Convert Firestore timestamps to strings
-      if (applicationData['createdAt'] != null) {
-        applicationData['createdAt'] =
-            (applicationData['createdAt'] as Timestamp)
-                .toDate()
-                .toIso8601String();
-      }
-      if (applicationData['updatedAt'] != null) {
-        applicationData['updatedAt'] =
-            (applicationData['updatedAt'] as Timestamp)
-                .toDate()
-                .toIso8601String();
-      }
-
-      return applicationData;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Admin method: Get all user applications
+// Enhanced method to get all applications with better error handling
   Future<List<Map<String, dynamic>>> getAllUserApplications() async {
     try {
+      print('🔧 Admin: Fetching all user applications...');
+
       final applications = await _firestore
           .collection('user_applications')
           .orderBy('createdAt', descending: true)
           .get();
 
-      return applications.docs.map((doc) {
+      print('🔧 Admin: Found ${applications.docs.length} applications');
+
+      final result = applications.docs.map((doc) {
         final data = doc.data();
+
+        // Add document ID to the data
+        data['id'] = doc.id;
+
         // Convert Firestore timestamps to strings
         if (data['createdAt'] != null) {
-          data['createdAt'] =
-              (data['createdAt'] as Timestamp).toDate().toIso8601String();
+          try {
+            data['createdAt'] =
+                (data['createdAt'] as Timestamp).toDate().toIso8601String();
+          } catch (e) {
+            print('🔧 Error converting createdAt timestamp: $e');
+            data['createdAt'] = 'غير محدد';
+          }
         }
         if (data['updatedAt'] != null) {
-          data['updatedAt'] =
-              (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+          try {
+            data['updatedAt'] =
+                (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+          } catch (e) {
+            print('🔧 Error converting updatedAt timestamp: $e');
+            data['updatedAt'] = 'غير محدد';
+          }
         }
+
         return data;
       }).toList();
-    } catch (e) {
+
+      print('🔧 Admin: Applications processed successfully');
+      return result;
+    } catch (e, stackTrace) {
+      print('🔧 Admin: Error fetching applications: $e');
+      print('🔧 Stack trace: $stackTrace');
       rethrow;
     }
   }
 
-  // Admin method: Update application status
+// Admin method: Update application status with better error handling
   Future<void> updateUserApplicationStatus(String applicationId, String status,
       {String? comment}) async {
     try {
+      print('🔧 Admin: Starting status update');
+      print('  - Application ID: $applicationId');
+      print('  - New Status: $status');
+      print('  - Comment: $comment');
+
+      // First, update the application status
       final updateData = {
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -812,69 +1022,179 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .doc(applicationId)
           .update(updateData);
 
+      print('🔧 Admin: Application status updated successfully');
+
       // If approved, create Firebase Auth account and user document
       if (status.toLowerCase() == 'approved') {
+        print('🔧 Admin: Status is approved, creating Firebase account...');
         await _createApprovedUserAccount(applicationId);
       }
-    } catch (e) {
+
+      print('🔧 Admin: Status update completed successfully');
+    } catch (e, stackTrace) {
+      print('🔧 Admin: Error in updateUserApplicationStatus: $e');
+      print('🔧 Admin: Stack trace: $stackTrace');
       rethrow;
     }
   }
 
-  // Private method: Create Firebase Auth account for approved users
+// Improved method to create Firebase Auth account for approved users
   Future<void> _createApprovedUserAccount(String applicationId) async {
     try {
+      print('🔧 Creating Firebase account for application: $applicationId');
+
+      // Get the application data
       final applicationDoc = await _firestore
           .collection('user_applications')
           .doc(applicationId)
           .get();
 
-      if (!applicationDoc.exists) return;
+      if (!applicationDoc.exists) {
+        print('🔧 Application document not found: $applicationId');
+        throw Exception('طلب التسجيل غير موجود');
+      }
 
       final applicationData = applicationDoc.data()!;
       final email = applicationData['email'];
       final password = applicationData['password'];
       final fullName = applicationData['fullName'];
 
-      // Create Firebase Auth account
-      final userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      print('🔧 Application data retrieved:');
+      print('  - Email: $email');
+      print('  - Full Name: $fullName');
+
+      // Check if Firebase account already exists
+      bool accountExists = false;
+      try {
+        final existingUserMethods =
+            await _auth.fetchSignInMethodsForEmail(email);
+        accountExists = existingUserMethods.isNotEmpty;
+        print('🔧 Firebase account exists: $accountExists');
+      } catch (e) {
+        print('🔧 Error checking existing account: $e');
+      }
+
+      UserCredential? userCredential;
+
+      if (accountExists) {
+        print('🔧 Firebase account already exists, skipping creation');
+        // Try to get the existing user
+        try {
+          final existingUsers = await _auth.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+          userCredential = existingUsers;
+          print('🔧 Successfully signed in existing user');
+        } catch (e) {
+          print('🔧 Could not sign in existing user: $e');
+          throw Exception(
+              'حساب Firebase موجود بالفعل ولكن كلمة المرور غير صحيحة');
+        }
+      } else {
+        // Create new Firebase Auth account
+        print('🔧 Creating new Firebase Auth account...');
+        try {
+          userCredential = await _auth.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+          print('🔧 Firebase Auth account created successfully');
+          print('🔧 User UID: ${userCredential.user?.uid}');
+        } catch (e) {
+          print('🔧 Error creating Firebase Auth account: $e');
+          if (e is FirebaseAuthException) {
+            switch (e.code) {
+              case 'email-already-in-use':
+                throw Exception('البريد الإلكتروني مستخدم بالفعل');
+              case 'weak-password':
+                throw Exception('كلمة المرور ضعيفة');
+              case 'invalid-email':
+                throw Exception('البريد الإلكتروني غير صحيح');
+              default:
+                throw Exception('خطأ في إنشاء الحساب: ${e.message}');
+            }
+          }
+          rethrow;
+        }
+      }
+
+      if (userCredential?.user == null) {
+        throw Exception('فشل في إنشاء أو الوصول للحساب');
+      }
+
+      final user = userCredential!.user!;
 
       // Update display name
-      await userCredential.user?.updateDisplayName(fullName);
+      try {
+        await user.updateDisplayName(fullName);
+        print('🔧 Display name updated');
+      } catch (e) {
+        print('🔧 Error updating display name: $e');
+        // Non-critical error, continue
+      }
 
-      // Create user document in Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
-        'email': email,
-        'fullName': fullName,
-        'phoneNumber': applicationData['phoneNumber'],
-        'additionalPhone': applicationData['additionalPhone'] ?? '',
-        'serviceProvider': applicationData['serviceProvider'],
-        'location': applicationData['location'],
-        'role': 'user', // Trusted user role
-        'applicationId': applicationId,
-        'createdAt': FieldValue.serverTimestamp(),
-        'isActive': true,
-      });
+      // Check if user document already exists
+      final existingUserDoc =
+          await _firestore.collection('users').doc(user.uid).get();
+
+      if (existingUserDoc.exists) {
+        print('🔧 User document already exists, updating...');
+        // Update existing document
+        await _firestore.collection('users').doc(user.uid).update({
+          'applicationId': applicationId,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'isActive': true,
+        });
+      } else {
+        print('🔧 Creating new user document...');
+        // Create new user document
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'fullName': fullName,
+          'phoneNumber': applicationData['phoneNumber'],
+          'additionalPhone': applicationData['additionalPhone'] ?? '',
+          'serviceProvider': applicationData['serviceProvider'],
+          'location': applicationData['location'],
+          'role': 'user', // Trusted user role
+          'applicationId': applicationId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isActive': true,
+        });
+      }
+
+      print('🔧 User document created/updated successfully');
 
       // Update application with user ID
       await _firestore
           .collection('user_applications')
           .doc(applicationId)
           .update({
-        'firebaseUid': userCredential.user!.uid,
+        'firebaseUid': user.uid,
         'accountCreated': true,
         'accountCreatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Sign out the newly created user (since we're in admin context)
-      await _auth.signOut();
-    } catch (e) {
-      // Log error but don't throw - the status update should still succeed
-      print('Error creating user account: $e');
+      print('🔧 Application updated with Firebase UID');
+
+      // Sign out the newly created/signed in user (since we're in admin context)
+      try {
+        await _auth.signOut();
+        print('🔧 Signed out the user (admin context)');
+      } catch (e) {
+        print('🔧 Error signing out: $e');
+        // Non-critical error
+      }
+
+      print('🔧 ✅ Account creation/update completed successfully');
+    } catch (e, stackTrace) {
+      print('🔧 ❌ Error creating user account: $e');
+      print('🔧 Stack trace: $stackTrace');
+
+      // Don't rethrow - let the status update succeed even if account creation fails
+      // The admin can try to create the account again later
+      print('🔧 Account creation failed, but status was updated successfully');
     }
   }
 
@@ -985,13 +1305,68 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Get current user data
-  Future<Map<String, dynamic>?> getCurrentUserData() async {
+// Method to get current user data (works for both approved and pending users)
+  Map<String, dynamic>? getCurrentUserData() {
+    final currentState = state;
+
+    if (currentState.isApproved && currentState.userData != null) {
+      // Approved user - return Firebase user data
+      return currentState.userData;
+    } else if (!currentState.isApproved &&
+        currentState.applicationData != null) {
+      // Pending user - return application data formatted like user data
+      final appData = currentState.applicationData!;
+      return {
+        'fullName': appData['fullName'],
+        'email': appData['email'],
+        'phoneNumber': appData['phoneNumber'],
+        'additionalPhone': appData['additionalPhone'] ?? '',
+        'serviceProvider': appData['serviceProvider'],
+        'location': appData['location'],
+        'role': 'pending',
+        'status': appData['status'],
+      };
+    }
+
+    return null;
+  }
+
+// Method to check if user can perform actions (only approved users)
+  bool canPerformActions() {
+    return state.isAuthenticated && state.isApproved;
+  }
+
+// Method to get application status
+  Future<Map<String, dynamic>> getApplicationStatus(String email) async {
     try {
-      if (state.user == null) return null;
-      return state.userData;
+      final applications = await _firestore
+          .collection('user_applications')
+          .where('email', isEqualTo: email.toLowerCase())
+          .get();
+
+      if (applications.docs.isEmpty) {
+        throw Exception('لم يتم العثور على طلب بهذا البريد الإلكتروني');
+      }
+
+      final applicationData = applications.docs.first.data();
+
+      // Convert Firestore timestamps to strings
+      if (applicationData['createdAt'] != null) {
+        applicationData['createdAt'] =
+            (applicationData['createdAt'] as Timestamp)
+                .toDate()
+                .toIso8601String();
+      }
+      if (applicationData['updatedAt'] != null) {
+        applicationData['updatedAt'] =
+            (applicationData['updatedAt'] as Timestamp)
+                .toDate()
+                .toIso8601String();
+      }
+
+      return applicationData;
     } catch (e) {
-      return null;
+      rethrow;
     }
   }
 

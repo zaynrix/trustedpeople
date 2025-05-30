@@ -69,8 +69,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     final currentRouteName = GoRouterState.of(context).name;
 
     // Debug output to identify current route
-    debugPrint('Current location: $location');
-    debugPrint('Current route name: $currentRouteName');
+    // debugPrint('Current location: $location');
+    // debugPrint('Current route name: $currentRouteName');
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),

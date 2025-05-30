@@ -65,61 +65,77 @@ class MaintenanceGuard extends ConsumerWidget {
   }
 }
 
-// Router provider that depends on auth state
+// Updated router provider with stable auth watching
 final routerProvider = Provider<GoRouter>((ref) {
+  // Watch auth state but only react to specific changes
   final authState = ref.watch(authProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: ScreensNames.homePath,
+
+    // Simplified redirect that doesn't interfere with login flows
     redirect: (context, state) {
+      final currentPath = state.uri.toString();
       final isAuthenticated = authState.isAuthenticated;
       final isAdmin = authState.isAdmin;
-      final isTrustedUser = authState.isTrustedUser ?? false; // Add null safety
+      final isTrustedUser = authState.isTrustedUser ?? false;
       final isLoading = authState.isLoading;
+      print('🔍 Router redirect check:');
+      print('  - Path: $currentPath');
+      print('  - isAuthenticated: $isAuthenticated');
+      print('  - isTrustedUser: $isTrustedUser');
+      print('  - isLoading: $isLoading');
 
-      // Show loading while checking auth state
-      if (isLoading) return null;
-
-      // Handle admin routes - redirect non-admins trying to access admin areas
-      if (state.uri.toString().startsWith('/secure-admin-') && !isAdmin) {
-        return '/secure-admin-784512/login';
+      // Don't redirect during loading states
+      if (isLoading) {
+        print('🔍 Loading state - no redirect');
+        return null;
       }
 
-      // Handle trusted user dashboard - redirect non-trusted users
-      if (state.uri.toString() == '/secure-trusted-895623/trusted-dashboard' &&
-          !isTrustedUser) {
-        return '/secure-trusted-895623/login';
-      }
-
-      // Handle admin user applications route - only admins
-      if (state.uri
-              .toString()
-              .startsWith('/secure-trusted-895623/user-applications') &&
-          !isAdmin) {
-        return '/secure-admin-784512/login';
-      }
-
-      // Redirect authenticated users away from login pages
-      if (isAuthenticated &&
-          isAdmin &&
-          state.uri.toString().contains('/secure-admin-784512/login')) {
-        return '/secure-admin-784512/dashboard';
-      }
-
+      // AUTO-NAVIGATE: If authenticated trusted user is on login page, redirect to dashboard
       if (isAuthenticated &&
           isTrustedUser &&
-          state.uri.toString() == '/secure-trusted-895623/login') {
+          currentPath == '/secure-trusted-895623/login') {
+        print(
+            '🔍 ✅ Authenticated trusted user on login page - redirecting to dashboard');
         return '/secure-trusted-895623/trusted-dashboard';
       }
 
-      return null; // No redirect needed
+      // Protect admin routes
+      if (currentPath.startsWith('/secure-admin-') && !isAdmin) {
+        print('🔍 Non-admin accessing admin route');
+        return '/secure-admin-784512/login';
+      }
+
+      // Protect trusted dashboard from non-authenticated users
+      if (currentPath == '/secure-trusted-895623/trusted-dashboard' &&
+          (!isAuthenticated || !isTrustedUser)) {
+        print('🔍 Non-trusted user accessing dashboard');
+        return '/secure-trusted-895623/login';
+      }
+
+      // Protect admin user applications
+      if (currentPath.startsWith('/secure-trusted-895623/user-applications') &&
+          !isAdmin) {
+        print('🔍 Non-admin accessing user applications');
+        return '/secure-admin-784512/login';
+      }
+
+      // Redirect authenticated admin away from admin login
+      if (isAuthenticated &&
+          isAdmin &&
+          currentPath == '/secure-admin-784512/login') {
+        print('🔍 Authenticated admin on login page');
+        return '/secure-admin-784512/dashboard';
+      }
+
+      print('🔍 No redirect needed');
+      return null;
     },
     routes: [
-      // Wrap all routes with the AppShell
       ShellRoute(
         builder: (context, state, child) {
-          // Mobile drawer will be handled by AppShell based on screen size
           return AppShell(child: child);
         },
         routes: [
@@ -171,14 +187,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // ========== PUBLIC TRUSTED USER ROUTES ==========
-          // Public registration route
           GoRoute(
             path: ScreensNames.registerPath,
             name: ScreensNames.register,
             builder: (context, state) => const RegistrationScreen(),
           ),
-
-          // Public application status check route
           GoRoute(
             path: ScreensNames.applicationStatusPath,
             name: ScreensNames.applicationStatus,
@@ -298,7 +311,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // ========== TRUSTED USER ROUTES ==========
-          // Trusted user login (separate from admin)
           GoRoute(
             path: '/secure-trusted-895623/login',
             name: 'trustedUserLogin',
@@ -310,8 +322,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               return const TrustedUserLoginScreen();
             },
           ),
-
-          // Trusted user registration
           GoRoute(
             path: '/secure-trusted-895623/register',
             name: 'trustedUserRegister',
@@ -324,44 +334,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
 
-          // Trusted user dashboard (protected - only for approved trusted users)
+          // FIXED: Trusted user dashboard - no auth checks here, let redirect handle it
           GoRoute(
             path: '/secure-trusted-895623/trusted-dashboard',
             name: 'trustedUserDashboard',
             builder: (context, state) {
-              if (authState.isAuthenticated &&
-                  (authState.isTrustedUser ?? false)) {
-                return const TrustedUserDashboard(); //
-                //   // TODO: Create TrustedUserDashboard screen
-                // Check if user is authenticated trusted user (not admin)
-                //   // return Scaffold(
-                //   //   appBar: AppBar(title: Text('Trusted User Dashboard')),
-                //   //   body: const Center(
-                //   //     child: Column(
-                //   //       mainAxisAlignment: MainAxisAlignment.center,
-                //   //       children: [
-                //   //         Text('Welcome to Trusted User Dashboard'),
-                //   //         Text('This screen needs to be created'),
-                //   //       ],
-                //   //     ),
-                //   //   ),
-                //   // );
-                //  Uncomment when screen is created
-              } else {
-                return const Scaffold(
-                  body: Center(child: Text('غير مصرح')),
-                );
+              if (kDebugMode) {
+                print("🏠 Trusted dashboard route accessed");
+                print(
+                    "🏠 Auth: isAuth=${authState.isAuthenticated}, isTrusted=${authState.isTrustedUser}");
               }
+              return const TrustedUserDashboard();
             },
           ),
 
-          // Admin dashboard for managing applications (different from trusted user dashboard)
           GoRoute(
             path: '/secure-trusted-895623/dashboard',
             name: 'mouthoqDashboard',
             builder: (context, state) {
               if (authState.isAdmin) {
-                return const ApplicationStatusScreen(); // Your existing admin screen
+                return const ApplicationStatusScreen();
               } else {
                 return const Scaffold(
                   body: Center(child: Text('Page not found')),
@@ -376,7 +368,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: ScreensNames.adminUserApplications,
             builder: (context, state) {
               if (authState.isAdmin) {
-                return AdminDashboardStatusScreen(); // Your existing admin screen
+                return AdminDashboardStatusScreen();
               } else {
                 return const Scaffold(
                   body: Center(child: Text('Page not found')),
@@ -387,6 +379,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       )
     ],
+
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page Not Found')),
       body: Center(
