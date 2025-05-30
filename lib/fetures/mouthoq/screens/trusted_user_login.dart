@@ -548,6 +548,7 @@ class _TrustedUserLoginScreenState
   }
 
 // Enhanced debug section for your trusted user login screen
+// Update your debug section to include the fix methods
   Widget _buildDebugSection() {
     return Column(
       children: [
@@ -563,6 +564,64 @@ class _TrustedUserLoginScreenState
           ),
         ),
         const SizedBox(height: 15),
+
+        // PROBLEM IDENTIFIED SECTION
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '⚠️ مشكلة محددة: المستخدم موجود في Firestore لكن غير موجود في Firebase Auth',
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _fixExistingUser(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'إصلاح المستخدم الحالي',
+                        style: GoogleFonts.cairo(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _createFreshUser(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.pink,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'إنشاء مستخدم جديد',
+                        style: GoogleFonts.cairo(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
 
         // Step 1: Check what exists
         Container(
@@ -622,7 +681,7 @@ class _TrustedUserLoginScreenState
 
         const SizedBox(height: 12),
 
-        // Step 2: Create test users
+        // Step 2: Test login
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
@@ -635,7 +694,7 @@ class _TrustedUserLoginScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'الخطوة 2: إنشاء مستخدمين تجريبيين',
+                'الخطوة 2: اختبار تسجيل الدخول',
                 style: GoogleFonts.cairo(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -643,70 +702,32 @@ class _TrustedUserLoginScreenState
                 ),
               ),
               const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () => _createCompleteTrustedUser(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(
-                  'إنشاء مستخدم موثوق كامل (trusteduser@example.com)',
-                  style: GoogleFonts.cairo(fontSize: 10),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Step 3: Test login
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'الخطوة 3: اختبار تسجيل الدخول',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade800,
-                ),
-              ),
-              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _testTrustedUserLogin(),
+                      onPressed: () => _testFixedUserLogin(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                       ),
                       child: Text(
-                        'تسجيل دخول تجريبي',
-                        style: GoogleFonts.cairo(fontSize: 10),
+                        'تسجيل دخول (المستخدم المُصلح)',
+                        style: GoogleFonts.cairo(fontSize: 9),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _testCurrentCredentials(),
+                      onPressed: () => _testFreshUserLogin(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
+                        backgroundColor: Colors.teal,
                         foregroundColor: Colors.white,
                       ),
                       child: Text(
-                        'اختبار البيانات المدخلة',
-                        style: GoogleFonts.cairo(fontSize: 10),
+                        'تسجيل دخول (المستخدم الجديد)',
+                        style: GoogleFonts.cairo(fontSize: 9),
                       ),
                     ),
                   ),
@@ -719,7 +740,82 @@ class _TrustedUserLoginScreenState
     );
   }
 
-// Add these debug methods to your trusted user login screen class
+// Add these methods to your login screen class
+  Future<void> _fixExistingUser() async {
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      await authNotifier.fixAndCreateTrustedUser();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم إصلاح المستخدم!\nالبريد: trusteduser@example.com\nكلمة المرور: 123456',
+              style: GoogleFonts.cairo(),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error fixing user: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('خطأ في إصلاح المستخدم: $e', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createFreshUser() async {
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+      await authNotifier.createFreshTrustedUser();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم إنشاء مستخدم جديد!\nالبريد: newtrusteduser@example.com\nكلمة المرور: 123456',
+              style: GoogleFonts.cairo(),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error creating fresh user: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في إنشاء المستخدم الجديد: $e',
+                style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _testFixedUserLogin() async {
+    _emailController.text = 'trusteduser@example.com';
+    _passwordController.text = '123456';
+    await _login();
+  }
+
+  Future<void> _testFreshUserLogin() async {
+    _emailController.text = 'newtrusteduser@example.com';
+    _passwordController.text = '123456';
+    await _login();
+  }
+
+// Keep your existing debug methods
   Future<void> _listAllUsers() async {
     try {
       final authNotifier = ref.read(authProvider.notifier);
@@ -782,91 +878,6 @@ class _TrustedUserLoginScreenState
       }
     } catch (e) {
       print('Error checking email: $e');
-    }
-  }
-
-  Future<void> _createCompleteTrustedUser() async {
-    try {
-      final authNotifier = ref.read(authProvider.notifier);
-      await authNotifier.createCompleteTrustedUser();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'تم إنشاء مستخدم موثوق كامل!\nالبريد: trusteduser@example.com\nكلمة المرور: 123456',
-              style: GoogleFonts.cairo(),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error creating trusted user: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('خطأ في إنشاء المستخدم: $e', style: GoogleFonts.cairo()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _testTrustedUserLogin() async {
-    _emailController.text = 'trusteduser@example.com';
-    _passwordController.text = '123456';
-
-    // Test the credentials first
-    await _testCurrentCredentials();
-
-    // Small delay then try login
-    await Future.delayed(const Duration(milliseconds: 1000));
-    await _login();
-  }
-
-  Future<void> _testCurrentCredentials() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('أدخل البريد الإلكتروني وكلمة المرور أولاً',
-              style: GoogleFonts.cairo()),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    try {
-      final authNotifier = ref.read(authProvider.notifier);
-      await authNotifier.testLoginWithCredentials(email, password);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم اختبار البيانات بنجاح - راجع وحدة التحكم',
-                style: GoogleFonts.cairo()),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error testing credentials: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('خطأ في اختبار البيانات: $e', style: GoogleFonts.cairo()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 

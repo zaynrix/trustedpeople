@@ -75,6 +75,191 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
   }
 // Add these enhanced debug methods to your AuthNotifier class
+// Add this improved method to your AuthNotifier class
+// This will fix the existing broken user and create a proper one
+
+  Future<void> fixAndCreateTrustedUser() async {
+    try {
+      print('🔧 =================================');
+      print('🔧 FIXING TRUSTED USER CREATION');
+      print('🔧 =================================');
+
+      final email = 'trusteduser@example.com';
+      final password = '123456';
+
+      // Step 1: Clean up existing broken user
+      print('🔧 Step 1: Cleaning up existing user...');
+
+      // Find the existing user document in Firestore
+      final usersQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (usersQuery.docs.isNotEmpty) {
+        print('🔧 Found existing Firestore user document, deleting...');
+        for (var doc in usersQuery.docs) {
+          await doc.reference.delete();
+          print('🔧 Deleted Firestore document: ${doc.id}');
+        }
+      }
+
+      // Check if Firebase Auth user exists (it shouldn't based on debug)
+      try {
+        final methods = await _auth.fetchSignInMethodsForEmail(email);
+        //fetchSignInMethodsForEmail
+        if (methods.isNotEmpty) {
+          print('🔧 Firebase Auth user exists, need to handle...');
+          // This case shouldn't happen based on your debug, but just in case
+        } else {
+          print('🔧 No Firebase Auth user found (as expected)');
+        }
+      } catch (e) {
+        print('🔧 Error checking Firebase Auth: $e');
+      }
+
+      // Step 2: Create complete user (both Firebase Auth and Firestore)
+      print('🔧 Step 2: Creating complete user...');
+
+      // Create Firebase Auth account
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final uid = userCredential.user!.uid;
+      print('🔧 ✅ Firebase Auth user created with UID: $uid');
+
+      // Set display name
+      await userCredential.user!.updateDisplayName('Test Trusted User');
+
+      // Create Firestore document with the correct UID
+      await _firestore.collection('users').doc(uid).set({
+        'uid': uid,
+        'email': email,
+        'fullName': 'Test Trusted User',
+        'role': 'user', // This makes them a trusted user
+        'isActive': true,
+        'phoneNumber': '+966123456789',
+        'serviceProvider': 'Test Company',
+        'location': 'Test City',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      print('🔧 ✅ Firestore user document created with correct UID!');
+
+      // Step 3: Verify the fix
+      print('🔧 Step 3: Verifying the fix...');
+
+      // Check Firebase Auth
+      final authMethods = await _auth.fetchSignInMethodsForEmail(email);
+      print('🔧 Firebase Auth methods: $authMethods');
+
+      // Check Firestore
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      print('🔧 Firestore document exists: ${userDoc.exists}');
+      if (userDoc.exists) {
+        print('🔧 User data: ${userDoc.data()}');
+      }
+
+      // Step 4: Test login
+      print('🔧 Step 4: Testing login...');
+
+      try {
+        final testCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        print('🔧 ✅ Login test successful! UID: ${testCredential.user!.uid}');
+
+        // Sign out immediately
+        await _auth.signOut();
+        print('🔧 Signed out test user');
+      } catch (loginError) {
+        print('🔧 ❌ Login test failed: $loginError');
+      }
+
+      // Reset auth state
+      state = AuthState();
+
+      print('🔧 =================================');
+      print('🔧 USER FIXED AND CREATED SUCCESSFULLY!');
+      print('🔧 Email: $email');
+      print('🔧 Password: $password');
+      print('🔧 You can now login with these credentials');
+      print('🔧 =================================');
+    } catch (e) {
+      print('🔧 ❌ Error fixing user: $e');
+      rethrow;
+    }
+  }
+
+// Alternative: Create user with different email if the above doesn't work
+  Future<void> createFreshTrustedUser() async {
+    try {
+      print('🆕 =================================');
+      print('🆕 CREATING FRESH TRUSTED USER');
+      print('🆕 =================================');
+
+      final email = 'newtrusteduser@example.com'; // Different email
+      final password = '123456';
+
+      // Step 1: Create Firebase Auth account
+      print('🆕 Step 1: Creating Firebase Auth user...');
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final uid = userCredential.user!.uid;
+      print('🆕 ✅ Firebase Auth user created with UID: $uid');
+
+      // Step 2: Create Firestore document
+      print('🆕 Step 2: Creating Firestore user document...');
+      await _firestore.collection('users').doc(uid).set({
+        'uid': uid,
+        'email': email,
+        'fullName': 'New Trusted User',
+        'role': 'user',
+        'isActive': true,
+        'phoneNumber': '+966987654321',
+        'serviceProvider': 'New Test Company',
+        'location': 'New Test City',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      print('🆕 ✅ Firestore user document created!');
+
+      // Step 3: Test login immediately
+      print('🆕 Step 3: Testing login...');
+      try {
+        await _auth.signOut(); // Make sure we're signed out first
+
+        final testCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        print('🆕 ✅ Login test successful! UID: ${testCredential.user!.uid}');
+
+        // Sign out
+        await _auth.signOut();
+      } catch (loginError) {
+        print('🆕 ❌ Login test failed: $loginError');
+      }
+
+      // Reset auth state
+      state = AuthState();
+
+      print('🆕 =================================');
+      print('🆕 FRESH USER CREATED SUCCESSFULLY!');
+      print('🆕 Email: $email');
+      print('🆕 Password: $password');
+      print('🆕 =================================');
+    } catch (e) {
+      print('🆕 ❌ Error creating fresh user: $e');
+      rethrow;
+    }
+  }
 
 // Method to create a complete test trusted user
   Future<void> createCompleteTrustedUser() async {
@@ -435,6 +620,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: true, error: null);
       print('🔐 Trusted user sign in attempt for: $email');
 
+      // Add debugging
+      print('🔐 Email length: ${email.length}');
+      print('🔐 Password length: ${password.length}');
+      print('🔐 Email trimmed: "${email.trim()}"');
+
+      state = state.copyWith(isLoading: true, error: null);
+      print('🔐 Trusted user sign in attempt for: $email');
+
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -473,6 +666,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Auth state listener will update the state
       print('🔐 Trusted user login successful');
     } catch (e) {
+      print('🔐 Detailed error: ${e.runtimeType} - $e');
+      if (e is FirebaseAuthException) {
+        print('🔐 Firebase error code: ${e.code}');
+        print('🔐 Firebase error message: ${e.message}');
+      }
       print('🔐 Trusted user login error: $e');
       state = state.copyWith(
         isLoading: false,

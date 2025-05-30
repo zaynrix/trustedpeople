@@ -798,7 +798,10 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
               Navigator.pop(context);
               await ref.read(authProvider.notifier).signOut();
               if (mounted) {
-                context.go('/trusted-login');
+                ref.read(authProvider.notifier).signOut();
+                context.goNamed("trustedUserLogin");
+
+                // context.go('/trusted-login');
               }
             },
             child: Text('تسجيل الخروج',
