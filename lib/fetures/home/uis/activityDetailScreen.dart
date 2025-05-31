@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/ActivityUpdate.dart';
 
 // Modified provider for viewing all public activities
@@ -18,7 +18,7 @@ final allPublicActivitiesProvider = StreamProvider<List<Activity>>((ref) {
 });
 
 class AllUpdatesScreen extends ConsumerWidget {
-  const AllUpdatesScreen({Key? key}) : super(key: key);
+  const AllUpdatesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,6 +39,10 @@ class AllUpdatesScreen extends ConsumerWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white,),
+          onPressed: () => context.pop(),
         ),
       ),
       // drawer: isMobile ? const AppDrawer() : null,
