@@ -53,11 +53,10 @@ class HomeContentWidget extends StatelessWidget {
   Widget _buildWebLayout(BuildContext context, bool isDesktop) {
     final maxWidth = isDesktop ? 1200.0 : 900.0;
 
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(isDesktop ? 32.0 : 24.0),
+    return SingleChildScrollView(
+      child : Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
