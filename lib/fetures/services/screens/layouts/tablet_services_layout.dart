@@ -1,13 +1,14 @@
 // lib/features/services/screens/layouts/tablet_services_layout.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/service_provider.dart';
 import 'package:trustedtallentsvalley/fetures/services/service_model.dart';
+import 'package:trustedtallentsvalley/fetures/services/widgets/service_card.dart';
 
 import '../../widgets/services_category_filter.dart';
-import '../../widgets/services_grid.dart';
 import '../../widgets/services_hero_section.dart';
 import 'base_services_layout.dart';
 
@@ -40,19 +41,26 @@ class TabletServicesLayout extends BaseServicesLayout {
   bool shouldShowDrawer() => false;
 
   @override
-  List<Widget> buildSlivers(
-      BuildContext context,
-      WidgetRef ref,
-      ServicesState servicesState,
-      List<ServiceModel> filteredServices
-      ) {
+  List<Widget> buildSlivers(BuildContext context, WidgetRef ref,
+      ServicesState servicesState, List<ServiceModel> filteredServices) {
     final categories = ref.watch(serviceCategoriesProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine cross axis count based on screen width
+    int crossAxisCount;
+    if (screenWidth > 900) {
+      crossAxisCount = 3;
+    } else if (screenWidth > 700) {
+      crossAxisCount = 2;
+    } else {
+      crossAxisCount = 2;
+    }
 
     return [
       // Hero section
       const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(20.0),
           child: ServicesHeroSection(isMobile: false),
         ),
       ),
@@ -61,7 +69,7 @@ class TabletServicesLayout extends BaseServicesLayout {
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: 24.0,
+            horizontal: 20.0,
             vertical: 8.0,
           ),
           child: Column(
@@ -87,8 +95,8 @@ class TabletServicesLayout extends BaseServicesLayout {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => const Center(
-                    child: Text('حدث خطأ أثناء تحميل التصنيفات')),
+                error: (error, _) =>
+                    const Center(child: Text('حدث خطأ أثناء تحميل التصنيفات')),
               ),
             ],
           ),
@@ -105,15 +113,21 @@ class TabletServicesLayout extends BaseServicesLayout {
           child: buildEmptyState(),
         )
       else
-      // Services grid
+        // Services staggered grid - cards size based on content
         SliverPadding(
-          padding: const EdgeInsets.all(24.0),
-          sliver: ServicesGrid(
-            services: filteredServices,
-            isMobile: false,
-            crossAxisCount: 2,
-            childAspectRatio: 1.2,
-            onServiceTap: (service) => navigateToServiceDetail(context, ref, service),
+          padding: const EdgeInsets.all(20.0),
+          sliver: SliverMasonryGrid.count(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childCount: filteredServices.length,
+            itemBuilder: (context, index) {
+              final service = filteredServices[index];
+              return ServiceCard(
+                service: service,
+                onTap: () => navigateToServiceDetail(context, ref, service),
+              );
+            },
           ),
         ),
 

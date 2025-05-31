@@ -22,14 +22,6 @@ class MobileServicesScreen extends ConsumerWidget {
     final filteredServices = ref.watch(filteredServicesProvider);
     final categories = ref.watch(serviceCategoriesProvider);
 
-    // Debug prints
-    debugPrint(
-        "Building MobileServicesScreen with ${filteredServices.length} filtered services");
-    debugPrint(
-        "Filter category: ${ref.watch(servicesProvider).categoryFilter}");
-    debugPrint(
-        "isActive services: ${filteredServices.where((s) => s.isActive).length}");
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
@@ -46,76 +38,100 @@ class MobileServicesScreen extends ConsumerWidget {
       drawer: const AppDrawer(),
       body: servicesState.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Hero section
-          const ServicesHeroSection(isMobile: true),
-          const SizedBox(height: 16),
-
-          // Search bar
-          SearchField(
-            onChanged: (value) {
-              ref.read(servicesProvider.notifier).setSearchQuery(value);
-            },
-            hintText: 'البحث في الخدمات المتوفرة...',
-          ),
-          const SizedBox(height: 16),
-
-          // Category filter
-          categories.when(
-            data: (categoryStrings) {
-              final serviceCategories = categoryStrings
-                  .map(ServiceCategoryExtension.fromString)
-                  .toList();
-              return ServicesCategoryFilter(
-                categories: serviceCategories,
-                isMobile: true,
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => const Center(
-                child: Text('حدث خطأ أثناء تحميل التصنيفات')),
-          ),
-          const SizedBox(height: 24),
-
-          // Error or empty state
-          if (servicesState.errorMessage != null)
-            Center(
-              child: Text(
-                servicesState.errorMessage!,
-                style: GoogleFonts.cairo(color: Colors.red),
-              ),
-            )
-          else if (filteredServices.isEmpty)
-            const ServicesEmptyState()
-          else
-          // List of services using ListView.builder
-            ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: filteredServices.length,
-              itemBuilder: (context, index) {
-                final service = filteredServices[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: ServiceTile(
-                    service: service,
-                    onTap: () => _navigateToServiceDetail(context, ref, service),
+          : CustomScrollView(
+              slivers: [
+                // Hero section
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: ServicesHeroSection(isMobile: true),
                   ),
-                );
-              },
-            ),
+                ),
 
-          // Bottom padding
-          const SizedBox(height: 100),
-        ],
-      ),
+                // Search bar
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SearchField(
+                      onChanged: (value) {
+                        ref
+                            .read(servicesProvider.notifier)
+                            .setSearchQuery(value);
+                      },
+                      hintText: 'البحث في الخدمات المتوفرة...',
+                    ),
+                  ),
+                ),
+
+                // Category filter
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: categories.when(
+                      data: (categoryStrings) {
+                        final serviceCategories = categoryStrings
+                            .map(ServiceCategoryExtension.fromString)
+                            .toList();
+                        return ServicesCategoryFilter(
+                          categories: serviceCategories,
+                          isMobile: true,
+                        );
+                      },
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, _) => const Center(
+                          child: Text('حدث خطأ أثناء تحميل التصنيفات')),
+                    ),
+                  ),
+                ),
+
+                // Error state
+                if (servicesState.errorMessage != null)
+                  SliverToBoxAdapter(
+                    child: _buildErrorMessage(servicesState.errorMessage!),
+                  )
+                // Empty state
+                else if (filteredServices.isEmpty)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: ServicesEmptyState(),
+                    ),
+                  )
+                // Services list
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final service = filteredServices[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: ServiceTile(
+                              service: service,
+                              onTap: () => _navigateToServiceDetail(
+                                  context, ref, service),
+                            ),
+                          );
+                        },
+                        childCount: filteredServices.length,
+                      ),
+                    ),
+                  ),
+
+                // Bottom padding
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100),
+                ),
+              ],
+            ),
     );
   }
 
   // Navigate to service detail
-  void _navigateToServiceDetail(BuildContext context, WidgetRef ref, ServiceModel service) {
+  void _navigateToServiceDetail(
+      BuildContext context, WidgetRef ref, ServiceModel service) {
     ref.read(servicesProvider.notifier).selectService(service);
     context.goNamed(
       ScreensNames.serviceDetail,
@@ -131,6 +147,7 @@ class MobileServicesScreen extends ConsumerWidget {
         child: Text(
           message,
           style: GoogleFonts.cairo(color: Colors.red),
+          textAlign: TextAlign.center,
         ),
       ),
     );

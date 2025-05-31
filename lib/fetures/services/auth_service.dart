@@ -573,7 +573,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       // If not an admin, check if user is a trusted user
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final userDoc =
+          await _firestore.collection('user_applications').doc(user.uid).get();
 
       if (userDoc.exists) {
         print('🔍 User found in users collection');
@@ -709,14 +710,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('  - Status: "$applicationStatus"');
       print('  - Email: ${applicationData['email']}');
       print('  - Full Name: ${applicationData['fullName']}');
-      print('  - Stored Password: ${applicationData['password']}');
-      print('  - Provided Password: $password');
-
-      // Check if application is rejected
-      if (applicationStatus.toLowerCase() == 'rejected') {
-        print('🔐 Application status is REJECTED');
-        throw Exception('تم رفض طلب التسجيل الخاص بك');
-      }
 
       // Verify password matches the one in application
       if (applicationData['password'] != password) {
@@ -727,12 +720,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       print('🔐 Password verification PASSED');
+      print('🔐 Application status: "$applicationStatus"');
 
-      // Check the exact status
-      print('🔐 Checking application status: "$applicationStatus"');
-      print('🔐 Status lowercase: "${applicationStatus.toLowerCase()}"');
-
-      // If approved, try Firebase Auth login
+      // Handle APPROVED users with Firebase Auth
       if (applicationStatus.toLowerCase() == 'approved') {
         print('🔐 Status is APPROVED - attempting Firebase Auth');
         try {
@@ -768,69 +758,80 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       }
 
-      // For pending applications
-      print('🔐 Status is NOT approved - treating as pending');
-      print('🔐 Preparing pending user state...');
+      // Handle ALL OTHER STATUSES (pending, rejected, etc.) - Allow access
+      print(
+          '🔐 Status is NOT approved - allowing dashboard access with status: $applicationStatus');
+      print('🔐 Preparing user state...');
 
-      // Create user data from application for pending users
-      final pendingUserData = {
+      // Create user data from application - works for any status
+      final userData = {
         'fullName': applicationData['fullName'],
         'email': applicationData['email'],
         'phoneNumber': applicationData['phoneNumber'],
         'additionalPhone': applicationData['additionalPhone'] ?? '',
         'serviceProvider': applicationData['serviceProvider'],
         'location': applicationData['location'],
-        'role': 'pending',
+        'role': _getRoleFromStatus(applicationStatus),
         'status': applicationStatus,
+        'adminComment': applicationData['adminComment'] ?? '',
       };
 
-      print('🔐 Pending user data created:');
-      print('  - Full Name: ${pendingUserData['fullName']}');
-      print('  - Email: ${pendingUserData['email']}');
-      print('  - Role: ${pendingUserData['role']}');
+      print('🔐 User data created:');
+      print('  - Full Name: ${userData['fullName']}');
+      print('  - Email: ${userData['email']}');
+      print('  - Status: ${userData['status']}');
+      print('  - Role: ${userData['role']}');
 
-      print('🔐 Current state BEFORE update: ${state.toString()}');
-
-      // Update state for pending user - USING YOUR UserRole.trusted
-      final newState = state.copyWith(
+      // Update state - ALL users get authenticated
+      state = state.copyWith(
         isLoading: false,
-        isAuthenticated: true,
-        role: UserRole.trusted, // Using YOUR enum value
-        isTrustedUser: true,
-        isApproved: false,
-        userData: pendingUserData,
+        isAuthenticated: true, // ✅ ALWAYS authenticate if password is correct
+        role: UserRole.trusted,
+        isTrustedUser: true, // ✅ ALWAYS mark as trusted user
+        isApproved: applicationStatus.toLowerCase() ==
+            'approved', // Only approved users get full access
+        userData: userData,
         applicationData: applicationData,
         userEmail: email,
-        error: null, // Clear any previous errors
+        error: null,
       );
 
-      state = newState;
-
       print('🔐 State AFTER update:');
-      print('  - isLoading: ${state.isLoading}');
-      print('  - isAuthenticated: ${state.isAuthenticated}');
-      print('  - role: ${state.role}');
-      print('  - isTrustedUser: ${state.isTrustedUser}');
-      print('  - isApproved: ${state.isApproved}');
-      print('  - userEmail: ${state.userEmail}');
-      print('  - userData != null: ${state.userData != null}');
-      print('  - applicationData != null: ${state.applicationData != null}');
-      print('  - error: ${state.error}');
+      print('  - isAuthenticated: ${state.isAuthenticated}'); // Should be true
+      print('  - isTrustedUser: ${state.isTrustedUser}'); // Should be true
+      print('  - isApproved: ${state.isApproved}'); // True only for approved
+      print('  - User status: ${userData['status']}');
 
       print('🔐 =================================');
       print('🔐 TRUSTED USER SIGN IN COMPLETED');
+      print('🔐 ✅ USER AUTHENTICATED - Dashboard access granted');
       print('🔐 =================================');
     } catch (e, stackTrace) {
       print('🔐 ❌ ERROR in signInTrustedUser:');
       print('🔐 Error type: ${e.runtimeType}');
       print('🔐 Error message: $e');
-      print('🔐 Stack trace: $stackTrace');
 
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
       rethrow;
+    }
+  }
+
+// Helper method to determine role based on status
+  String _getRoleFromStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return 'approved';
+      case 'rejected':
+        return 'rejected';
+      case 'in_progress':
+        return 'pending';
+      case 'needs_review':
+        return 'under_review';
+      default:
+        return 'pending';
     }
   }
 

@@ -31,26 +31,23 @@ class ServicesGrid extends StatelessWidget {
       final screenWidth = MediaQuery.of(context).size.width;
 
       if (screenWidth > 1200) {
-        debugPrint("Grid using screen width: $screenWidth");
         gridCrossAxisCount = 4;
-        gridChildAspectRatio = 1.2;
+        gridChildAspectRatio = 0.75; // Reduced from 1.1
       } else if (screenWidth > 900) {
-        debugPrint("Grid using screen width: $screenWidth");
         gridCrossAxisCount = 3;
-        gridChildAspectRatio = 1;
+        gridChildAspectRatio = 0.8; // Reduced from 1
       } else if (screenWidth > 700) {
         gridCrossAxisCount = 2;
-        gridChildAspectRatio = 1;
+        gridChildAspectRatio = 0.85; // Reduced from 1
       } else if (screenWidth > 600) {
-        debugPrint("Grid using screen width: $screenWidth");
         gridCrossAxisCount = 2;
-        gridChildAspectRatio = 1.2;
+        gridChildAspectRatio = 0.9; // Reduced from 1.2
       } else {
-        debugPrint("Grid using screen width: $screenWidth");
         gridCrossAxisCount = 1;
-        gridChildAspectRatio = 1.5;
+        gridChildAspectRatio = 1.2; // Reduced from 1.5
       }
     }
+
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: gridCrossAxisCount,
@@ -59,7 +56,7 @@ class ServicesGrid extends StatelessWidget {
         mainAxisSpacing: isMobile ? 12 : 16,
       ),
       delegate: SliverChildBuilderDelegate(
-            (context, index) {
+        (context, index) {
           final service = services[index];
           return ServiceCard(
             service: service,
@@ -71,3 +68,43 @@ class ServicesGrid extends StatelessWidget {
     );
   }
 }
+
+// Alternative approach using SliverMasonryGrid for better content-based sizing
+// Uncomment and use this if you want cards to size based on their content
+/*
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+
+class ServicesGrid extends StatelessWidget {
+  // ... same properties
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    int crossAxisCount;
+
+    if (screenWidth > 1200) {
+      crossAxisCount = 4;
+    } else if (screenWidth > 900) {
+      crossAxisCount = 3;
+    } else if (screenWidth > 600) {
+      crossAxisCount = 2;
+    } else {
+      crossAxisCount = 1;
+    }
+
+    return SliverMasonryGrid.count(
+      crossAxisCount: crossAxisCount,
+      crossAxisSpacing: isMobile ? 12 : 16,
+      mainAxisSpacing: isMobile ? 12 : 16,
+      childCount: services.length,
+      itemBuilder: (context, index) {
+        final service = services[index];
+        return ServiceCard(
+          service: service,
+          onTap: () => onServiceTap(service),
+        );
+      },
+    );
+  }
+}
+*/

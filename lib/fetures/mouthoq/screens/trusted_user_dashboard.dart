@@ -155,6 +155,21 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
     final size = MediaQuery.of(context).size;
     final authState = ref.watch(authProvider);
     final isApproved = authState.isApproved;
+    final userStatus = _userData?['status']?.toLowerCase() ?? '';
+    // Determine dashboard theme based on status
+    Color getAppBarColor() {
+      switch (userStatus) {
+        case 'approved':
+          return Colors.green.shade800;
+        case 'rejected':
+          return Colors.red.shade800;
+        case 'in_progress':
+        case 'needs_review':
+          return Colors.orange.shade800;
+        default:
+          return Colors.grey.shade800;
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -162,8 +177,7 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
           'لوحة تحكم الموثوق',
           style: GoogleFonts.cairo(color: Colors.white, fontSize: 18),
         ),
-        backgroundColor:
-            isApproved ? Colors.blue.shade800 : Colors.orange.shade800,
+        backgroundColor: getAppBarColor(),
         elevation: 0,
         centerTitle: true,
         actions: [

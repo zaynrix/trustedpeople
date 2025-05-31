@@ -16,9 +16,12 @@ class ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = service.isActive;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
     return Card(
-      elevation: 4,
+      elevation: 3,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -28,12 +31,13 @@ class ServiceCard extends StatelessWidget {
         onTap: isActive ? onTap : null,
         child: Stack(
           children: [
-            // Card content
+            // Card content - no height constraints for natural sizing
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min, // Important: Let content determine size
+                mainAxisSize:
+                    MainAxisSize.min, // KEY: Let content determine size
                 children: [
                   // Service icon and category
                   Row(
@@ -41,89 +45,109 @@ class ServiceCard extends StatelessWidget {
                       Icon(
                         _getCategoryIcon(service.category.toString()),
                         color: Colors.teal.shade600,
-                        size: 24,
+                        size: isMobile ? 18 : 20,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _getCategoryDisplayName(service.category.toString()),
-                        style: GoogleFonts.cairo(
-                          color: Colors.teal.shade600,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          _getCategoryDisplayName(service.category.toString()),
+                          style: GoogleFonts.cairo(
+                            color: Colors.teal.shade600,
+                            fontWeight: FontWeight.w500,
+                            fontSize: isMobile ? 11 : 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: isMobile ? 10 : 12),
 
                   // Service title
                   Text(
                     service.title,
                     style: GoogleFonts.cairo(
-                      fontSize: 18,
+                      fontSize: isMobile ? 14 : 16,
                       fontWeight: FontWeight.bold,
+                      height: 1.3,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: isMobile ? 8 : 10),
 
-                  // Service description
+                  // Service description - adaptive height
                   Text(
                     service.description,
                     style: GoogleFonts.cairo(
-                      fontSize: 14,
+                      fontSize: isMobile ? 12 : 13,
                       color: Colors.grey.shade700,
+                      height: 1.4,
                     ),
-                    maxLines: 3,
+                    maxLines: _getDescriptionMaxLines(screenWidth),
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: isMobile ? 12 : 16),
 
                   // Price and order button
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Price
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'السعر',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                      // Price section
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'السعر',
+                              style: GoogleFonts.cairo(
+                                fontSize: isMobile ? 10 : 11,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${service.price} \$',
-                            style: GoogleFonts.cairo(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal.shade700,
+                            const SizedBox(height: 2),
+                            Text(
+                              '${service.price} \$',
+                              style: GoogleFonts.cairo(
+                                fontSize: isMobile ? 13 : 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal.shade700,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
 
                       // Order button
-                      ElevatedButton(
-                        onPressed: isActive ? onTap : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                      Expanded(
+                        flex: 3,
+                        child: ElevatedButton(
+                          onPressed: isActive ? onTap : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade600,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 8 : 12,
+                              vertical: isMobile ? 6 : 8,
+                            ),
+                            minimumSize: Size(0, isMobile ? 32 : 36),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 1,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'اطلب الآن',
-                          style: GoogleFonts.cairo(
-                            fontWeight: FontWeight.w600,
+                          child: FittedBox(
+                            child: Text(
+                              'اطلب الآن',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w600,
+                                fontSize: isMobile ? 11 : 13,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -144,7 +168,7 @@ class ServiceCard extends StatelessWidget {
                       style: GoogleFonts.cairo(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: isMobile ? 14 : 16,
                       ),
                     ),
                   ),
@@ -154,6 +178,19 @@ class ServiceCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Adaptive description max lines based on screen size
+  int _getDescriptionMaxLines(double screenWidth) {
+    if (screenWidth < 600) {
+      return 2; // Mobile
+    } else if (screenWidth < 900) {
+      return 3; // Small tablet
+    } else if (screenWidth < 1200) {
+      return 3; // Large tablet
+    } else {
+      return 4; // Desktop
+    }
   }
 
   IconData _getCategoryIcon(String category) {
@@ -173,13 +210,12 @@ class ServiceCard extends StatelessWidget {
       case ServiceCategory.translation:
         return Icons.translate;
       case ServiceCategory.other:
-      default:
         return Icons.category;
     }
   }
 
   String _getCategoryDisplayName(String category) {
     final serviceCategory = ServiceCategoryExtension.fromString(category);
-    return serviceCategory?.displayName ?? category;
+    return serviceCategory.displayName ?? category;
   }
 }
