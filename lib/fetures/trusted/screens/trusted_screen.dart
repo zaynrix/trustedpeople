@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
-import 'package:trustedtallentsvalley/fetures/trusted/widgets/usersTable.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/screens/custom_trusted_users_screen.dart';
 
 // Provider for trusted users stream
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {

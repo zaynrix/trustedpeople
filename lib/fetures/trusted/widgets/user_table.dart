@@ -212,18 +212,20 @@ class UserTable extends ConsumerWidget {
                 flex: 1,
                 child: Center(
                   child: user.reviews.isNotEmpty
-                      ? Row(
-                          children: [
-                            const Icon(Icons.star,
-                                size: 16, color: Colors.amber),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(user.reviews,
+                      ? Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.star,
+                                  size: 16, color: Colors.amber),
+                              const SizedBox(width: 4),
+                              Text(user.reviews,
                                   style: GoogleFonts.cairo(),
                                   overflow: TextOverflow.ellipsis),
-                            ),
-                          ],
-                        )
+                            ],
+                          ),
+                      )
                       : Text('لا يوجد',
                           style: GoogleFonts.cairo(
                               color: Colors.grey.shade500, fontSize: 12)),
@@ -234,16 +236,19 @@ class UserTable extends ConsumerWidget {
               Expanded(
                 flex: 1,
                 child: Center(child:  user.telegramAccount.isNotEmpty
-                    ? Row(
-                        children: [
-                          const Icon(Icons.telegram,
-                              size: 16, color: Colors.blue),
-                          const SizedBox(width: 4),
-                          Text('متوفر',
-                              style: GoogleFonts.cairo(
-                                  color: Colors.blue.shade600, fontSize: 12)),
-                        ],
-                      )
+                    ? Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.telegram,
+                                size: 16, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text('متوفر',
+                                style: GoogleFonts.cairo(
+                                    color: Colors.blue.shade600, fontSize: 12)),
+                          ],
+                        ),
+                    )
                     : Text('غير متوفر',
                         style: GoogleFonts.cairo(
                             color: Colors.grey.shade500, fontSize: 12)),
