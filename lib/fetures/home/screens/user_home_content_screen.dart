@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/cards/feature_card.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/stats/stats_column.dart';
@@ -54,7 +55,7 @@ class HomeContentWidget extends StatelessWidget {
     final maxWidth = isDesktop ? 1200.0 : 900.0;
 
     return SingleChildScrollView(
-      child : Center(
+      child: Center(
         child: Container(
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: Column(
@@ -66,7 +67,7 @@ class HomeContentWidget extends StatelessWidget {
               const SizedBox(height: 48),
               _buildWebStatsSection(isDesktop),
               const SizedBox(height: 48),
-              _buildWebActivitySection(isDesktop, context),
+              WebActivitySection(isDesktop: isDesktop, ),
               const SizedBox(height: 48),
             ],
           ),
@@ -185,7 +186,7 @@ class HomeContentWidget extends StatelessWidget {
             FeatureCard(
               title: 'قائمة النصابين',
               description:
-                  'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
+              'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
               icon: Icons.block,
               color: Colors.red,
               routeName: ScreensNames.untrusted,
@@ -313,7 +314,7 @@ class HomeContentWidget extends StatelessWidget {
               children: [
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(25),
@@ -439,12 +440,12 @@ class HomeContentWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: isPrimary
             ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ]
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ]
             : null,
       ),
       child: ElevatedButton.icon(
@@ -516,7 +517,7 @@ class HomeContentWidget extends StatelessWidget {
             child: FeatureCard(
               title: 'قائمة النصابين',
               description:
-                  'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
+              'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
               icon: Icons.block,
               color: Colors.red,
               routeName: ScreensNames.untrusted,
@@ -553,7 +554,7 @@ class HomeContentWidget extends StatelessWidget {
                 child: FeatureCard(
                   title: 'قائمة النصابين',
                   description:
-                      'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
+                  'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
                   icon: Icons.block,
                   color: Colors.red,
                   routeName: ScreensNames.untrusted,
@@ -634,7 +635,20 @@ class HomeContentWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildWebActivitySection(bool isDesktop, context) {
+//   Widget _buildWebActivitySection(bool isDesktop, context) {
+//     return const WebActivitySection();
+//   }
+// }
+}
+class WebActivitySection extends StatelessWidget {
+  const WebActivitySection({
+    super.key,
+    required this.isDesktop
+  });
+
+  final bool isDesktop;
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -662,11 +676,9 @@ class HomeContentWidget extends StatelessWidget {
               ],
             ),
             OutlinedButton.icon(
-              onPressed: () {
-                context.pushNamed(ScreensNames.updates);
-
-                // Handle view all
-              },
+            onPressed: () {
+            context.pushNamed(ScreensNames.updates,);
+            },
               icon: const Icon(Icons.arrow_forward),
               label: Text(
                 'عرض الكل',
