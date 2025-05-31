@@ -24,7 +24,7 @@ class PaymentPlacesMobileView extends ConsumerWidget {
     final filterMode = ref.watch(placesFilterModeProvider);
 
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.only(top: 24.0, left: 12, right: 12),
       child: placesStream.when(
         data: (snapshot) {
           // Apply filtering
@@ -123,8 +123,8 @@ class PaymentPlacesMobileView extends ConsumerWidget {
                           return;
                         },
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                          // padding: const EdgeInsets.symmetric(
+                          //     horizontal: 8, vertical: 12),
                           itemCount: filteredPlaces.length,
                           itemBuilder: (context, index) {
                             final place = PaymentPlaceModel.fromFirestore(
