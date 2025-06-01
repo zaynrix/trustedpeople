@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
@@ -33,6 +34,19 @@ class _AppShellState extends ConsumerState<AppShell> {
     final isAdmin = ref.watch(isAdminProvider);
     final authState = ref.watch(authProvider);
 
+    // FIXED: Check if user is on secure routes (login, dashboard, etc.)
+    final currentLocation = GoRouterState.of(context).matchedLocation;
+    final isOnSecureRoute =
+        currentLocation.startsWith('/secure-trusted-895623/') ||
+            currentLocation.startsWith('/secure-admin-784512/');
+
+    // FIXED: If on secure routes, don't show navigation rail
+    if (isOnSecureRoute) {
+      return Scaffold(
+        body: widget.child,
+      );
+    }
+
     // If on mobile, use standard scaffold with drawer
     if (isMobile) {
       return Scaffold(
@@ -67,10 +81,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Get current route info for highlighting active item
     final location = GoRouterState.of(context).matchedLocation;
     final currentRouteName = GoRouterState.of(context).name;
-
-    // Debug output to identify current route
-    // debugPrint('Current location: $location');
-    // debugPrint('Current route name: $currentRouteName');
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -157,6 +167,24 @@ class _AppShellState extends ConsumerState<AppShell> {
                           ScreensNames.adminServiceRequests,
                           '/admin/service-requests'),
                     ),
+                    // FIXED: Add admin dashboard navigation
+                    _buildNavItem(
+                      context,
+                      Icons.dashboard,
+                      "لوحة تحكم الإدارة",
+                      'adminDashboard', // Route name for admin dashboard
+                      isActive:
+                          location.startsWith('/secure-admin-784512/dashboard'),
+                    ),
+                    // FIXED: Add user applications management
+                    _buildNavItem(
+                      context,
+                      Icons.people,
+                      "إدارة طلبات المستخدمين",
+                      ScreensNames.adminUserApplications,
+                      isActive: location.startsWith(
+                          '/secure-trusted-895623/user-applications'),
+                    ),
                   ],
 
                   _buildNavItem(
@@ -167,52 +195,114 @@ class _AppShellState extends ConsumerState<AppShell> {
                     isActive: _isRouteActive(currentRouteName, location,
                         ScreensNames.contactUs, ScreensNames.contactUsPath),
                   ),
+
+                  // FIXED: Add trusted user login/dashboard options
+                  if (!authState.isAuthenticated) ...[
+                    const Divider(),
+                    _buildNavItem(
+                      context,
+                      Icons.login,
+                      "تسجيل دخول المستخدمين",
+                      'trustedUserLogin',
+                      isActive: location == '/secure-trusted-895623/login',
+                    ),
+                    _buildNavItem(
+                      context,
+                      Icons.person_add,
+                      "تسجيل مستخدم جديد",
+                      'trustedUserRegister',
+                      isActive: location == '/secure-trusted-895623/register',
+                    ),
+                  ],
+
+                  // FIXED: Show trusted user dashboard if authenticated as trusted user
+                  if (authState.isAuthenticated &&
+                      authState.isTrustedUser &&
+                      !authState.isAdmin) ...[
+                    const Divider(),
+                    _buildNavItem(
+                      context,
+                      Icons.dashboard,
+                      "لوحة التحكم",
+                      'trustedUserDashboard',
+                      isActive: location ==
+                          '/secure-trusted-895623/trusted-dashboard',
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
 
           // Footer with expand/collapse button and logout
-          _buildLogoutButton(isAdmen: isAdmin),
+          _buildLogoutButton(authState: authState),
         ],
       ),
     );
   }
 
-  // Improved route matching logic
+  // FIXED: Updated route checking logic
   bool _isRouteActive(String? currentRouteName, String location,
       String routeName, String routePath) {
+    if (kDebugMode) {
+      print('🔍 Route check: $routeName');
+      print('  - Current name: $currentRouteName');
+      print('  - Current location: $location');
+      print('  - Target path: $routePath');
+    }
+
+    // FIXED: Don't mark any items as active if on secure routes
+    if (location.startsWith('/secure-trusted-895623/') ||
+        location.startsWith('/secure-admin-784512/')) {
+      return false;
+    }
+
     // Special case for home route
-    if (routeName == ScreensNames.home && location == '/') {
+    if (routeName == ScreensNames.home) {
+      bool isHomeActive = (currentRouteName == ScreensNames.home) ||
+          (location == '/' &&
+              (currentRouteName == null || currentRouteName == 'home'));
+      if (kDebugMode && isHomeActive) {
+        print('  ✅ Home route active');
+      }
+      return isHomeActive;
+    }
+
+    // Check if route names match exactly
+    if (currentRouteName != null && currentRouteName == routeName) {
+      if (kDebugMode) {
+        print('  ✅ Route name match: $routeName');
+      }
       return true;
     }
 
-    // Debug info when a potential match is found
-    if (currentRouteName == routeName ||
-        location == routePath ||
-        location.startsWith(routePath)) {
-      debugPrint('Match found for route: $routeName ($routePath)');
-      debugPrint('  Current name: $currentRouteName, Current path: $location');
-    }
-
-    // Check if route names match
-    if (currentRouteName == routeName) {
-      return true;
-    }
-
-    // Check if location matches the path
+    // Check if location matches the path exactly
     if (location == routePath) {
+      if (kDebugMode) {
+        print('  ✅ Path exact match: $routePath');
+      }
       return true;
     }
 
-    // For nested routes that start with the path
-    if (routePath != '/' && location.startsWith(routePath)) {
-      return true;
+    // For nested routes, check if location starts with path
+    // BUT exclude root path to prevent false matches
+    if (routePath != '/' &&
+        routePath.length > 1 &&
+        location.startsWith(routePath)) {
+      // Additional check: make sure it's a proper path segment match
+      String remainder = location.substring(routePath.length);
+      if (remainder.isEmpty || remainder.startsWith('/')) {
+        if (kDebugMode) {
+          print('  ✅ Nested route match: $routePath');
+        }
+        return true;
+      }
     }
 
     return false;
   }
 
+  // FIXED: Updated navigation method to handle secure routes properly
   Widget _buildNavItem(
     BuildContext context,
     IconData icon,
@@ -223,11 +313,52 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          // First trigger a rebuild to ensure UI updates
-          setState(() {});
-          // Navigate to the route using goNamed
-          context.goNamed(route);
+        onTap: () async {
+          try {
+            final currentLocation = GoRouterState.of(context).matchedLocation;
+            final currentRouteName = GoRouterState.of(context).name;
+
+            if (kDebugMode) {
+              print('🔄 Navigation attempt:');
+              print('  - From: $currentLocation (name: $currentRouteName)');
+              print('  - To: $route');
+            }
+
+            // Skip navigation if already on target route
+            bool alreadyOnRoute = false;
+
+            if (currentRouteName == route) {
+              alreadyOnRoute = true;
+            } else if (route == ScreensNames.home && currentLocation == '/') {
+              alreadyOnRoute = true;
+            }
+
+            if (alreadyOnRoute) {
+              if (kDebugMode) {
+                print('  ⏭️ Already on target route, skipping navigation');
+              }
+              return;
+            }
+
+            // Perform navigation
+            if (mounted && context.mounted) {
+              // FIXED: Use goNamed for route names, go for direct paths
+              if (route.startsWith('/')) {
+                context.go(route);
+              } else {
+                context.goNamed(route);
+              }
+
+              if (kDebugMode) {
+                print('  ✅ Navigation completed successfully');
+              }
+            }
+          } catch (e, stackTrace) {
+            if (kDebugMode) {
+              print('❌ Navigation error: $e');
+              print('Stack trace: $stackTrace');
+            }
+          }
         },
         child: Container(
           width: double.infinity,
@@ -242,9 +373,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 : null,
           ),
           child: _isRailExpanded
-              // Expanded item with icon and text
               ? Row(
-                  textDirection: TextDirection.rtl, // RTL for Arabic
+                  textDirection: TextDirection.rtl,
                   children: [
                     Icon(
                       icon,
@@ -266,7 +396,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ),
                   ],
                 )
-              // Collapsed item with just icon and indicator
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -276,7 +405,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                       size: 24,
                     ),
                     const SizedBox(height: 4),
-                    // Selection indicator
                     if (isActive)
                       Container(
                         width: 24,
@@ -338,7 +466,48 @@ class _AppShellState extends ConsumerState<AppShell> {
                     color: Colors.green, size: 18),
           ),
 
-        // Email badge if expanded
+        // FIXED: Show user info for trusted users too
+        if (authState.isAuthenticated &&
+            !isAdmin &&
+            authState.isTrustedUser &&
+            _isRailExpanded) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Text(
+              'مستخدم موثوق',
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                color: Colors.blue.shade800,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              authState.userData?['fullName'] ?? 'مستخدم',
+              style: GoogleFonts.cairo(
+                fontSize: 11,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
+
+        // Email badge if expanded and admin
         if (isAdmin && _isRailExpanded) ...[
           const SizedBox(height: 8),
           Container(
@@ -366,7 +535,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  Widget _buildLogoutButton({required bool isAdmen}) {
+  // FIXED: Updated logout button to handle both admin and trusted users
+  Widget _buildLogoutButton({required AuthState authState}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -383,7 +553,9 @@ class _AppShellState extends ConsumerState<AppShell> {
             },
             tooltip: _isRailExpanded ? 'تصغير' : 'توسيع',
           ),
-          if (isAdmen) ...[
+
+          // FIXED: Show logout for any authenticated user
+          if (authState.isAuthenticated) ...[
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.red),
               tooltip: 'تسجيل الخروج',

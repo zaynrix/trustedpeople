@@ -12,11 +12,11 @@ import '../../../core/utils/url_launcher_utils.dart';
 class UserDetailBottomSheet {
   /// Shows the user details in a modal bottom sheet, optimized for mobile view
   static void show(
-      BuildContext context,
-      UserModel user, {
-        VoidCallback? onEdit,
-        VoidCallback? onDelete,
-      }) {
+    BuildContext context,
+    UserModel user, {
+    VoidCallback? onEdit,
+    VoidCallback? onDelete,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Makes the bottom sheet expandable
@@ -36,7 +36,6 @@ class _UserDetailBottomSheetContent extends ConsumerWidget {
   final VoidCallback? onDelete;
 
   const _UserDetailBottomSheetContent({
-    super.key,
     required this.user,
     this.onEdit,
     this.onDelete,
@@ -105,7 +104,8 @@ class _UserDetailBottomSheetContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Color backgroundColor, Color borderColor) {
+  Widget _buildHeader(
+      BuildContext context, Color backgroundColor, Color borderColor) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       decoration: BoxDecoration(
@@ -328,7 +328,6 @@ class _UserDetailBottomSheetContent extends ConsumerWidget {
   Widget _buildReviewsCard() {
     // Parse the review value to determine rating level
     bool isHighlyRated = false;
-    double? rating;
 
     // Try to extract numerical rating
     if (user.reviews.contains('/')) {
@@ -341,7 +340,6 @@ class _UserDetailBottomSheetContent extends ConsumerWidget {
           final totalVal = double.tryParse(totalStr);
 
           if (ratingVal != null && totalVal != null) {
-            rating = ratingVal;
             isHighlyRated = (ratingVal / totalVal) >= 0.8; // 80% or higher
           }
         }
@@ -388,16 +386,19 @@ class _UserDetailBottomSheetContent extends ConsumerWidget {
                     ),
                     if (isHighlyRated) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.green.shade100,
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.green.shade300, width: 0.5),
+                          border: Border.all(
+                              color: Colors.green.shade300, width: 0.5),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.verified, size: 12, color: Colors.green.shade700),
+                            Icon(Icons.verified,
+                                size: 12, color: Colors.green.shade700),
                             const SizedBox(width: 4),
                             Text(
                               'موصى به',

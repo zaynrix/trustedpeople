@@ -64,7 +64,8 @@ class TrustedUserTile extends ConsumerWidget {
                         style: GoogleFonts.cairo(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isAdmin ? Colors.purple.shade700 : Colors.black87,
+                          color:
+                              isAdmin ? Colors.purple.shade700 : Colors.black87,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -78,7 +79,8 @@ class TrustedUserTile extends ConsumerWidget {
                 // Info rows
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.grey.shade700),
+                    Icon(Icons.location_on,
+                        size: 14, color: Colors.grey.shade700),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -94,8 +96,7 @@ class TrustedUserTile extends ConsumerWidget {
                 ),
 
                 // Reviews row
-                if (user.reviews.isNotEmpty)
-                  _buildReviewsSection(user.reviews),
+                if (user.reviews.isNotEmpty) _buildReviewsSection(user.reviews),
 
                 const SizedBox(height: 12),
 
@@ -113,9 +114,11 @@ class TrustedUserTile extends ConsumerWidget {
                       child: OutlinedButton.icon(
                         onPressed: onTap,
                         icon: const Icon(Icons.visibility_outlined, size: 14),
-                        label: Text('عرض التفاصيل', style: GoogleFonts.cairo(fontSize: 12)),
+                        label: Text('عرض التفاصيل',
+                            style: GoogleFonts.cairo(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 6, horizontal: 10),
                           minimumSize: const Size(0, 32),
                           side: BorderSide(color: theme.primaryColor),
                           shape: RoundedRectangleBorder(
@@ -170,7 +173,8 @@ class TrustedUserTile extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => ClipboardUtils.copyToClipboard(context, user.mobileNumber),
+                      onTap: () => ClipboardUtils.copyToClipboard(
+                          context, user.mobileNumber),
                       child: Row(
                         children: [
                           Expanded(
@@ -185,7 +189,8 @@ class TrustedUserTile extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Icon(Icons.content_copy, size: 12, color: Colors.green.shade700),
+                          Icon(Icons.content_copy,
+                              size: 12, color: Colors.green.shade700),
                         ],
                       ),
                     ),
@@ -224,7 +229,6 @@ class TrustedUserTile extends ConsumerWidget {
   Widget _buildReviewsSection(String reviews) {
     // Parse the review value to determine rating level
     bool isHighlyRated = false;
-    double? rating;
 
     // Try to extract numerical rating
     if (reviews.contains('/')) {
@@ -237,7 +241,6 @@ class TrustedUserTile extends ConsumerWidget {
           final totalVal = double.tryParse(totalStr);
 
           if (ratingVal != null && totalVal != null) {
-            rating = ratingVal;
             isHighlyRated = (ratingVal / totalVal) >= 0.8; // 80% or higher
           }
         }
@@ -282,7 +285,8 @@ class TrustedUserTile extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.verified, size: 12, color: Colors.green.shade700),
+                    Icon(Icons.verified,
+                        size: 12, color: Colors.green.shade700),
                     const SizedBox(width: 4),
                     Text(
                       'موصى به',

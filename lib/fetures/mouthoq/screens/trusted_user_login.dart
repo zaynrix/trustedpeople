@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
+// Fixed AuthNavigationListener - Replace in your login screen
 class AuthNavigationListener extends ConsumerWidget {
   final Widget child;
 
@@ -15,38 +16,53 @@ class AuthNavigationListener extends ConsumerWidget {
     // Listen to auth state changes
     ref.listen<AuthState>(authProvider, (previous, current) {
       print('🎯 Auth state changed:');
-      print('  Previous: ${previous?.toString()}');
-      print('  Current: ${current.toString()}');
+      print(
+          '  Previous: isAuth=${previous?.isAuthenticated}, isTrusted=${previous?.isTrustedUser}');
+      print(
+          '  Current: isAuth=${current.isAuthenticated}, isTrusted=${current.isTrustedUser}');
 
-      // Only navigate if we just became authenticated and we're a trusted user
+      // Only navigate if user just became authenticated as trusted user
       if (previous != null &&
           !previous.isAuthenticated &&
           current.isAuthenticated &&
-          current.isTrustedUser) {
+          current.isTrustedUser &&
+          !current.isLoading) {
         print(
             '🎯 User just authenticated as trusted user - scheduling navigation');
 
-        // Use post frame callback to ensure navigation happens after build
+        // Use addPostFrameCallback to ensure navigation happens after build
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Double-check context is still valid
           try {
             if (context.mounted) {
               final currentRoute = GoRouterState.of(context).uri.toString();
-              print('🎯 Current route: $currentRoute');
+              print('🎯 Current route before navigation: $currentRoute');
 
-              // Only navigate if we're still on the login page
+              // Only navigate if we're on the login page
               if (currentRoute == '/secure-trusted-895623/login') {
-                print('🎯 Executing navigation to dashboard');
-                context.go('/secure-trusted-895623/trusted-dashboard');
-                print('🎯 Navigation completed');
+                print('🎯 🚀 Navigating to dashboard...');
+
+                // Use pushReplacement to prevent back navigation to login
+                context.pushReplacement(
+                    '/secure-trusted-895623/trusted-dashboard');
+
+                print('🎯 ✅ Navigation to dashboard completed');
               } else {
-                print('🎯 Already navigated away from login page');
+                print('🎯 ⚠️ Not on login page, skipping navigation');
               }
             } else {
-              print('🎯 Context no longer mounted - navigation not needed');
+              print('🎯 ❌ Context not mounted, skipping navigation');
             }
           } catch (e) {
-            print('🎯 Navigation error (this is usually harmless): $e');
+            print('🎯 ❌ Navigation error: $e');
+            // Fallback: try using go instead of pushReplacement
+            try {
+              if (context.mounted) {
+                context.go('/secure-trusted-895623/trusted-dashboard');
+                print('🎯 ✅ Fallback navigation successful');
+              }
+            } catch (fallbackError) {
+              print('🎯 ❌ Fallback navigation also failed: $fallbackError');
+            }
           }
         });
       } else if (previous != null &&
@@ -54,6 +70,18 @@ class AuthNavigationListener extends ConsumerWidget {
           !current.isAuthenticated) {
         // User logged out
         print('🎯 User logged out');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            context.go('/secure-trusted-895623/login');
+          }
+        });
+      } else {
+        print('🎯 No navigation needed:');
+        print('  - Previous null: ${previous == null}');
+        print('  - Was authenticated: ${previous?.isAuthenticated ?? false}');
+        print('  - Is authenticated: ${current.isAuthenticated}');
+        print('  - Is trusted: ${current.isTrustedUser}');
+        print('  - Is loading: ${current.isLoading}');
       }
     });
 
@@ -85,119 +113,10 @@ class _TrustedUserLoginScreenState
     super.dispose();
   }
 
-  // Future<void> _login() async {
-  //   if (_formKey.currentState?.validate() ?? false) {
-  //     setState(() {
-  //       _isLoading = true;
-  //       _errorMessage = null;
-  //     });
-  //
-  //     try {
-  //       print('🔐 ========================================');
-  //       print('🔐 LOGIN SCREEN: Starting login process');
-  //       print('🔐 ========================================');
-  //       print('🔐 Email: ${_emailController.text.trim()}');
-  //
-  //       final authNotifier = ref.read(authProvider.notifier);
-  //
-  //       // Use the new signInTrustedUser method
-  //       await authNotifier.signInTrustedUser(
-  //         _emailController.text.trim(),
-  //         _passwordController.text,
-  //       );
-  //
-  //       print('🔐 signInTrustedUser method completed');
-  //
-  //       // Check if widget is still mounted before proceeding
-  //       if (!mounted) {
-  //         print('🔐 Widget disposed during login, stopping...');
-  //         return;
-  //       }
-  //
-  //       // Wait a moment for state to update
-  //       await Future.delayed(const Duration(milliseconds: 100));
-  //
-  //       // Check if still mounted after delay
-  //       if (!mounted) {
-  //         print('🔐 Widget disposed after delay, stopping...');
-  //         return;
-  //       }
-  //
-  //       // Check if login was successful
-  //       final authState = ref.read(authProvider);
-  //
-  //       print('🔐 ========================================');
-  //       print('🔐 AUTH STATE AFTER LOGIN:');
-  //       print('🔐 ========================================');
-  //       print('🔐 isAuthenticated: ${authState.isAuthenticated}');
-  //       print('🔐 isTrustedUser: ${authState.isTrustedUser}');
-  //       print('🔐 isApproved: ${authState.isApproved}');
-  //       print('🔐 isAdmin: ${authState.isAdmin}');
-  //
-  //       // Check for successful trusted user login (both approved and pending)
-  //       if (authState.isAuthenticated && authState.isTrustedUser) {
-  //         print('🔐 ✅ LOGIN SUCCESS - Navigating to dashboard...');
-  //
-  //         // Navigate FIRST, then update state
-  //         print(
-  //             '🔐 Executing navigation to: /secure-trusted-895623/trusted-dashboard');
-  //         context.go('/secure-trusted-895623/trusted-dashboard');
-  //         print('🔐 Navigation command sent');
-  //
-  //         // Only set state if still mounted
-  //         if (mounted) {
-  //           setState(() {
-  //             _isLoading = false;
-  //           });
-  //         }
-  //         return;
-  //       }
-  //
-  //       // Check if admin tried to login via trusted user login
-  //       if (authState.isAuthenticated && authState.isAdmin) {
-  //         print('🔐 ❌ Admin tried to login via trusted user login');
-  //
-  //         // Sign out the admin first
-  //         await authNotifier.signOut();
-  //
-  //         // Only set state if still mounted
-  //         if (mounted) {
-  //           setState(() {
-  //             _errorMessage = 'هذا حساب إداري، يرجى استخدام تسجيل دخول الإدارة';
-  //             _isLoading = false;
-  //           });
-  //         }
-  //         return;
-  //       }
-  //
-  //       // If we reach here, something went wrong
-  //       print('🔐 ❌ LOGIN FAILED - Unexpected state');
-  //
-  //       // Only set state if still mounted
-  //       if (mounted) {
-  //         setState(() {
-  //           _errorMessage = 'فشل تسجيل الدخول، يرجى التحقق من بياناتك';
-  //           _isLoading = false;
-  //         });
-  //       }
-  //     } catch (e, stackTrace) {
-  //       print('🔐 ❌ LOGIN ERROR:');
-  //       print('🔐 Error: $e');
-  //
-  //       // Only set state if still mounted
-  //       if (mounted) {
-  //         setState(() {
-  //           _errorMessage = 'حدث خطأ أثناء تسجيل الدخول: ${e.toString()}';
-  //           _isLoading = false;
-  //         });
-  //       }
-  //     }
-  //   } else {
-  //     print('🔐 ❌ Form validation failed');
-  //   }
-  // }
-
+// Replace your _login method in TrustedUserLoginScreen with this:
   Future<void> _login() async {
+    // context.pushReplacement('/secure-trusted-895623/trusted-dashboard');
+
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
@@ -212,42 +131,58 @@ class _TrustedUserLoginScreenState
 
         final authNotifier = ref.read(authProvider.notifier);
 
-        // Just do the authentication
+        // Perform the authentication
         await authNotifier.signInTrustedUser(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+            _emailController.text.trim(), _passwordController.text);
 
         print('🔐 signInTrustedUser completed');
 
-        // Check if widget is still mounted before accessing ref
+        // Check if widget is still mounted before proceeding
         if (!mounted) {
-          print('🔐 Widget disposed after successful login - this is normal');
+          print('🔐 Widget disposed after login attempt');
           return;
         }
 
-        // Check for auth errors only if widget is still mounted
-        try {
-          final authState = ref.read(authProvider);
-          if (authState.error != null) {
-            throw Exception(authState.error);
-          }
-          print('🔐 Auth state check successful');
-        } catch (e) {
-          if (e.toString().contains('Cannot use "ref"')) {
-            print(
-                '🔐 Widget disposed - login was successful, navigation handled by listener');
-            return;
-          }
-          rethrow;
+        // Check the auth state after login
+        final authState = ref.read(authProvider);
+        print('🔐 Post-login auth state:');
+        print('  - isAuthenticated: ${authState.isAuthenticated}');
+        print('  - isTrustedUser: ${authState.isTrustedUser}');
+        print('  - isLoading: ${authState.isLoading}');
+        print('  - error: ${authState.error}');
+
+        // Check for auth errors
+        if (authState.error != null) {
+          throw Exception(authState.error);
         }
 
-        // Update loading state only if still mounted
-        if (mounted) {
+        // If authentication was successful, navigate immediately
+        if (authState.isAuthenticated) {
+          print('🔐 ✅ Login successful - navigating to dashboard');
+
+          // Update UI state
           setState(() {
             _isLoading = false;
           });
-          print('🔐 Login completed successfully');
+
+          // Navigate to dashboard immediately (don't rely only on listener)
+          if (mounted) {
+            // Use a small delay to ensure the state is fully updated
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (mounted) {
+                print('🔐 🚀 Direct navigation to dashboard');
+                context.pushReplacement(
+                    '/secure-trusted-895623/trusted-dashboard');
+                print('🔐 ✅ Direct navigation completed');
+              }
+            });
+          }
+        } else {
+          // Authentication failed
+          setState(() {
+            _errorMessage = 'فشل في تسجيل الدخول. تحقق من بيانات الاعتماد.';
+            _isLoading = false;
+          });
         }
       } catch (e) {
         print('🔐 ❌ LOGIN ERROR: $e');
@@ -259,8 +194,7 @@ class _TrustedUserLoginScreenState
             _isLoading = false;
           });
         } else {
-          print(
-              '🔐 Widget disposed during error handling - login may have been successful');
+          print('🔐 Widget disposed during error handling');
         }
       }
     }
@@ -273,13 +207,11 @@ class _TrustedUserLoginScreenState
     final isTablet = size.width >= 768 && size.width < 1024;
     final isDesktop = size.width >= 1024;
 
-    return AuthNavigationListener(
-      child: Scaffold(
-        appBar: _buildAppBar(context, isMobile),
-        body: isMobile
-            ? _buildMobileLayout(context)
-            : _buildWebLayout(context, isDesktop),
-      ),
+    return Scaffold(
+      appBar: _buildAppBar(context, isMobile),
+      body: isMobile
+          ? _buildMobileLayout(context)
+          : _buildWebLayout(context, isDesktop),
     );
   }
 
@@ -655,7 +587,7 @@ class _TrustedUserLoginScreenState
           ? Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
+                const SizedBox(
                   height: 18,
                   width: 18,
                   child: CircularProgressIndicator(

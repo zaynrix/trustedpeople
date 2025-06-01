@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // User roles
@@ -426,8 +426,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       // Step 4: Sign out
-      await _auth.signOut();
-      state = AuthState();
+      // await _auth.signOut();
+      // state = AuthState();
 
       print('🧪 =================================');
       print('🧪 LOGIN TEST COMPLETED');
@@ -437,8 +437,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // Try to sign out in case of partial success
       try {
-        await _auth.signOut();
-        state = AuthState();
+        // await _auth.signOut();
+        // state = AuthState();
       } catch (signOutError) {
         print('🧪 Error during sign out: $signOutError');
       }
@@ -674,7 +674,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// Corrected signInTrustedUser method using your UserRole enum
+// UPDATED: signInTrustedUser method - Remove context parameter
   Future<void> signInTrustedUser(String email, String password) async {
     try {
       print('🔐 =================================');
@@ -735,7 +735,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           print('🔐 User UID: ${credential.user?.uid}');
 
           // Let the auth state listener handle the rest via _fetchUserData
-          return; // _fetchUserData will be called by the auth listener
+          return;
         } catch (e) {
           print('🔐 Firebase Auth failed: $e');
           if (e is FirebaseAuthException && e.code == 'user-not-found') {
@@ -752,13 +752,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
             );
 
             print('🔐 Second login attempt successful');
-            return; // _fetchUserData will be called by the auth listener
+            return; // Navigation handled by redirect
           }
           throw Exception('حدث خطأ في النظام، يرجى التواصل مع الإدارة');
         }
       }
 
-      // Handle ALL OTHER STATUSES (pending, rejected, etc.) - Allow access
+      // Handle ALL OTHER STATUSES (pending, rejected, etc.) - Allow access but no Firebase Auth
       print(
           '🔐 Status is NOT approved - allowing dashboard access with status: $applicationStatus');
       print('🔐 Preparing user state...');
@@ -819,19 +819,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// Helper method to determine role based on status
-  String _getRoleFromStatus(String status) {
+// Helper method to get role from status
+  UserRole _getRoleFromStatus(String status) {
     switch (status.toLowerCase()) {
       case 'approved':
-        return 'approved';
-      case 'rejected':
-        return 'rejected';
+        return UserRole.trusted;
+      case 'pending':
       case 'in_progress':
-        return 'pending';
-      case 'needs_review':
-        return 'under_review';
+        return UserRole.trusted; // Still trusted, just not approved
+      case 'rejected':
+        return UserRole.common;
       default:
-        return 'pending';
+        return UserRole.common;
     }
   }
 
@@ -894,8 +893,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Registration method for trusted users
-// Updated registration method - no changes needed, but shown for completeness
+// UPDATED: Registration method - Remove context parameter
   Future<void> registerUser({
     required String fullName,
     required String email,
@@ -906,7 +904,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String location,
   }) async {
     try {
+      print('📝 ========================================');
+      print('📝 STARTING USER REGISTRATION');
+      print('📝 ========================================');
+
       state = state.copyWith(isLoading: true, error: null);
+
+      print('📝 Email: $email');
+      print('📝 Full Name: $fullName');
 
       // Check if email is already registered
       final existingApplication = await _firestore
@@ -915,10 +920,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .get();
 
       if (existingApplication.docs.isNotEmpty) {
+        print('📝 ❌ Email already exists');
         throw Exception('البريد الإلكتروني مسجل مسبقاً');
       }
 
-      // Create application document
+      // Create application document with ALL required fields
       final applicationData = {
         'fullName': fullName,
         'email': email.toLowerCase(),
@@ -927,20 +933,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'additionalPhone': additionalPhone ?? '',
         'serviceProvider': serviceProvider,
         'location': location,
-        'status': 'in_progress',
-        'adminComment': '',
+        'status': 'pending', // Initial status for new registrations
+        'adminComment': '', // Empty initially, admin can add comments later
+        'isApproved': false, // Not approved initially
+        'isActive': true, // Account is active for login
+        'role': 'trusted', // Default role for trusted users
+        'applicationId': '', // Will be updated with document ID
+        'firebaseUid':
+            '', // Empty until admin approves and Firebase account is created
+        'accountCreated': false, // Firebase account not created yet
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
+        'submittedAt':
+            FieldValue.serverTimestamp(), // When user submitted the application
+        'reviewedAt': null, // When admin reviewed (null initially)
+        'reviewedBy': '', // Admin who reviewed (empty initially)
+        'lastLoginAt': null, // Track last login time
+        'profileCompleted':
+            true, // All required fields filled during registration
+        'emailVerified': false, // Email verification status
+        'phoneVerified': false, // Phone verification status
+        'documentsSubmitted': false, // If any documents were required/submitted
+        'applicationNotes': '', // Internal notes for the application
+        'rejectionReason': '', // Reason if application gets rejected
+        'approvalDate': null, // Date when approved
+        'version': '1.0', // Version of the application structure
       };
 
+      print('📝 Creating application document...');
       final docRef =
           await _firestore.collection('user_applications').add(applicationData);
 
-      // Update with document ID
-      await docRef.update({'uid': docRef.id});
+      // Update with document ID in the applicationId field
+      await docRef.update({
+        'uid': docRef.id, // Keep existing uid field for compatibility
+        'applicationId': docRef.id, // Add proper applicationId field
+      });
+
+      print('📝 ✅ Application created successfully');
+      print('📝 Document ID: ${docRef.id}');
 
       state = state.copyWith(isLoading: false);
+
+      print('📝 ========================================');
+      print('📝 USER REGISTRATION COMPLETED');
+      print('📝 ========================================');
     } catch (e) {
+      print('📝 ❌ REGISTRATION ERROR: $e');
       state = state.copyWith(
         error: e.toString(),
         isLoading: false,
@@ -949,57 +988,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// Enhanced method to get all applications with better error handling
   Future<List<Map<String, dynamic>>> getAllUserApplications() async {
     try {
-      print('🔧 Admin: Fetching all user applications...');
+      print('🔧 Admin: Loading all user applications');
 
-      final applications = await _firestore
+      final querySnapshot = await _firestore
           .collection('user_applications')
           .orderBy('createdAt', descending: true)
           .get();
 
-      print('🔧 Admin: Found ${applications.docs.length} applications');
-
-      final result = applications.docs.map((doc) {
+      final applications = querySnapshot.docs.map((doc) {
         final data = doc.data();
-
-        // Add document ID to the data
-        data['id'] = doc.id;
-
-        // Convert Firestore timestamps to strings
-        if (data['createdAt'] != null) {
-          try {
-            data['createdAt'] =
-                (data['createdAt'] as Timestamp).toDate().toIso8601String();
-          } catch (e) {
-            print('🔧 Error converting createdAt timestamp: $e');
-            data['createdAt'] = 'غير محدد';
-          }
-        }
-        if (data['updatedAt'] != null) {
-          try {
-            data['updatedAt'] =
-                (data['updatedAt'] as Timestamp).toDate().toIso8601String();
-          } catch (e) {
-            print('🔧 Error converting updatedAt timestamp: $e');
-            data['updatedAt'] = 'غير محدد';
-          }
-        }
-
+        data['documentId'] = doc.id; // Add the Firestore document ID
         return data;
       }).toList();
 
-      print('🔧 Admin: Applications processed successfully');
-      return result;
-    } catch (e, stackTrace) {
-      print('🔧 Admin: Error fetching applications: $e');
-      print('🔧 Stack trace: $stackTrace');
-      rethrow;
+      print('🔧 Admin: Loaded ${applications.length} applications');
+      return applications;
+    } catch (e) {
+      print('🔧 Admin: Error loading applications: $e');
+      throw e;
     }
   }
 
-// Admin method: Update application status with better error handling
+// Enhanced version of your updateUserApplicationStatus method
   Future<void> updateUserApplicationStatus(String applicationId, String status,
       {String? comment}) async {
     try {
@@ -1008,20 +1020,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('  - New Status: $status');
       print('  - Comment: $comment');
 
-      // First, update the application status
+      // Check if document exists first
+      final docRef = _firestore.collection('user_applications').doc(applicationId);
+      final docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        throw Exception('Application document not found with ID: $applicationId');
+      }
+
+      print('🔧 Admin: Document exists, proceeding with update');
+
+      // Prepare update data
       final updateData = {
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      if (comment != null) {
+      if (comment != null && comment.isNotEmpty) {
         updateData['adminComment'] = comment;
       }
 
-      await _firestore
-          .collection('user_applications')
-          .doc(applicationId)
-          .update(updateData);
+      // Add reviewer info if available
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        updateData['reviewedBy'] = currentUser.uid;
+        updateData['reviewedAt'] = FieldValue.serverTimestamp();
+      }
+
+      print('🔧 Admin: Update data: $updateData');
+
+      // Perform the update
+      await docRef.update(updateData);
 
       print('🔧 Admin: Application status updated successfully');
 
@@ -1038,7 +1067,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       rethrow;
     }
   }
-
 // Improved method to create Firebase Auth account for approved users
   Future<void> _createApprovedUserAccount(String applicationId) async {
     try {
@@ -1120,11 +1148,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       }
 
-      if (userCredential?.user == null) {
+      if (userCredential.user == null) {
         throw Exception('فشل في إنشاء أو الوصول للحساب');
       }
 
-      final user = userCredential!.user!;
+      final user = userCredential.user!;
 
       // Update display name
       try {

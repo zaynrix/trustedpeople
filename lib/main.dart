@@ -5,8 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_web_plugins/url_strategy.dart'; // Add this import
 import 'package:go_router/go_router.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import "package:intl/date_symbol_data_local.dart";
 import 'package:trustedtallentsvalley/config/app_config.dart';
 import 'package:trustedtallentsvalley/core/theme/app_theme.dart';
 import 'package:trustedtallentsvalley/core/utils/notification_helper.dart';
@@ -26,6 +27,8 @@ final isUserBlockedProvider = StateProvider<bool>((ref) => false);
 final notificationsEnabledProvider = StateProvider<bool>((ref) => true);
 
 void main() async {
+  usePathUrlStrategy();
+
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar', null);
 

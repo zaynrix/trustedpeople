@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/theme/app_colors.dart';
-import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/desktop_users_view.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/mobile_users_view.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/sideBarWidget.dart';
-import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/tablet_users_view.dart';
 
 class UsersListScreen extends ConsumerWidget {
@@ -35,9 +34,6 @@ class UsersListScreen extends ConsumerWidget {
     final isTablet = screenSize.width >= 768 && screenSize.width < 1200;
     final isLoading = ref.watch(isLoadingProvider);
     final isAdmin = ref.watch(isAdminProvider);
-    final showSideBar = ref.watch(showSideBarProvider);
-    final selectedUser = ref.watch(selectedUserProvider);
-    final homeNotifier = ref.read(homeProvider.notifier);
 
     debugPrint("this truested ${trustedUsersStreamProvider.name}");
 
@@ -48,20 +44,21 @@ class UsersListScreen extends ConsumerWidget {
           : _buildMainContent(context, ref, isMobile, isTablet),
       floatingActionButton: isAdmin
           ? FloatingActionButton(
-        backgroundColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
-        onPressed: () => AddUserDialog.show(context, ref),
-        child: const Icon(Icons.add),
-      )
+              backgroundColor:
+                  isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
+              onPressed: () => AddUserDialog.show(context, ref),
+              child: const Icon(Icons.add),
+            )
           : null,
     );
   }
 
   Widget _buildMainContent(
-      BuildContext context,
-      WidgetRef ref,
-      bool isMobile,
-      bool isTablet,
-      ) {
+    BuildContext context,
+    WidgetRef ref,
+    bool isMobile,
+    bool isTablet,
+  ) {
     // Handle error messages
     final errorMessage = ref.watch(errorMessageProvider);
     if (errorMessage != null) {
@@ -77,7 +74,8 @@ class UsersListScreen extends ConsumerWidget {
 
     return usersStream.when(
       data: (snapshot) {
-        debugPrint('UsersListScreen: Received ${snapshot.docs.length} documents');
+        debugPrint(
+            'UsersListScreen: Received ${snapshot.docs.length} documents');
 
         // Convert documents to UserModel list
         List<UserModel> allUsers = [];
@@ -90,7 +88,8 @@ class UsersListScreen extends ConsumerWidget {
           }
         }
 
-        debugPrint('UsersListScreen: Successfully converted ${allUsers.length} users');
+        debugPrint(
+            'UsersListScreen: Successfully converted ${allUsers.length} users');
 
         // Apply filters and sorting
         final filteredUsers = _getFilteredUsers(ref, allUsers);
@@ -102,7 +101,8 @@ class UsersListScreen extends ConsumerWidget {
             children: [
               // Debug info (remove in production)
               if (ref.watch(isAdminProvider))
-                _buildDebugInfo(ref, snapshot.docs.length, filteredUsers.length),
+                _buildDebugInfo(
+                    ref, snapshot.docs.length, filteredUsers.length),
 
               // Content based on screen size
               Expanded(
@@ -117,18 +117,22 @@ class UsersListScreen extends ConsumerWidget {
                           Expanded(
                             child: isMobile
                                 ? MobileUsersView(
-                              filteredUsers: filteredUsers,
-                              primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
-                            )
+                                    filteredUsers: filteredUsers,
+                                    primaryColor: isTrusted
+                                        ? AppColors.trustedColor
+                                        : AppColors.unTrustedColor,
+                                  )
                                 : isTablet
-                                ? TabletUsersView(
-                              filteredUsers: filteredUsers,
-                              primaryColor: isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
-                            )
-                                : DesktopUsersView(
-                              filteredUsers: filteredUsers,
-                              isTrusted: isTrusted,
-                            ),
+                                    ? TabletUsersView(
+                                        filteredUsers: filteredUsers,
+                                        primaryColor: isTrusted
+                                            ? AppColors.trustedColor
+                                            : AppColors.unTrustedColor,
+                                      )
+                                    : DesktopUsersView(
+                                        filteredUsers: filteredUsers,
+                                        isTrusted: isTrusted,
+                                      ),
                           ),
 
                           // Footer stats
@@ -142,11 +146,13 @@ class UsersListScreen extends ConsumerWidget {
                     ),
 
                     // Sidebar
-                    if (ref.watch(showSideBarProvider) && ref.watch(selectedUserProvider) != null) ...[
+                    if (ref.watch(showSideBarProvider) &&
+                        ref.watch(selectedUserProvider) != null) ...[
                       const SizedBox(width: 24),
                       UserDetailSidebar(
                         user: ref.watch(selectedUserProvider)!,
-                        onClose: () => ref.read(homeProvider.notifier).closeBar(),
+                        onClose: () =>
+                            ref.read(homeProvider.notifier).closeBar(),
                         onEdit: () => EditUserDialog.show(
                             context, ref, ref.watch(selectedUserProvider)!),
                         onDelete: () => DeleteUserDialog.show(
@@ -170,7 +176,9 @@ class UsersListScreen extends ConsumerWidget {
     final pageSize = ref.watch(pageSizeProvider);
     final totalPages = (filteredCount / pageSize).ceil();
     final displayedCount = pageSize < filteredCount
-        ? (currentPage * pageSize < filteredCount ? pageSize : filteredCount % pageSize)
+        ? (currentPage * pageSize < filteredCount
+            ? pageSize
+            : filteredCount % pageSize)
         : filteredCount;
 
     return Container(
@@ -246,7 +254,9 @@ class UsersListScreen extends ConsumerWidget {
           return user.telegramAccount.isEmpty;
         case FilterMode.byLocation:
           if (locationFilter == null || locationFilter.isEmpty) return true;
-          return user.location.toLowerCase().contains(locationFilter.toLowerCase());
+          return user.location
+              .toLowerCase()
+              .contains(locationFilter.toLowerCase());
       }
     }).toList();
 

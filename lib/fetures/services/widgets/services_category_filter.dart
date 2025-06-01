@@ -78,7 +78,7 @@ class ServicesCategoryFilter extends ConsumerWidget {
                   'جميع التصنيفات',
                   style: GoogleFonts.cairo(
                     fontWeight:
-                    selectedCategory == null ? FontWeight.bold : null,
+                        selectedCategory == null ? FontWeight.bold : null,
                     color: selectedCategory == null
                         ? Colors.teal
                         : Colors.grey.shade800,
@@ -119,7 +119,7 @@ class ServicesCategoryFilter extends ConsumerWidget {
 
   String _getCategoryDisplayName(String categoryName) {
     final category = ServiceCategoryExtension.fromString(categoryName);
-    return category?.displayName ?? categoryName;
+    return category.displayName ?? categoryName;
   }
 
   IconData _getCategoryIcon(ServiceCategory category) {

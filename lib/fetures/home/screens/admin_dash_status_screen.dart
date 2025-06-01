@@ -527,13 +527,26 @@ class _AdminDashboardStatusScreenState
         application: application,
         onStatusUpdated: (status, comment) async {
           try {
+            // Use the Firestore document ID, not the uid field
+            final documentId = application['documentId'];
+
+            if (documentId == null) {
+              throw Exception('Document ID not found');
+            }
+
+            print(
+                '🔧 Dialog: Updating application with document ID: $documentId');
+            print('🔧 Dialog: New status: $status');
+            print('🔧 Dialog: Comment: $comment');
+
             await ref
                 .read(userApplicationsProvider.notifier)
                 .updateApplicationStatus(
-                  application['uid'],
+                  documentId, // Use the Firestore document ID
                   status,
                   comment: comment,
                 );
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -544,11 +557,12 @@ class _AdminDashboardStatusScreenState
               );
             }
           } catch (e) {
+            print('🔧 Dialog: Error updating status: $e');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content:
-                      Text('خطأ في تحديث الحالة', style: GoogleFonts.cairo()),
+                  content: Text('خطأ في تحديث الحالة: ${e.toString()}',
+                      style: GoogleFonts.cairo()),
                   backgroundColor: Colors.red,
                 ),
               );

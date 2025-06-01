@@ -152,8 +152,14 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final authState = ref.watch(authProvider);
+
+    print('🏠 Dashboard build() called');
+    print('🏠 Current route: ${GoRouterState.of(context).uri}');
+    print(
+        '🏠 Auth state: isAuth=${authState.isAuthenticated}, isTrusted=${authState.isTrustedUser}');
+
+    final size = MediaQuery.of(context).size;
     final isApproved = authState.isApproved;
     final userStatus = _userData?['status']?.toLowerCase() ?? '';
     // Determine dashboard theme based on status

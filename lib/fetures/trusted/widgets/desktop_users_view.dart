@@ -6,7 +6,6 @@ import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
-import 'package:trustedtallentsvalley/fetures/trusted/widgets/filter_chips_row.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/pagination_controls_widget.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/sort_button.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/trusted_empty_state.dart';
@@ -82,11 +81,11 @@ class DesktopUsersView extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Filter chips
-        FilterChipsRow(
-          primaryColor:
-              isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
-          onLocationFilter: () {},
-        ),
+        // FilterChipsRow(
+        //   primaryColor:
+        //       isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
+        //   onLocationFilter: () {},
+        // ),
 
         const SizedBox(height: 24),
 
@@ -135,7 +134,7 @@ class DesktopUsersView extends ConsumerWidget {
   }
 
   Widget _buildPredefinedUsersButton(BuildContext context, WidgetRef ref) {
-    final homeNotifier = ref.read(homeProvider.notifier);
+    ref.read(homeProvider.notifier);
 
     return ElevatedButton.icon(
       onPressed: () async {

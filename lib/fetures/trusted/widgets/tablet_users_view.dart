@@ -79,12 +79,12 @@ class TabletUsersView extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Filter chips
-        FilterChipsRow(
-          primaryColor: primaryColor,
-          onLocationFilter: () {},
-        ),
-
-        const SizedBox(height: 24),
+        // FilterChipsRow(
+        //   primaryColor: primaryColor,
+        //   onLocationFilter: () {},
+        // ),
+        //
+        // const SizedBox(height: 24),
 
         // Main content
         Expanded(
@@ -140,7 +140,7 @@ class TabletUsersView extends ConsumerWidget {
   }
 
   Widget _buildPredefinedUsersButton(BuildContext context, WidgetRef ref) {
-    final homeNotifier = ref.read(homeProvider.notifier);
+    ref.read(homeProvider.notifier);
 
     return ElevatedButton.icon(
       onPressed: () async {

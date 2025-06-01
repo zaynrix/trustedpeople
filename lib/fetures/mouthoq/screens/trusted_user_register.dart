@@ -41,6 +41,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     super.dispose();
   }
 
+  // FIXED: Updated register method that handles navigation properly
   Future<void> _register() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
@@ -50,45 +51,83 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       });
 
       try {
+        print('📝 ========================================');
+        print('📝 REGISTRATION: Starting registration process');
+        print('📝 ========================================');
+        print('📝 Email: ${_emailController.text.trim()}');
+        print('📝 Full Name: ${_fullNameController.text.trim()}');
+
         final authNotifier = ref.read(authProvider.notifier);
+
+        // Call the registerUser method WITHOUT context parameter
+        // We'll handle navigation manually here
         await authNotifier.registerUser(
           fullName: _fullNameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
           phoneNumber: _phoneController.text.trim(),
-          additionalPhone: _additionalPhoneController.text.trim(),
+          additionalPhone: _additionalPhoneController.text.trim().isNotEmpty
+              ? _additionalPhoneController.text.trim()
+              : null,
           serviceProvider: _serviceProviderController.text.trim(),
           location: _locationController.text.trim(),
         );
 
-        setState(() {
-          _successMessage =
-              'تم إرسال طلب التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة';
-          _isLoading = false;
-        });
+        print('📝 ✅ Registration successful');
 
-        // Clear form
-        _formKey.currentState?.reset();
-        _fullNameController.clear();
-        _emailController.clear();
-        _passwordController.clear();
-        _confirmPasswordController.clear();
-        _phoneController.clear();
-        _additionalPhoneController.clear();
-        _serviceProviderController.clear();
-        _locationController.clear();
+        if (mounted) {
+          setState(() {
+            _successMessage = 'تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول';
+            _isLoading = false;
+          });
 
-        // Navigate to status check screen after delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            context.go('/application-status');
-          }
-        });
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+
+          // Clear form
+          _formKey.currentState?.reset();
+          _fullNameController.clear();
+          _emailController.clear();
+          _passwordController.clear();
+          _confirmPasswordController.clear();
+          _phoneController.clear();
+          _additionalPhoneController.clear();
+          _serviceProviderController.clear();
+          _locationController.clear();
+
+          // Navigate to login screen after a short delay
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              print('📝 🚀 Navigating to login screen...');
+              context.go('/secure-trusted-895623/login');
+              print('📝 ✅ Navigation to login completed');
+            }
+          });
+        }
       } catch (e) {
-        setState(() {
-          _errorMessage = 'حدث خطأ أثناء التسجيل: ${e.toString()}';
-          _isLoading = false;
-        });
+        print('📝 ❌ REGISTRATION ERROR: $e');
+
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'حدث خطأ أثناء التسجيل: ${e.toString()}';
+            _isLoading = false;
+          });
+
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('حدث خطأ أثناء التسجيل: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }
