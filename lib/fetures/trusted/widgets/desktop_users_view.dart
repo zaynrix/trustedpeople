@@ -23,7 +23,7 @@ class DesktopUsersView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchQuery = ref.watch(searchQueryProvider);
+    final searchQuery = ref.watch(trustedSearchQueryProvider);
     final filterMode = ref.watch(filterModeProvider);
     final currentPage = ref.watch(currentPageProvider);
     final pageSize = ref.watch(pageSizeProvider);
@@ -60,7 +60,7 @@ class DesktopUsersView extends ConsumerWidget {
             Expanded(
               child: SearchField(
                 onChanged: (value) {
-                  ref.read(searchQueryProvider.notifier).state = value;
+                  ref.read(trustedSearchQueryProvider.notifier).state = value;
                   homeNotifier.setSearchQuery(value);
                 },
                 hintText: 'البحث بالاسم أو رقم الجوال أو الموقع',

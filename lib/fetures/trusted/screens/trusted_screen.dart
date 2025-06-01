@@ -7,6 +7,8 @@ import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/custom_trusted_users_screen.dart';
 
+import '../../home/providers/home_notifier.dart';
+
 // Provider for trusted users stream
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
@@ -53,15 +55,16 @@ class TrustedUsersScreen extends ConsumerWidget {
         shape: isMobile
             ? null
             : const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          ),
-        ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
       ),
       backgroundColor: Colors.white,
       drawer: isMobile ? const AppDrawer() : null,
       body: UsersListScreen(
+        blacklistSearchQueryProvider: trustedSearchQueryProvider,
         isTrusted: true,
         title: "قائمة الموثوقين",
         usersStream: usersStream,

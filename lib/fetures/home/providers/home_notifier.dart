@@ -36,7 +36,7 @@ class HomeState {
   final bool showSideBar;
   final UserModel? selectedUser;
   final UserModel? userModel;
-  final String searchQuery;
+  // final String searchQuery;
   final int currentPage;
   final int pageSize;
   final String sortField;
@@ -50,7 +50,7 @@ class HomeState {
     this.showSideBar = false,
     this.selectedUser,
     this.userModel,
-    this.searchQuery = '',
+    // this.searchQuery = '',
     this.currentPage = 1,
     this.pageSize = 10,
     this.sortField = 'aliasName',
@@ -80,7 +80,7 @@ class HomeState {
       showSideBar: showSideBar ?? this.showSideBar,
       selectedUser: selectedUser ?? this.selectedUser,
       userModel: userModel ?? this.userModel,
-      searchQuery: searchQuery ?? this.searchQuery,
+      // searchQuery: searchQuery ?? this.searchQuery,
       currentPage: currentPage ?? this.currentPage,
       pageSize: pageSize ?? this.pageSize,
       sortField: sortField ?? this.sortField,
@@ -418,9 +418,17 @@ final selectedUserProvider = Provider<UserModel?>((ref) {
   return ref.watch(homeProvider).selectedUser;
 });
 
-final searchQueryProvider = StateProvider<String>((ref) {
-  return ref.watch(homeProvider).searchQuery;
-});
+// final searchQueryProvider = StateProvider<String>((ref) {
+//   return ref.watch(homeProvider).searchQuery;
+// });
+// For trusted users table
+final trustedSearchQueryProvider = StateProvider<String>((ref) => '');
+
+// For blacklist/untrusted users table
+final blacklistSearchQueryProvider = StateProvider<String>((ref) => '');
+
+// For the third table (replace with your actual table name)
+final thirdTableSearchQueryProvider = StateProvider<String>((ref) => '');
 
 final currentPageProvider = StateProvider<int>((ref) {
   return ref.watch(homeProvider).currentPage;

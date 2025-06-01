@@ -15,6 +15,7 @@ import 'package:trustedtallentsvalley/fetures/trusted/widgets/tablet_users_view.
 
 class UsersListScreen extends ConsumerWidget {
   final String title;
+  final StateProvider blacklistSearchQueryProvider;
   final AsyncValue<QuerySnapshot> usersStream;
   final bool isTrusted;
   final Color backgroundColor;
@@ -22,6 +23,7 @@ class UsersListScreen extends ConsumerWidget {
   const UsersListScreen({
     super.key,
     required this.title,
+    required this.blacklistSearchQueryProvider,
     required this.usersStream,
     required this.isTrusted,
     this.backgroundColor = Colors.white,
@@ -35,7 +37,7 @@ class UsersListScreen extends ConsumerWidget {
     final isLoading = ref.watch(isLoadingProvider);
     final isAdmin = ref.watch(isAdminProvider);
 
-    debugPrint("this truested ${trustedUsersStreamProvider.name}");
+    debugPrint("this trusted ${trustedUsersStreamProvider.name}");
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -225,7 +227,7 @@ class UsersListScreen extends ConsumerWidget {
   }
 
   List<UserModel> _getFilteredUsers(WidgetRef ref, List<UserModel> allUsers) {
-    final searchQuery = ref.watch(searchQueryProvider);
+    final searchQuery = ref.watch(trustedSearchQueryProvider);
     final filterMode = ref.watch(filterModeProvider);
     final locationFilter = ref.watch(locationFilterProvider);
     final sortField = ref.watch(sortFieldProvider);

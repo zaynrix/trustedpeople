@@ -7,6 +7,8 @@ import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/custom_trusted_users_screen.dart';
 
+import '../../home/providers/home_notifier.dart';
+
 // Provider for untrusted users stream (role = 3, which is fraud/scammers)
 final untrustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
   return FirebaseFirestore.instance
@@ -24,7 +26,6 @@ class BlackListUsersScreen extends ConsumerWidget {
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
     final isAdmin = ref.watch(isAdminProvider);
-
 
     return Scaffold(
       appBar: AppBar(
@@ -55,15 +56,16 @@ class BlackListUsersScreen extends ConsumerWidget {
         shape: isMobile
             ? null
             : const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          ),
-        ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
       ),
       backgroundColor: Colors.white,
       drawer: isMobile ? const AppDrawer() : null,
       body: UsersListScreen(
+        blacklistSearchQueryProvider: blacklistSearchQueryProvider,
         isTrusted: false,
         title: "قائمة النصابين",
         usersStream: usersStream,

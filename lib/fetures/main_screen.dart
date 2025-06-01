@@ -197,23 +197,23 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
 
                   // FIXED: Add trusted user login/dashboard options
-                  if (!authState.isAuthenticated) ...[
-                    const Divider(),
-                    _buildNavItem(
-                      context,
-                      Icons.login,
-                      "تسجيل دخول المستخدمين",
-                      'trustedUserLogin',
-                      isActive: location == '/secure-trusted-895623/login',
-                    ),
-                    _buildNavItem(
-                      context,
-                      Icons.person_add,
-                      "تسجيل مستخدم جديد",
-                      'trustedUserRegister',
-                      isActive: location == '/secure-trusted-895623/register',
-                    ),
-                  ],
+                  // if (!authState.isAuthenticated) ...[
+                  //   const Divider(),
+                  //   _buildNavItem(
+                  //     context,
+                  //     Icons.login,
+                  //     "تسجيل دخول المستخدمين",
+                  //     'trustedUserLogin',
+                  //     isActive: location == '/secure-trusted-895623/login',
+                  //   ),
+                  //   _buildNavItem(
+                  //     context,
+                  //     Icons.person_add,
+                  //     "تسجيل مستخدم جديد",
+                  //     'trustedUserRegister',
+                  //     isActive: location == '/secure-trusted-895623/register',
+                  //   ),
+                  // ],
 
                   // FIXED: Show trusted user dashboard if authenticated as trusted user
                   if (authState.isAuthenticated &&

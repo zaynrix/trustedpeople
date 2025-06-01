@@ -5,7 +5,6 @@ import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
-import 'package:trustedtallentsvalley/fetures/trusted/widgets/filter_chips_row.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/pagination_controls_widget.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/sort_button.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/trusted_empty_state.dart';
@@ -23,7 +22,7 @@ class TabletUsersView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchQuery = ref.watch(searchQueryProvider);
+    final searchQuery = ref.watch(trustedSearchQueryProvider);
     final filterMode = ref.watch(filterModeProvider);
     final currentPage = ref.watch(currentPageProvider);
     final pageSize = ref.watch(pageSizeProvider);
@@ -61,7 +60,7 @@ class TabletUsersView extends ConsumerWidget {
             Expanded(
               child: SearchField(
                 onChanged: (value) {
-                  ref.read(searchQueryProvider.notifier).state = value;
+                  ref.read(trustedSearchQueryProvider.notifier).state = value;
                   homeNotifier.setSearchQuery(value);
                 },
                 hintText: 'البحث بالاسم أو رقم الجوال أو الموقع',
