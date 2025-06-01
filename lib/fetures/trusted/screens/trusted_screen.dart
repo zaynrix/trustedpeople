@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:trustedtallentsvalley/fetures/trusted/widgets/usersTable.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
+import 'package:trustedtallentsvalley/fetures/trusted/screens/custom_trusted_users_screen.dart';
 
 // Provider for trusted users stream
 final trustedUsersStreamProvider = StreamProvider<QuerySnapshot>((ref) {
@@ -16,11 +20,52 @@ class TrustedUsersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenSize = MediaQuery.of(context).size;
     final usersStream = ref.watch(trustedUsersStreamProvider);
-
-    return UsersListScreen(
-      title: "قائمة الموثوقين",
-      usersStream: usersStream,
+    final isMobile = screenSize.width < 768;
+    final isAdmin = ref.watch(isAdminProvider);
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: isMobile,
+        title: Text(
+          "قائمة الموثوقين",
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.green,
+        elevation: 0,
+        actions: [
+          if (!isMobile && isAdmin)
+            IconButton(
+              icon: const Icon(Icons.download_rounded),
+              onPressed: () => ExportDialog.show(context, ref, Colors.green),
+              tooltip: 'تصدير البيانات',
+            ),
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded),
+            onPressed: () => HelpDialog.show(context),
+            tooltip: 'المساعدة',
+          ),
+          const SizedBox(width: 8),
+        ],
+        shape: isMobile
+            ? null
+            : const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+        ),
+      ),
+      backgroundColor: Colors.white,
+      drawer: isMobile ? const AppDrawer() : null,
+      body: UsersListScreen(
+        isTrusted: true,
+        title: "قائمة الموثوقين",
+        usersStream: usersStream,
+      ),
     );
   }
 }

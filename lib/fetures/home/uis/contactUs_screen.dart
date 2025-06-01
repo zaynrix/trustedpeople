@@ -13,6 +13,8 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';
+import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analytics_provider.dart';
 
 // BlockedUser model
 class BlockedUser {
@@ -157,6 +159,26 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
     subjectController.dispose();
     messageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Track that someone visited the contact page
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final visitorTracker = ref.read(visitorTrackerProvider.notifier);
+        visitorTracker.trackPageVisit(
+          pageName: 'تواصل معنا',
+          userAgent: kIsWeb
+              ? js.context['navigator']['userAgent'].toString()
+              : 'Flutter Mobile App',
+        );
+      } catch (e) {
+        print('Failed to track page visit: $e');
+      }
+    });
   }
 
   @override
@@ -340,10 +362,10 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
       BuildContext context, WidgetRef ref, bool isDesktop) {
     final maxWidth = isDesktop ? 800.0 : 600.0;
 
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SingleChildScrollView(
+    return SingleChildScrollView(
+      child: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Padding(
             padding: EdgeInsets.all(isDesktop ? 32.0 : 24.0),
             child: Column(
@@ -1788,9 +1810,28 @@ class _ContactUsScreenState extends ConsumerState<ContactUsScreen> {
           metadata: metadata,
         );
 
+        // Save to Firestore
         await FirebaseFirestore.instance
             .collection('contactMessages')
             .add(newMessage.toMap());
+
+        // Send Telegram notification immediately
+        try {
+          final notificationManager =
+              ref.read(adminNotificationManagerProvider);
+          await notificationManager.notifyNewContactForm(
+            name: nameController.text.trim(),
+            email: emailController.text.trim(),
+            phone: phoneController.text.trim(),
+            subject: subjectController.text.trim(),
+            messagePreview: messageController.text.trim().length > 100
+                ? '${messageController.text.trim().substring(0, 100)}...'
+                : messageController.text.trim(),
+          );
+        } catch (notificationError) {
+          // Log notification error but don't stop the form submission
+          print('Failed to send notification: $notificationError');
+        }
 
         // Clear form
         nameController.clear();

@@ -134,28 +134,28 @@ class _MaintenanceManagementWidgetState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.build,
-                      color: Colors.orange,
+                      color: Colors.white,
                       size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'إدارة وضع الصيانة',
-                    style: GoogleFonts.cairo(
-                      textStyle: const TextStyle(
+                  Expanded(
+                    child: Text(
+                      'إدارة وضع الصيانة',
+                      style: GoogleFonts.cairo(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -163,27 +163,34 @@ class _MaintenanceManagementWidgetState
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : _enableAllScreens,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check_circle),
-                label: Text(
-                  'تفعيل جميع الشاشات',
-                  style: GoogleFonts.cairo(),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _enableAllScreens,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.check_circle),
+                  label: Text(
+                    'تفعيل جميع الشاشات',
+                    style: GoogleFonts.cairo(),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 16),
 
           Text(

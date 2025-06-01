@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/cards/feature_card.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/stats/stats_column.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/stats/stats_row.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/userRecentUpdatesWidget.dart';
+import 'package:trustedtallentsvalley/fetures/home/widgets/web_activity_section.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 
 class HomeContentWidget extends StatelessWidget {
@@ -53,11 +55,10 @@ class HomeContentWidget extends StatelessWidget {
   Widget _buildWebLayout(BuildContext context, bool isDesktop) {
     final maxWidth = isDesktop ? 1200.0 : 900.0;
 
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(isDesktop ? 32.0 : 24.0),
+    return SingleChildScrollView(
+      child: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -67,7 +68,7 @@ class HomeContentWidget extends StatelessWidget {
               const SizedBox(height: 48),
               _buildWebStatsSection(isDesktop),
               const SizedBox(height: 48),
-              _buildWebActivitySection(isDesktop),
+              WebActivitySection(isDesktop: isDesktop, ),
               const SizedBox(height: 48),
             ],
           ),
@@ -186,7 +187,7 @@ class HomeContentWidget extends StatelessWidget {
             FeatureCard(
               title: 'قائمة النصابين',
               description:
-                  'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
+              'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
               icon: Icons.block,
               color: Colors.red,
               routeName: ScreensNames.untrusted,
@@ -314,7 +315,7 @@ class HomeContentWidget extends StatelessWidget {
               children: [
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(25),
@@ -440,12 +441,12 @@ class HomeContentWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: isPrimary
             ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ]
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ]
             : null,
       ),
       child: ElevatedButton.icon(
@@ -517,7 +518,7 @@ class HomeContentWidget extends StatelessWidget {
             child: FeatureCard(
               title: 'قائمة النصابين',
               description:
-                  'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
+              'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
               icon: Icons.block,
               color: Colors.red,
               routeName: ScreensNames.untrusted,
@@ -554,7 +555,7 @@ class HomeContentWidget extends StatelessWidget {
                 child: FeatureCard(
                   title: 'قائمة النصابين',
                   description:
-                      'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
+                  'تحقق من قائمة الأشخاص غير الموثوقين لتجنب التعامل معهم',
                   icon: Icons.block,
                   color: Colors.red,
                   routeName: ScreensNames.untrusted,
@@ -635,63 +636,8 @@ class HomeContentWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildWebActivitySection(bool isDesktop) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'النشاط الحديث',
-                  style: GoogleFonts.cairo(
-                    fontSize: isDesktop ? 28 : 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-                Text(
-                  'آخر التحديثات على المنصة',
-                  style: GoogleFonts.cairo(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-            OutlinedButton.icon(
-              onPressed: () {
-                // Handle view all
-              },
-              icon: const Icon(Icons.arrow_forward),
-              label: Text(
-                'عرض الكل',
-                style: GoogleFonts.cairo(),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: isDesktop ? 32 : 24),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(isDesktop ? 32.0 : 24.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const UserActivityWidget(),
-        ),
-      ],
-    );
-  }
+//   Widget _buildWebActivitySection(bool isDesktop, context) {
+//     return const WebActivitySection();
+//   }
+// }
 }

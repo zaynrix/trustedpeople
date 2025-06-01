@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/empty_state_widget.dart';
+import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/dialogs/payment_places_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/providers/payment_places_provider.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_detail_sidebar.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_mobile_tile.dart';
-import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/places_filter_chips.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
-import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 
 class PaymentPlacesMobileView extends ConsumerWidget {
   const PaymentPlacesMobileView({super.key});
@@ -24,7 +23,7 @@ class PaymentPlacesMobileView extends ConsumerWidget {
     final filterMode = ref.watch(placesFilterModeProvider);
 
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.only(top: 24.0, left: 12, right: 12),
       child: placesStream.when(
         data: (snapshot) {
           // Apply filtering
@@ -110,7 +109,7 @@ class PaymentPlacesMobileView extends ConsumerWidget {
                 hintText: 'البحث باسم المكان أو الموقع أو التصنيف',
               ),
               const SizedBox(height: 16),
-              const PlacesFilterChips(),
+              // const PlacesFilterChips(),
               const SizedBox(height: 24),
               Expanded(
                 child: filteredPlaces.isEmpty
@@ -123,8 +122,8 @@ class PaymentPlacesMobileView extends ConsumerWidget {
                           return;
                         },
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                          // padding: const EdgeInsets.symmetric(
+                          //     horizontal: 8, vertical: 12),
                           itemCount: filteredPlaces.length,
                           itemBuilder: (context, index) {
                             final place = PaymentPlaceModel.fromFirestore(

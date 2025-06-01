@@ -1,4 +1,4 @@
-// lib/fetures/fetures/services/widgets/service_card.dart
+// lib/features/services/widgets/service_card.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/services/service_model.dart';
@@ -15,391 +15,207 @@ class ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isActive = service.isActive;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        onTap: isActive ? onTap : null,
+        child: Stack(
           children: [
-            // Image or placeholder
-            SizedBox(
-              height: 140,
-              width: double.infinity,
-              child: service.imageUrl.isNotEmpty
-                  ? Image.network(
-                      service.imageUrl,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      color: Colors.teal.shade100,
-                      child: Center(
-                        child: Icon(
-                          _getCategoryIcon(service.category.displayName),
-                          size: 60,
-                          color: Colors.teal.shade700,
-                        ),
+            // Card content - no height constraints for natural sizing
+            Padding(
+              padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize:
+                    MainAxisSize.min, // KEY: Let content determine size
+                children: [
+                  // Service icon and category
+                  Row(
+                    children: [
+                      Icon(
+                        _getCategoryIcon(service.category.toString()),
+                        color: Colors.teal.shade600,
+                        size: isMobile ? 18 : 20,
                       ),
-                    ),
-            ),
-
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Category chip
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.shade50,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        service.category.displayName,
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          color: Colors.teal.shade700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Title
-                    Text(
-                      service.title,
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    // Rating and time
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.timer,
-                          color: Colors.grey,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${service.deliveryTimeInDays} د',
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getCategoryDisplayName(service.category.toString()),
                           style: GoogleFonts.cairo(
-                            fontSize: 12,
+                            color: Colors.teal.shade600,
+                            fontWeight: FontWeight.w500,
+                            fontSize: isMobile ? 11 : 12,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isMobile ? 10 : 12),
+
+                  // Service title
+                  Text(
+                    service.title,
+                    style: GoogleFonts.cairo(
+                      fontSize: isMobile ? 14 : 16,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
                     ),
-                    // Price and order button
-                    Row(
-                      children: [
-                        Text(
-                          '\$${service.price.toStringAsFixed(2)}',
-                          style: GoogleFonts.cairo(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal.shade700,
-                          ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: isMobile ? 8 : 10),
+
+                  // Service description - adaptive height
+                  Text(
+                    service.description,
+                    style: GoogleFonts.cairo(
+                      fontSize: isMobile ? 12 : 13,
+                      color: Colors.grey.shade700,
+                      height: 1.4,
+                    ),
+                    maxLines: _getDescriptionMaxLines(screenWidth),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Price and order button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Price section
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'السعر',
+                              style: GoogleFonts.cairo(
+                                fontSize: isMobile ? 10 : 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${service.price} \$',
+                              style: GoogleFonts.cairo(
+                                fontSize: isMobile ? 13 : 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal.shade700,
+                              ),
+                            ),
+                          ],
                         ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                      ),
+
+                      // Order button
+                      Expanded(
+                        flex: 3,
+                        child: ElevatedButton(
+                          onPressed: isActive ? onTap : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal.shade600,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 8 : 12,
+                              vertical: isMobile ? 6 : 8,
+                            ),
+                            minimumSize: Size(0, isMobile ? 32 : 36),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 1,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.teal,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'طلب',
-                            style: GoogleFonts.cairo(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                          child: FittedBox(
+                            child: Text(
+                              'اطلب الآن',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w600,
+                                fontSize: isMobile ? 11 : 13,
+                              ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+
+            // Inactive overlay
+            if (!isActive)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.grey.withOpacity(0.6),
+                  child: Center(
+                    child: Text(
+                      'غير متاح حالياً',
+                      style: GoogleFonts.cairo(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: isMobile ? 14 : 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'برمجة':
-        return Icons.code;
-      case 'تصميم':
-        return Icons.design_services;
-      case 'تسويق':
-        return Icons.campaign;
-      case 'كتابة':
-        return Icons.edit_note;
-      case 'ترجمة':
-        return Icons.translate;
-      case 'استشارات':
-        return Icons.support_agent;
-      case 'فيديو':
-        return Icons.videocam;
-      case 'صوت':
-        return Icons.mic;
-      default:
-        return Icons.miscellaneous_services;
+  // Adaptive description max lines based on screen size
+  int _getDescriptionMaxLines(double screenWidth) {
+    if (screenWidth < 600) {
+      return 2; // Mobile
+    } else if (screenWidth < 900) {
+      return 3; // Small tablet
+    } else if (screenWidth < 1200) {
+      return 3; // Large tablet
+    } else {
+      return 4; // Desktop
     }
   }
+
+  IconData _getCategoryIcon(String category) {
+    final serviceCategory = ServiceCategoryExtension.fromString(category);
+
+    switch (serviceCategory) {
+      case ServiceCategory.webDevelopment:
+        return Icons.web;
+      case ServiceCategory.mobileDevelopment:
+        return Icons.phone_android;
+      case ServiceCategory.graphicDesign:
+        return Icons.brush;
+      case ServiceCategory.marketing:
+        return Icons.trending_up;
+      case ServiceCategory.writing:
+        return Icons.description;
+      case ServiceCategory.translation:
+        return Icons.translate;
+      case ServiceCategory.other:
+        return Icons.category;
+    }
+  }
+
+  String _getCategoryDisplayName(String category) {
+    final serviceCategory = ServiceCategoryExtension.fromString(category);
+    return serviceCategory.displayName ?? category;
+  }
 }
-
-// lib/fetures/fetures/services/widgets/service_category_card.dart
-
-// class ServiceCategoryCard extends StatelessWidget {
-//   final String category;
-//   final IconData icon;
-//   final Color color;
-//   final VoidCallback onTap;
-//
-//   const ServiceCategoryCard({
-//     Key? key,
-//     required this.category,
-//     required this.icon,
-//     required this.color,
-//     required this.onTap,
-//   }) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Card(
-//       elevation: 2,
-//       shape: RoundedRectangleBorder(
-//         borderRadius: BorderRadius.circular(16),
-//       ),
-//       child: InkWell(
-//         onTap: onTap,
-//         borderRadius: BorderRadius.circular(16),
-//         child: Padding(
-//           padding: const EdgeInsets.all(16.0),
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               Container(
-//                 padding: const EdgeInsets.all(16),
-//                 decoration: BoxDecoration(
-//                   color: color.withOpacity(0.1),
-//                   shape: BoxShape.circle,
-//                 ),
-//                 child: Icon(
-//                   icon,
-//                   size: 32,
-//                   color: color,
-//                 ),
-//               ),
-//               const SizedBox(height: 12),
-//               Text(
-//                 category,
-//                 style: GoogleFonts.cairo(
-//                   fontSize: 16,
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//                 textAlign: TextAlign.center,
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// lib/fetures/fetures/services/widgets/featured_service_card.dart
-
-// class FeaturedServiceCard extends StatelessWidget {
-//   final ServiceModel service;
-//   final VoidCallback onTap;
-//
-//   const FeaturedServiceCard({
-//     Key? key,
-//     required this.service,
-//     required this.onTap,
-//   }) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Card(
-//       elevation: 4,
-//       shape: RoundedRectangleBorder(
-//         borderRadius: BorderRadius.circular(16),
-//       ),
-//       clipBehavior: Clip.antiAlias,
-//       child: InkWell(
-//         onTap: onTap,
-//         child: Stack(
-//           children: [
-//             // Background image
-//             SizedBox(
-//               height: 200,
-//               width: double.infinity,
-//               child: service.imageUrl.isNotEmpty
-//                   ? Image.network(
-//                       service.imageUrl,
-//                       fit: BoxFit.cover,
-//                     )
-//                   : Container(
-//                       color: Colors.teal.shade100,
-//                       child: Center(
-//                         child: Icon(
-//                           _getCategoryIcon(service.category.name),
-//                           size: 80,
-//                           color: Colors.teal.shade700,
-//                         ),
-//                       ),
-//                     ),
-//             ),
-//
-//             // Gradient overlay
-//             Container(
-//               height: 200,
-//               width: double.infinity,
-//               decoration: BoxDecoration(
-//                 gradient: LinearGradient(
-//                   begin: Alignment.topCenter,
-//                   end: Alignment.bottomCenter,
-//                   colors: [
-//                     Colors.transparent,
-//                     Colors.black.withOpacity(0.3),
-//                     Colors.black.withOpacity(0.7),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//
-//             // Content
-//             Positioned(
-//               bottom: 0,
-//               left: 0,
-//               right: 0,
-//               child: Padding(
-//                 padding: const EdgeInsets.all(16.0),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     // Featured badge
-//                     Container(
-//                       padding: const EdgeInsets.symmetric(
-//                         horizontal: 12,
-//                         vertical: 4,
-//                       ),
-//                       decoration: BoxDecoration(
-//                         color: Colors.amber,
-//                         borderRadius: BorderRadius.circular(20),
-//                       ),
-//                       child: Text(
-//                         'خدمة مميزة',
-//                         style: GoogleFonts.cairo(
-//                           fontSize: 12,
-//                           color: Colors.black,
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//
-//                     // Title
-//                     Text(
-//                       service.title,
-//                       style: GoogleFonts.cairo(
-//                         fontSize: 18,
-//                         fontWeight: FontWeight.bold,
-//                         color: Colors.white,
-//                       ),
-//                       maxLines: 2,
-//                       overflow: TextOverflow.ellipsis,
-//                     ),
-//                     const SizedBox(height: 4),
-//
-//                     // Category
-//                     Text(
-//                       service.category.displayName,
-//                       style: GoogleFonts.cairo(
-//                         fontSize: 14,
-//                         color: Colors.white.withOpacity(0.8),
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//
-//                     // Price and rating
-//                     Row(
-//                       children: [
-//                         Text(
-//                           '\$${service.price.toStringAsFixed(2)}',
-//                           style: GoogleFonts.cairo(
-//                             fontSize: 16,
-//                             fontWeight: FontWeight.bold,
-//                             color: Colors.white,
-//                           ),
-//                         ),
-//                         const Spacer(),
-//                         const Icon(
-//                           Icons.star,
-//                           color: Colors.amber,
-//                           size: 16,
-//                         ),
-//                         const SizedBox(width: 4),
-//                         Text(
-//                           "service.rating.toString()",
-//                           style: GoogleFonts.cairo(
-//                             fontWeight: FontWeight.bold,
-//                             color: Colors.white,
-//                             fontSize: 14,
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-//
-//   IconData _getCategoryIcon(String category) {
-//     switch (category.toLowerCase()) {
-//       case 'برمجة':
-//         return Icons.code;
-//       case 'تصميم':
-//         return Icons.design_services;
-//       case 'تسويق':
-//         return Icons.campaign;
-//       case 'كتابة':
-//         return Icons.edit_note;
-//       case 'ترجمة':
-//         return Icons.translate;
-//       case 'استشارات':
-//         return Icons.support_agent;
-//       case 'فيديو':
-//         return Icons.videocam;
-//       case 'صوت':
-//         return Icons.mic;
-//       default:
-//         return Icons.miscellaneous_services;
-//     }
-//   }
-// }

@@ -18,18 +18,48 @@ class ServiceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servicesState = ref.watch(servicesProvider);
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
     // Define breakpoints
     final isMobile = screenWidth < 768;
     final isTablet = screenWidth >= 768 && screenWidth < 1024;
     final isDesktop = screenWidth >= 1024;
 
-    // Find the service by ID
-    final service = servicesState.services.firstWhere(
-      (s) => s.id == serviceId,
-      orElse: () => servicesState.selectedService!,
-    );
+    // Handle loading state
+    if (servicesState.isLoading) {
+      return Scaffold(
+        appBar: _buildLoadingAppBar(context, isMobile),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Handle error state
+    if (servicesState.errorMessage != null) {
+      return Scaffold(
+        appBar: _buildErrorAppBar(context, isMobile),
+        body: _buildErrorBody(context, servicesState.errorMessage!),
+      );
+    }
+
+    // Try to find the service by ID
+    ServiceModel? service;
+    try {
+      service = servicesState.services.firstWhere(
+        (s) => s.id == serviceId,
+      );
+    } catch (e) {
+      // If service not found by ID, try selected service as fallback
+      service = servicesState.selectedService;
+    }
+
+    // Handle service not found
+    if (service == null) {
+      return Scaffold(
+        appBar: _buildErrorAppBar(context, isMobile),
+        body: _buildServiceNotFoundBody(context),
+      );
+    }
 
     return Scaffold(
       appBar: _buildAppBar(context, service, isMobile),
@@ -39,11 +69,213 @@ class ServiceDetailScreen extends ConsumerWidget {
     );
   }
 
+  // Loading state app bar
+  PreferredSizeWidget _buildLoadingAppBar(BuildContext context, bool isMobile) {
+    if (isMobile) {
+      return AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.goNamed(ScreensNames.services),
+        ),
+        title: Text(
+          'تحميل...',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.teal.shade600,
+        elevation: 2,
+      );
+    } else {
+      return AppBar(
+        title: Text(
+          'تحميل الخدمة...',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.w600,
+            color: Colors.teal.shade800,
+            fontSize: 24,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.teal.shade800,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.goNamed(ScreensNames.services),
+        ),
+      );
+    }
+  }
+
+  // Error state app bar
+  PreferredSizeWidget _buildErrorAppBar(BuildContext context, bool isMobile) {
+    if (isMobile) {
+      return AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.goNamed(ScreensNames.services),
+        ),
+        title: Text(
+          'خطأ',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.red.shade600,
+        elevation: 2,
+      );
+    } else {
+      return AppBar(
+        title: Text(
+          'حدث خطأ',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.w600,
+            color: Colors.red.shade800,
+            fontSize: 24,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.red.shade800,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.goNamed(ScreensNames.services),
+        ),
+      );
+    }
+  }
+
+  // Error body widget
+  Widget _buildErrorBody(BuildContext context, String errorMessage) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'حدث خطأ أثناء تحميل الخدمة',
+              style: GoogleFonts.cairo(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              errorMessage,
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => context.goNamed(ScreensNames.services),
+                  icon: const Icon(Icons.arrow_back),
+                  label: Text(
+                    'العودة للخدمات',
+                    style: GoogleFonts.cairo(),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    // Trigger a reload of services
+                    // You might want to add a refresh method to your provider
+                    context.goNamed(ScreensNames.services);
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: Text(
+                    'إعادة المحاولة',
+                    style: GoogleFonts.cairo(),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Service not found body widget
+  Widget _buildServiceNotFoundBody(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'الخدمة غير موجودة',
+              style: GoogleFonts.cairo(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'لم يتم العثور على الخدمة المطلوبة. قد تكون محذوفة أو غير متاحة.',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => context.goNamed(ScreensNames.services),
+              icon: const Icon(Icons.arrow_back),
+              label: Text(
+                'العودة للخدمات',
+                style: GoogleFonts.cairo(),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal.shade600,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar(
       BuildContext context, ServiceModel service, bool isMobile) {
     if (isMobile) {
       // Mobile: Traditional mobile app bar
       return AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.goNamed(ScreensNames.services),
+        ),
         title: Text(
           service.title,
           style: GoogleFonts.cairo(
@@ -71,23 +303,8 @@ class ServiceDetailScreen extends ConsumerWidget {
         elevation: 1,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.goNamed(ScreensNames.services),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {
-              // Implement share functionality
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmark_border),
-            onPressed: () {
-              // Implement bookmark functionality
-            },
-          ),
-          const SizedBox(width: 16),
-        ],
       );
     }
   }
@@ -403,43 +620,6 @@ class ServiceDetailScreen extends ConsumerWidget {
 
         // Web: Image thumbnails or additional images could go here
         const SizedBox(height: 16),
-
-        // Web: Action buttons below image
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // Implement share functionality
-                },
-                icon: const Icon(Icons.share),
-                label: Text(
-                  'مشاركة',
-                  style: GoogleFonts.cairo(),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // Implement bookmark functionality
-                },
-                icon: const Icon(Icons.bookmark_border),
-                label: Text(
-                  'حفظ',
-                  style: GoogleFonts.cairo(),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -559,11 +739,11 @@ class ServiceDetailScreen extends ConsumerWidget {
   Widget _buildWebMetadata(ServiceModel service) {
     return Column(
       children: [
-        _buildMetadataRow(
-          icon: _getCategoryIcon(service.category),
-          label: 'التصنيف',
-          value: service.category.displayName,
-        ),
+        // _buildMetadataRow(
+        //   icon: _getCategoryIcon(service.category),
+        //   label: 'التصنيف',
+        //   value: service.category.displayName,
+        // ),
         const SizedBox(height: 12),
         _buildMetadataRow(
           icon: Icons.access_time,

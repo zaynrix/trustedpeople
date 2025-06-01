@@ -144,7 +144,7 @@ class PlacesDataTable extends ConsumerWidget {
                   Row(
                     children: [
                       if (place.isVerified)
-                        Icon(
+                        const Icon(
                           Icons.verified_rounded,
                           size: 16,
                           color: Colors.green,

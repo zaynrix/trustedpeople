@@ -14,6 +14,8 @@ class StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           value,
@@ -38,4 +40,3 @@ class StatItem extends StatelessWidget {
     );
   }
 }
-

@@ -8,7 +8,7 @@ import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart'
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 
 class UserActivityWidget extends ConsumerWidget {
-  const UserActivityWidget({Key? key}) : super(key: key);
+  const UserActivityWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,7 +35,7 @@ class UserActivityWidget extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildRecentUpdates(ref),
+          _buildRecentUpdates (ref),
 
           // Add the "View All Updates" button
           activitiesAsync.when(
