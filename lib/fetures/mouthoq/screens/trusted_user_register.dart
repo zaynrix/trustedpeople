@@ -585,7 +585,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   Widget _buildLoginLink() {
     return TextButton(
-      onPressed: () => context.go('/login'),
+      onPressed: () => context.go('/secure-trusted-895623/login'),
       child: Text(
         'لديك حساب بالفعل؟ تسجيل الدخول',
         style: GoogleFonts.cairo(

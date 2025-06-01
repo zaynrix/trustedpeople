@@ -483,6 +483,7 @@ import 'package:trustedtallentsvalley/fetures/services/screens/service_request_s
 import 'package:trustedtallentsvalley/fetures/services/screens/services_screen.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/blackList_screen.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/screens/trusted_screen.dart';
+import 'package:trustedtallentsvalley/routs/not_found_screen.dart';
 
 import '../fetures/admin/screens/admin_service_requests_screen.dart';
 
@@ -839,22 +840,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       )
     ],
 
-    errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Page Not Found')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('The page you were looking for does not exist.'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => context.go(ScreensNames.homePath),
-              child: const Text('Go to Home'),
-            ),
-          ],
-        ),
-      ),
-    ),
+    errorBuilder: (context, state) {
+      // Log the error for debugging
+      if (kDebugMode) {
+        print('🚫 Route error: ${state.error}');
+        print('🚫 Attempted path: ${state.uri.toString()}');
+      }
+
+      // Return the modern 404 screen
+      return Modern404Screen(
+        attemptedPath: state.uri.toString(),
+      );
+    },
   );
 });
 

@@ -493,7 +493,8 @@ class _ApplicationStatusScreenState
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: () => context.go('/login'),
+                      onPressed: () =>
+                          context.go('/secure-trusted-895623/login'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade600,
                         foregroundColor: Colors.white,
