@@ -30,9 +30,50 @@ class _AppShellState extends ConsumerState<AppShell> {
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
 
-    // Get admin status for conditional UI
-    final isAdmin = ref.watch(isAdminProvider);
+    // FIXED: Get auth state carefully - don't trigger navigation on errors
     final authState = ref.watch(authProvider);
+
+    // CRITICAL: Check if there's an auth error - if so, don't change navigation
+    if (authState.error != null) {
+      if (kDebugMode) {
+        print('🚨 AppShell: Auth error detected, maintaining current layout');
+        print('🚨 Error: ${authState.error}');
+      }
+
+      // Keep current layout when there's an auth error
+      final currentLocation = GoRouterState.of(context).matchedLocation;
+      final isOnSecureRoute =
+          currentLocation.startsWith('/secure-trusted-895623/') ||
+              currentLocation.startsWith('/secure-admin-784512/');
+
+      if (isOnSecureRoute) {
+        return Scaffold(body: widget.child);
+      }
+
+      // For non-secure routes with errors, show normal layout
+      if (isMobile) {
+        return Scaffold(
+          drawer: const AppDrawer(),
+          body: widget.child,
+        );
+      }
+
+      return Scaffold(
+        body: Row(
+          textDirection: TextDirection.rtl,
+          children: [
+            _buildCustomNavigationRail(context, false,
+                authState), // Don't show admin features on error
+            const VerticalDivider(thickness: 1, width: 1),
+            Expanded(child: widget.child),
+          ],
+        ),
+      );
+    }
+
+    // FIXED: Only check admin status if no auth error exists
+    final isAdmin =
+        authState.error == null ? ref.watch(isAdminProvider) : false;
 
     // FIXED: Check if user is on secure routes (login, dashboard, etc.)
     final currentLocation = GoRouterState.of(context).matchedLocation;
@@ -40,8 +81,20 @@ class _AppShellState extends ConsumerState<AppShell> {
         currentLocation.startsWith('/secure-trusted-895623/') ||
             currentLocation.startsWith('/secure-admin-784512/');
 
+    if (kDebugMode) {
+      print('🏗️ AppShell build:');
+      print('  - Current location: $currentLocation');
+      print('  - Is secure route: $isOnSecureRoute');
+      print(
+          '  - Auth state: isAuth=${authState.isAuthenticated}, isTrusted=${authState.isTrustedUser}, hasError=${authState.error != null}');
+      print('  - Is admin: $isAdmin');
+    }
+
     // FIXED: If on secure routes, don't show navigation rail
     if (isOnSecureRoute) {
+      if (kDebugMode) {
+        print('🏗️ AppShell: Using secure route layout (no navigation rail)');
+      }
       return Scaffold(
         body: widget.child,
       );
@@ -49,6 +102,9 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // If on mobile, use standard scaffold with drawer
     if (isMobile) {
+      if (kDebugMode) {
+        print('🏗️ AppShell: Using mobile layout with drawer');
+      }
       return Scaffold(
         drawer: const AppDrawer(),
         body: widget.child,
@@ -56,6 +112,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     // For desktop/tablet, use layout with custom navigation rail
+    if (kDebugMode) {
+      print('🏗️ AppShell: Using desktop layout with navigation rail');
+    }
     return Scaffold(
       body: Row(
         textDirection: TextDirection.rtl,
@@ -146,8 +205,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ScreensNames.services, '/services'),
                   ),
 
-                  // Admin-only items with correct route names
-                  if (isAdmin) ...[
+                  // FIXED: Only show admin items if no auth error and user is actually admin
+                  if (isAdmin && authState.error == null) ...[
                     _buildNavItem(
                       context,
                       Icons.admin_panel_settings,
@@ -196,29 +255,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ScreensNames.contactUs, ScreensNames.contactUsPath),
                   ),
 
-                  // FIXED: Add trusted user login/dashboard options
-                  // if (!authState.isAuthenticated) ...[
-                  //   const Divider(),
-                  //   _buildNavItem(
-                  //     context,
-                  //     Icons.login,
-                  //     "تسجيل دخول المستخدمين",
-                  //     'trustedUserLogin',
-                  //     isActive: location == '/secure-trusted-895623/login',
-                  //   ),
-                  //   _buildNavItem(
-                  //     context,
-                  //     Icons.person_add,
-                  //     "تسجيل مستخدم جديد",
-                  //     'trustedUserRegister',
-                  //     isActive: location == '/secure-trusted-895623/register',
-                  //   ),
-                  // ],
-
-                  // FIXED: Show trusted user dashboard if authenticated as trusted user
+                  // FIXED: Only show trusted user dashboard if properly authenticated (no errors)
                   if (authState.isAuthenticated &&
                       authState.isTrustedUser &&
-                      !authState.isAdmin) ...[
+                      !authState.isAdmin &&
+                      authState.error == null) ...[
                     const Divider(),
                     _buildNavItem(
                       context,
@@ -241,7 +282,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  // FIXED: Updated route checking logic
+  // FIXED: Updated route checking logic to be more defensive
   bool _isRouteActive(String? currentRouteName, String location,
       String routeName, String routePath) {
     if (kDebugMode) {
@@ -302,7 +343,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return false;
   }
 
-  // FIXED: Updated navigation method to handle secure routes properly
+  // FIXED: Updated navigation method to be more defensive about auth errors
   Widget _buildNavItem(
     BuildContext context,
     IconData icon,
@@ -315,6 +356,17 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: InkWell(
         onTap: () async {
           try {
+            // CRITICAL: Check auth state before allowing navigation
+            final authState = ref.read(authProvider);
+            if (authState.error != null) {
+              if (kDebugMode) {
+                print(
+                    '🚨 Navigation blocked due to auth error: ${authState.error}');
+              }
+              // Don't navigate if there's an auth error
+              return;
+            }
+
             final currentLocation = GoRouterState.of(context).matchedLocation;
             final currentRouteName = GoRouterState.of(context).name;
 
@@ -444,8 +496,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         const SizedBox(height: 8),
 
-        // Admin badge if user is admin
-        if (isAdmin)
+        // FIXED: Only show admin badge if no auth error
+        if (isAdmin && authState.error == null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -466,10 +518,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                     color: Colors.green, size: 18),
           ),
 
-        // FIXED: Show user info for trusted users too
+        // FIXED: Show user info for trusted users only if no auth error
         if (authState.isAuthenticated &&
             !isAdmin &&
             authState.isTrustedUser &&
+            authState.error == null &&
             _isRailExpanded) ...[
           const SizedBox(height: 8),
           Container(
@@ -507,8 +560,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ],
 
-        // Email badge if expanded and admin
-        if (isAdmin && _isRailExpanded) ...[
+        // Email badge if expanded and admin (no auth error)
+        if (isAdmin && authState.error == null && _isRailExpanded) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -535,7 +588,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  // FIXED: Updated logout button to handle both admin and trusted users
+  // FIXED: Updated logout button to handle auth errors properly
   Widget _buildLogoutButton({required AuthState authState}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -554,8 +607,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             tooltip: _isRailExpanded ? 'تصغير' : 'توسيع',
           ),
 
-          // FIXED: Show logout for any authenticated user
-          if (authState.isAuthenticated) ...[
+          // FIXED: Show logout for authenticated users (but not during auth errors)
+          if (authState.isAuthenticated && authState.error == null) ...[
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.red),
               tooltip: 'تسجيل الخروج',

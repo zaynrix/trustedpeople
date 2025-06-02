@@ -1021,11 +1021,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('  - Comment: $comment');
 
       // Check if document exists first
-      final docRef = _firestore.collection('user_applications').doc(applicationId);
+      final docRef =
+          _firestore.collection('user_applications').doc(applicationId);
       final docSnapshot = await docRef.get();
 
       if (!docSnapshot.exists) {
-        throw Exception('Application document not found with ID: $applicationId');
+        throw Exception(
+            'Application document not found with ID: $applicationId');
       }
 
       print('🔧 Admin: Document exists, proceeding with update');
@@ -1067,6 +1069,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       rethrow;
     }
   }
+
 // Improved method to create Firebase Auth account for approved users
   Future<void> _createApprovedUserAccount(String applicationId) async {
     try {

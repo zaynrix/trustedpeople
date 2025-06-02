@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
-// Enhanced AuthNavigationListener with proper error handling
+// Fixed AuthNavigationListener - Replace in your login screen
 class AuthNavigationListener extends ConsumerWidget {
   final Widget child;
 
@@ -17,24 +17,16 @@ class AuthNavigationListener extends ConsumerWidget {
     ref.listen<AuthState>(authProvider, (previous, current) {
       print('🎯 Auth state changed:');
       print(
-          '  Previous: isAuth=${previous?.isAuthenticated}, isTrusted=${previous?.isTrustedUser}, error=${previous?.error}');
+          '  Previous: isAuth=${previous?.isAuthenticated}, isTrusted=${previous?.isTrustedUser}');
       print(
-          '  Current: isAuth=${current.isAuthenticated}, isTrusted=${current.isTrustedUser}, error=${current.error}');
+          '  Current: isAuth=${current.isAuthenticated}, isTrusted=${current.isTrustedUser}');
 
-      // CRITICAL: Do not navigate if there's an error in the current state
-      if (current.error != null) {
-        print('🎯 ❌ Navigation blocked - error present: ${current.error}');
-        return; // Stay on current page when there's an error
-      }
-
-      // Only navigate if user successfully became authenticated as trusted user
+      // Only navigate if user just became authenticated as trusted user
       if (previous != null &&
           !previous.isAuthenticated &&
           current.isAuthenticated &&
           current.isTrustedUser &&
-          !current.isLoading &&
-          current.error == null) {
-        // Ensure no error exists
+          !current.isLoading) {
         print(
             '🎯 User just authenticated as trusted user - scheduling navigation');
 
@@ -48,8 +40,11 @@ class AuthNavigationListener extends ConsumerWidget {
               // Only navigate if we're on the login page
               if (currentRoute == '/secure-trusted-895623/login') {
                 print('🎯 🚀 Navigating to dashboard...');
+
+                // Use pushReplacement to prevent back navigation to login
                 context.pushReplacement(
                     '/secure-trusted-895623/trusted-dashboard');
+
                 print('🎯 ✅ Navigation to dashboard completed');
               } else {
                 print('🎯 ⚠️ Not on login page, skipping navigation');
@@ -72,10 +67,8 @@ class AuthNavigationListener extends ConsumerWidget {
         });
       } else if (previous != null &&
           previous.isAuthenticated &&
-          !current.isAuthenticated &&
-          current.error == null) {
-        // Only navigate on logout if no error
-        // User logged out successfully
+          !current.isAuthenticated) {
+        // User logged out
         print('🎯 User logged out');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) {
@@ -89,11 +82,6 @@ class AuthNavigationListener extends ConsumerWidget {
         print('  - Is authenticated: ${current.isAuthenticated}');
         print('  - Is trusted: ${current.isTrustedUser}');
         print('  - Is loading: ${current.isLoading}');
-        print('  - Has error: ${current.error != null}');
-
-        if (current.error != null) {
-          print('🎯 ⚠️ Error present - staying on current page');
-        }
       }
     });
 
@@ -118,231 +106,96 @@ class _TrustedUserLoginScreenState
   bool _isLoading = false;
   String? _errorMessage;
 
-  // New validation state variables
-  String? _emailError;
-  String? _passwordError;
-  bool _emailTouched = false;
-  bool _passwordTouched = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Add listeners for real-time validation
-    _emailController.addListener(_validateEmailRealTime);
-    _passwordController.addListener(_validatePasswordRealTime);
-  }
-
   @override
   void dispose() {
-    _emailController.removeListener(_validateEmailRealTime);
-    _passwordController.removeListener(_validatePasswordRealTime);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  // Real-time email validation
-  void _validateEmailRealTime() {
-    if (!_emailTouched) return;
-
-    final email = _emailController.text.trim();
-    setState(() {
-      if (email.isEmpty) {
-        _emailError = 'الرجاء إدخال البريد الإلكتروني';
-      } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-        _emailError = 'تنسيق البريد الإلكتروني غير صحيح';
-      } else {
-        _emailError = null;
-      }
-    });
-  }
-
-  // Real-time password validation
-  void _validatePasswordRealTime() {
-    if (!_passwordTouched) return;
-
-    final password = _passwordController.text;
-    setState(() {
-      if (password.isEmpty) {
-        _passwordError = 'الرجاء إدخال كلمة المرور';
-      } else if (password.length < 6) {
-        _passwordError = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
-      } else {
-        _passwordError = null;
-      }
-    });
-  }
-
-  // Enhanced form validation
-  bool _validateForm() {
-    setState(() {
-      _emailTouched = true;
-      _passwordTouched = true;
-    });
-
-    _validateEmailRealTime();
-    _validatePasswordRealTime();
-
-    return _formKey.currentState?.validate() ??
-        false && _emailError == null && _passwordError == null;
-  }
-
-  // Enhanced login method with proper error handling and loading states
+// Replace your _login method in TrustedUserLoginScreen with this:
   Future<void> _login() async {
-    // First validate the form
-    if (!_validateForm()) {
-      print('🔐 ❌ Form validation failed');
-      return;
-    }
+    // context.pushReplacement('/secure-trusted-895623/trusted-dashboard');
 
-    // Set loading state immediately and clear any previous errors
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
 
-    try {
-      print('🔐 ========================================');
-      print('🔐 LOGIN SCREEN: Starting login process');
-      print('🔐 ========================================');
-      print('🔐 Email: ${_emailController.text.trim()}');
+      try {
+        print('🔐 ========================================');
+        print('🔐 LOGIN SCREEN: Starting login process');
+        print('🔐 ========================================');
+        print('🔐 Email: ${_emailController.text.trim()}');
 
-      final authNotifier = ref.read(authProvider.notifier);
+        final authNotifier = ref.read(authProvider.notifier);
 
-      // Perform the authentication and wait for completion
-      await authNotifier.signInTrustedUser(
-          _emailController.text.trim(), _passwordController.text);
+        // Perform the authentication
+        await authNotifier.signInTrustedUser(
+            _emailController.text.trim(), _passwordController.text);
 
-      print('🔐 signInTrustedUser method completed');
+        print('🔐 signInTrustedUser completed');
 
-      // Check if widget is still mounted before proceeding
-      if (!mounted) {
-        print('🔐 Widget disposed after login attempt');
-        return;
-      }
-
-      // Get the current auth state after the operation
-      final authState = ref.read(authProvider);
-      print('🔐 Post-login auth state analysis:');
-      print('  - isAuthenticated: ${authState.isAuthenticated}');
-      print('  - isTrustedUser: ${authState.isTrustedUser}');
-      print('  - isLoading: ${authState.isLoading}');
-      print('  - error: ${authState.error}');
-
-      // Handle different scenarios based on auth state
-      if (authState.error != null) {
-        // There's an authentication error - STAY ON LOGIN PAGE
-        print('🔐 ❌ Authentication error detected: ${authState.error}');
-        print('🔐 🔒 STAYING ON LOGIN PAGE due to error');
-        setState(() {
-          _errorMessage = authState.error!;
-          _isLoading = false;
-        });
-        return; // Critical: Exit here to prevent any navigation
-      }
-
-      if (!authState.isAuthenticated) {
-        // User is not authenticated at all - STAY ON LOGIN PAGE
-        print('🔐 ❌ User not authenticated');
-        print('🔐 🔒 STAYING ON LOGIN PAGE due to failed authentication');
-        setState(() {
-          _errorMessage = 'فشل في تسجيل الدخول. تحقق من بيانات الاعتماد.';
-          _isLoading = false;
-        });
-        return; // Critical: Exit here to prevent any navigation
-      }
-
-      if (authState.isAuthenticated && !authState.isTrustedUser) {
-        // User is authenticated but not a trusted user - STAY ON LOGIN PAGE
-        print('🔐 ❌ User authenticated but not trusted');
-        print('🔐 🔒 STAYING ON LOGIN PAGE - signing out non-trusted user');
-        setState(() {
-          _errorMessage =
-              'هذا الحساب غير مخول للدخول إلى هذا القسم. يجب أن تكون مستخدماً موثوقاً.';
-          _isLoading = false;
-        });
-
-        // Sign out the non-trusted user to prevent access
-        try {
-          await authNotifier.signOut();
-          print('🔐 Non-trusted user signed out successfully');
-        } catch (signOutError) {
-          print('🔐 Error signing out non-trusted user: $signOutError');
+        // Check if widget is still mounted before proceeding
+        if (!mounted) {
+          print('🔐 Widget disposed after login attempt');
+          return;
         }
-        return; // Critical: Exit here to prevent any navigation
-      }
 
-      if (authState.isAuthenticated && authState.isTrustedUser) {
-        // Perfect! User is both authenticated and trusted
-        print('🔐 ✅ Login successful - user is authenticated and trusted');
-        print('🔐 🎯 NAVIGATION ALLOWED - proceeding to dashboard');
+        // Check the auth state after login
+        final authState = ref.read(authProvider);
+        print('🔐 Post-login auth state:');
+        print('  - isAuthenticated: ${authState.isAuthenticated}');
+        print('  - isTrustedUser: ${authState.isTrustedUser}');
+        print('  - isLoading: ${authState.isLoading}');
+        print('  - error: ${authState.error}');
 
-        setState(() {
-          _isLoading = false;
-        });
+        // Check for auth errors
+        if (authState.error != null) {
+          throw Exception(authState.error);
+        }
 
-        // Navigate to dashboard only for successful trusted user login
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 100), () {
-            if (mounted) {
-              print('🔐 🚀 Navigating to trusted dashboard');
-              context
-                  .pushReplacement('/secure-trusted-895623/trusted-dashboard');
-              print('🔐 ✅ Navigation completed successfully');
-            }
+        // If authentication was successful, navigate immediately
+        if (authState.isAuthenticated) {
+          print('🔐 ✅ Login successful - navigating to dashboard');
+
+          // Update UI state
+          setState(() {
+            _isLoading = false;
+          });
+
+          // Navigate to dashboard immediately (don't rely only on listener)
+          if (mounted) {
+            // Use a small delay to ensure the state is fully updated
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (mounted) {
+                print('🔐 🚀 Direct navigation to dashboard');
+                context.pushReplacement(
+                    '/secure-trusted-895623/trusted-dashboard');
+                print('🔐 ✅ Direct navigation completed');
+              }
+            });
+          }
+        } else {
+          // Authentication failed
+          setState(() {
+            _errorMessage = 'فشل في تسجيل الدخول. تحقق من بيانات الاعتماد.';
+            _isLoading = false;
           });
         }
-        return;
-      }
+      } catch (e) {
+        print('🔐 ❌ LOGIN ERROR: $e');
 
-      // Fallback case - something unexpected happened - STAY ON LOGIN PAGE
-      print('🔐 ⚠️ Unexpected auth state after login');
-      print('🔐 🔒 STAYING ON LOGIN PAGE due to unexpected state');
-      setState(() {
-        _errorMessage = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('🔐 ❌ CRITICAL LOGIN ERROR: $e');
-      print('🔐 Error type: ${e.runtimeType}');
-      print('🔐 🔒 STAYING ON LOGIN PAGE due to exception');
-
-      // Only handle errors if widget is still mounted
-      if (mounted) {
-        String errorMessage;
-
-        // Parse different types of errors for better user experience
-        if (e.toString().contains('لم يتم العثور على طلب تسجيل')) {
-          errorMessage =
-              'لم يتم العثور على طلب تسجيل بهذا البريد الإلكتروني. تأكد من تسجيلك أولاً.';
-        } else if (e.toString().contains('wrong-password') ||
-            e.toString().contains('user-not-found')) {
-          errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-        } else if (e.toString().contains('too-many-requests')) {
-          errorMessage =
-              'تم تجاوز عدد المحاولات المسموح. حاول مرة أخرى لاحقاً.';
-        } else if (e.toString().contains('network-request-failed')) {
-          errorMessage =
-              'خطأ في الاتصال بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.';
+        // Only handle errors if widget is still mounted
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'حدث خطأ أثناء تسجيل الدخول: ${e.toString()}';
+            _isLoading = false;
+          });
         } else {
-          errorMessage = 'حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.';
+          print('🔐 Widget disposed during error handling');
         }
-
-        setState(() {
-          _errorMessage = errorMessage;
-          _isLoading = false;
-        });
-
-        // Ensure user is signed out on error to prevent any auth confusion
-        try {
-          final authNotifier = ref.read(authProvider.notifier);
-          await authNotifier.signOut();
-          print('🔐 User signed out after error to ensure clean state');
-        } catch (signOutError) {
-          print('🔐 Error during cleanup signout: $signOutError');
-        }
-      } else {
-        print('🔐 Widget disposed during error handling');
       }
     }
   }
@@ -356,68 +209,9 @@ class _TrustedUserLoginScreenState
 
     return Scaffold(
       appBar: _buildAppBar(context, isMobile),
-      body: Stack(
-        children: [
-          // Main content
-          isMobile
-              ? _buildMobileLayout(context)
-              : _buildWebLayout(context, isDesktop),
-
-          // Full-screen loading overlay
-          if (_isLoading) _buildLoadingOverlay(),
-        ],
-      ),
-    );
-  }
-
-  // Full-screen loading overlay
-  Widget _buildLoadingOverlay() {
-    return Container(
-      color: Colors.black.withOpacity(0.5),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(
-                strokeWidth: 3,
-                color: Colors.blue,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'جارٍ التحقق من بيانات المستخدم...',
-                style: GoogleFonts.cairo(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'يرجى الانتظار',
-                style: GoogleFonts.cairo(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
+      body: isMobile
+          ? _buildMobileLayout(context)
+          : _buildWebLayout(context, isDesktop),
     );
   }
 
@@ -486,8 +280,7 @@ class _TrustedUserLoginScreenState
         child: Container(
           constraints: BoxConstraints(
             maxWidth: isDesktop ? 450 : 400,
-            maxHeight:
-                isDesktop ? 800 : 750, // Increased height for enhanced form
+            maxHeight: isDesktop ? 650 : 600,
           ),
           child: Card(
             elevation: isDesktop ? 20 : 15,
@@ -504,7 +297,7 @@ class _TrustedUserLoginScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildWebHeader(isDesktop),
+                    // _buildWebHeader(isDesktop),
                     SizedBox(height: isDesktop ? 40 : 32),
                     _buildWebForm(isDesktop),
                     const SizedBox(height: 20),
@@ -646,394 +439,105 @@ class _TrustedUserLoginScreenState
     );
   }
 
-  // Enhanced email field with error hints
   Widget _buildEmailField(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: _emailController,
-          onTap: () {
-            setState(() {
-              _emailTouched = true;
-            });
-          },
-          onChanged: (value) {
-            if (!_emailTouched) {
-              setState(() {
-                _emailTouched = true;
-              });
-            }
-          },
-          decoration: InputDecoration(
-            labelText: 'البريد الإلكتروني',
-            labelStyle: GoogleFonts.cairo(),
-            hintText: 'trusted@example.com',
-            prefixIcon: Icon(
-              Icons.email_outlined,
-              color: _emailError != null
-                  ? Colors.red.shade600
-                  : Colors.blue.shade600,
-              size: isMobile ? 20 : 22,
-            ),
-            suffixIcon: _emailTouched
-                ? Icon(
-                    _emailError == null ? Icons.check_circle : Icons.error,
-                    color: _emailError == null ? Colors.green : Colors.red,
-                    size: 20,
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: _emailError != null
-                    ? Colors.red.shade300
-                    : Colors.grey.shade300,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: _emailError != null
-                    ? Colors.red.shade700
-                    : Colors.blue.shade700,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.red.shade700, width: 2),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.red.shade700, width: 2),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: isMobile ? 16 : 18,
-            ),
-            filled: true,
-            fillColor:
-                _emailError != null ? Colors.red.shade50 : Colors.grey.shade50,
-          ),
-          style: GoogleFonts.cairo(),
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'الرجاء إدخال البريد الإلكتروني';
-            }
-            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-              return 'البريد الإلكتروني غير صحيح';
-            }
-            return null;
-          },
+    return TextFormField(
+      controller: _emailController,
+      decoration: InputDecoration(
+        labelText: 'البريد الإلكتروني',
+        labelStyle: GoogleFonts.cairo(),
+        hintText: 'trusted@example.com',
+        prefixIcon: Icon(
+          Icons.email_outlined,
+          color: Colors.blue.shade600,
+          size: isMobile ? 20 : 22,
         ),
-        // Email error hint
-        if (_emailError != null && _emailTouched) ...[
-          const SizedBox(height: 6),
-          _buildFieldErrorHint(_emailError!, isMobile),
-        ],
-        // Email success hint
-        if (_emailError == null &&
-            _emailTouched &&
-            _emailController.text.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          _buildFieldSuccessHint('البريد الإلكتروني صحيح', isMobile),
-        ],
-      ],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: isMobile ? 16 : 18,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      style: GoogleFonts.cairo(),
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'الرجاء إدخال البريد الإلكتروني';
+        }
+        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+          return 'البريد الإلكتروني غير صحيح';
+        }
+        return null;
+      },
     );
   }
 
-  // Enhanced password field with error hints
   Widget _buildPasswordField(bool isMobile) {
-    final password = _passwordController.text;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          onTap: () {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      decoration: InputDecoration(
+        labelText: 'كلمة المرور',
+        labelStyle: GoogleFonts.cairo(),
+        hintText: '••••••••',
+        prefixIcon: Icon(
+          Icons.lock_outlined,
+          color: Colors.blue.shade600,
+          size: isMobile ? 20 : 22,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: Colors.blue.shade600,
+            size: isMobile ? 20 : 22,
+          ),
+          onPressed: () {
             setState(() {
-              _passwordTouched = true;
+              _obscurePassword = !_obscurePassword;
             });
           },
-          onChanged: (value) {
-            if (!_passwordTouched) {
-              setState(() {
-                _passwordTouched = true;
-              });
-            }
-          },
-          decoration: InputDecoration(
-            labelText: 'كلمة المرور',
-            labelStyle: GoogleFonts.cairo(),
-            hintText: '••••••••',
-            prefixIcon: Icon(
-              Icons.lock_outlined,
-              color: _passwordError != null
-                  ? Colors.red.shade600
-                  : Colors.blue.shade600,
-              size: isMobile ? 20 : 22,
-            ),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_passwordTouched)
-                  Icon(
-                    _passwordError == null ? Icons.check_circle : Icons.error,
-                    color: _passwordError == null ? Colors.green : Colors.red,
-                    size: 20,
-                  ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: Colors.blue.shade600,
-                    size: isMobile ? 20 : 22,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-              ],
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: _passwordError != null
-                    ? Colors.red.shade300
-                    : Colors.grey.shade300,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: _passwordError != null
-                    ? Colors.red.shade700
-                    : Colors.blue.shade700,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.red.shade700, width: 2),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.red.shade700, width: 2),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: isMobile ? 16 : 18,
-            ),
-            filled: true,
-            fillColor: _passwordError != null
-                ? Colors.red.shade50
-                : Colors.grey.shade50,
-          ),
-          style: GoogleFonts.cairo(),
-          autocorrect: false,
-          enableSuggestions: false,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'الرجاء إدخال كلمة المرور';
-            }
-            if (value.length < 6) {
-              return 'كلمة المرور قصيرة جداً';
-            }
-            return null;
-          },
         ),
-        // Password error hint
-        if (_passwordError != null && _passwordTouched) ...[
-          const SizedBox(height: 6),
-          _buildFieldErrorHint(_passwordError!, isMobile),
-        ],
-        // Password success hint
-        if (_passwordError == null &&
-            _passwordTouched &&
-            password.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          _buildFieldSuccessHint('كلمة المرور صحيحة', isMobile),
-        ],
-        // Password strength indicators (when user is typing)
-        if (_passwordTouched && password.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _buildPasswordStrengthIndicator(password, isMobile),
-        ],
-      ],
-    );
-  }
-
-  // Field error hint widget
-  Widget _buildFieldErrorHint(String message, bool isMobile) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.red.shade200, width: 1),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: isMobile ? 16 : 18,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
       ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.red.shade700,
-            size: 16,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              message,
-              style: GoogleFonts.cairo(
-                color: Colors.red.shade800,
-                fontSize: isMobile ? 12 : 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
+      style: GoogleFonts.cairo(),
+      autocorrect: false,
+      enableSuggestions: false,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'الرجاء إدخال كلمة المرور';
+        }
+        if (value.length < 6) {
+          return 'كلمة المرور قصيرة جداً';
+        }
+        return null;
+      },
     );
   }
 
-  // Field success hint widget
-  Widget _buildFieldSuccessHint(String message, bool isMobile) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.green.shade200, width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            color: Colors.green.shade700,
-            size: 16,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              message,
-              style: GoogleFonts.cairo(
-                color: Colors.green.shade800,
-                fontSize: isMobile ? 12 : 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Password strength indicator
-  Widget _buildPasswordStrengthIndicator(String password, bool isMobile) {
-    final hasMinLength = password.length >= 6;
-    final hasUppercase = password.contains(RegExp(r'[A-Z]'));
-    final hasLowercase = password.contains(RegExp(r'[a-z]'));
-    final hasNumbers = password.contains(RegExp(r'[0-9]'));
-    final hasSpecialChars =
-        password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
-
-    final strength = [
-      hasMinLength,
-      hasUppercase,
-      hasLowercase,
-      hasNumbers,
-      hasSpecialChars
-    ].where((criteria) => criteria).length;
-
-    Color strengthColor;
-    String strengthText;
-    if (strength <= 2) {
-      strengthColor = Colors.red;
-      strengthText = 'ضعيفة';
-    } else if (strength <= 3) {
-      strengthColor = Colors.orange;
-      strengthText = 'متوسطة';
-    } else {
-      strengthColor = Colors.green;
-      strengthText = 'قوية';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'قوة كلمة المرور: ',
-              style: GoogleFonts.cairo(
-                fontSize: isMobile ? 12 : 11,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            Text(
-              strengthText,
-              style: GoogleFonts.cairo(
-                fontSize: isMobile ? 12 : 11,
-                color: strengthColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: strength / 5,
-          backgroundColor: Colors.grey.shade300,
-          valueColor: AlwaysStoppedAnimation<Color>(strengthColor),
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            _buildStrengthCriteria('6+ أحرف', hasMinLength, isMobile),
-            _buildStrengthCriteria('حروف كبيرة', hasUppercase, isMobile),
-            _buildStrengthCriteria('حروف صغيرة', hasLowercase, isMobile),
-            _buildStrengthCriteria('أرقام', hasNumbers, isMobile),
-            _buildStrengthCriteria('رموز خاصة', hasSpecialChars, isMobile),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Individual strength criteria widget
-  Widget _buildStrengthCriteria(String text, bool met, bool isMobile) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          met ? Icons.check_circle : Icons.circle_outlined,
-          size: 12,
-          color: met ? Colors.green : Colors.grey,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: GoogleFonts.cairo(
-            fontSize: isMobile ? 10 : 9,
-            color: met ? Colors.green : Colors.grey,
-            fontWeight: met ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Enhanced error message for login failures
   Widget _buildErrorMessage(bool isMobile) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1042,35 +546,21 @@ class _TrustedUserLoginScreenState
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.red.shade200),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: Colors.red.shade700,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _errorMessage!,
-                  style: GoogleFonts.cairo(
-                    color: Colors.red.shade800,
-                    fontSize: isMobile ? 14 : 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          Icon(
+            Icons.error_outline,
+            color: Colors.red.shade700,
+            size: 20,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'تأكد من صحة البريد الإلكتروني وكلمة المرور المدخلة',
-            style: GoogleFonts.cairo(
-              color: Colors.red.shade700,
-              fontSize: isMobile ? 12 : 11,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: GoogleFonts.cairo(
+                color: Colors.red.shade800,
+                fontSize: isMobile ? 14 : 13,
+              ),
             ),
           ),
         ],
@@ -1080,21 +570,18 @@ class _TrustedUserLoginScreenState
 
   Widget _buildLoginButton(bool isMobile) {
     return ElevatedButton(
-      onPressed:
-          (_isLoading) ? null : _login, // Disable completely when loading
+      onPressed: _isLoading ? null : _login,
       style: ElevatedButton.styleFrom(
-        backgroundColor:
-            _isLoading ? Colors.grey.shade400 : Colors.blue.shade800,
+        backgroundColor: Colors.blue.shade800,
         foregroundColor: Colors.white,
         disabledBackgroundColor: Colors.grey.shade400,
-        disabledForegroundColor: Colors.grey.shade600,
         padding: EdgeInsets.symmetric(
           vertical: isMobile ? 16 : 18,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        elevation: _isLoading ? 0 : 2,
+        elevation: 2,
       ),
       child: _isLoading
           ? Row(
@@ -1110,11 +597,10 @@ class _TrustedUserLoginScreenState
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'جارٍ التحقق من البيانات...',
+                  'جارٍ تسجيل الدخول...',
                   style: GoogleFonts.cairo(
                     fontSize: isMobile ? 16 : 15,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
                   ),
                 ),
               ],
@@ -1170,7 +656,8 @@ class _TrustedUserLoginScreenState
     );
   }
 
-  // Enhanced debug section for your trusted user login screen
+// Enhanced debug section for your trusted user login screen
+// Update your debug section to include the fix methods
   Widget _buildDebugSection() {
     return Column(
       children: [
@@ -1362,7 +849,7 @@ class _TrustedUserLoginScreenState
     );
   }
 
-  // Debug helper methods
+// Add these methods to your login screen class
   Future<void> _fixExistingUser() async {
     try {
       final authNotifier = ref.read(authProvider.notifier);
@@ -1437,6 +924,7 @@ class _TrustedUserLoginScreenState
     await _login();
   }
 
+// Keep your existing debug methods
   Future<void> _listAllUsers() async {
     try {
       final authNotifier = ref.read(authProvider.notifier);

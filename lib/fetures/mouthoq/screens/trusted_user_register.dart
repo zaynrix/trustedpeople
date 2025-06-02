@@ -151,7 +151,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/login'),
+          onPressed: () => context.go('/secure-trusted-895623/login'),
         ),
       ),
       body: isMobile ? _buildMobileLayout() : _buildWebLayout(),
