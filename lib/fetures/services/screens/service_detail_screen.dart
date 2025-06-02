@@ -286,10 +286,10 @@ class ServiceDetailScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.teal.shade600,
         elevation: 2,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white,),
-          onPressed: () => context.goNamed(ScreensNames.services),
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back, color: Colors.white,),
+        //   onPressed: () => context.goNamed(ScreensNames.services),
+        // ),
       );
     } else {
       // Web: More minimal, integrated app bar
