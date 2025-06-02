@@ -228,27 +228,49 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
 
   PreferredSizeWidget _buildAppBar(
       BuildContext context, ServiceModel service, bool isMobile) {
-    return AppBar(
-      title: Text(
-        'طلب خدمة: ${service.title}',
-        style: GoogleFonts.cairo(
-          fontWeight: FontWeight.w600,
-          color: Colors.teal.shade800,
-          fontSize: 20,
+    if (isMobile) {
+      // Mobile: Traditional mobile app bar
+      return AppBar(
+        title: Text(
+          'طلب خدمة',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-      ),
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.teal.shade800,
-      elevation: 1,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => context.goNamed(
-          ScreensNames.serviceDetail,
-          pathParameters: {'serviceId': service.id},
+        backgroundColor: Colors.teal.shade600,
+        elevation: 2,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white,),
+          onPressed: () =>  context.goNamed(
+            ScreensNames.serviceDetail,
+            pathParameters: {'serviceId': service.id},
+          ),
         ),
-      ),
-    );
-    // }
+      );
+    } else {
+      // Web: Clean app bar
+      return AppBar(
+        title: Text(
+          'طلب خدمة: ${service.title}',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.w600,
+            color: Colors.teal.shade800,
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.teal.shade800,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>  context.goNamed(
+            ScreensNames.serviceDetail,
+            pathParameters: {'serviceId': service.id},
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildMobileLayout(BuildContext context, ServiceModel service) {
