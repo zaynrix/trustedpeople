@@ -41,16 +41,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       }
 
       // Keep current layout when there's an auth error
-      final currentLocation = GoRouterState.of(context).matchedLocation;
-      final isOnSecureRoute =
-          currentLocation.startsWith('/secure-trusted-895623/') ||
-              currentLocation.startsWith('/secure-admin-784512/');
-
-      if (isOnSecureRoute) {
-        return Scaffold(body: widget.child);
-      }
-
-      // For non-secure routes with errors, show normal layout
       if (isMobile) {
         return Scaffold(
           drawer: const AppDrawer(),
@@ -75,7 +65,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final isAdmin =
         authState.error == null ? ref.watch(isAdminProvider) : false;
 
-    // FIXED: Check if user is on secure routes (login, dashboard, etc.)
+    // Get current location for context
     final currentLocation = GoRouterState.of(context).matchedLocation;
     final isOnSecureRoute =
         currentLocation.startsWith('/secure-trusted-895623/') ||
@@ -90,16 +80,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       print('  - Is admin: $isAdmin');
     }
 
-    // FIXED: If on secure routes, don't show navigation rail
-    if (isOnSecureRoute) {
-      if (kDebugMode) {
-        print('🏗️ AppShell: Using secure route layout (no navigation rail)');
-      }
-      return Scaffold(
-        body: widget.child,
-      );
-    }
-
     // If on mobile, use standard scaffold with drawer
     if (isMobile) {
       if (kDebugMode) {
@@ -111,7 +91,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
     }
 
-    // For desktop/tablet, use layout with custom navigation rail
+    // For desktop/tablet, use layout with custom navigation rail (NOW SHOWS ON ALL SCREENS)
     if (kDebugMode) {
       print('🏗️ AppShell: Using desktop layout with navigation rail');
     }
@@ -119,7 +99,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: Row(
         textDirection: TextDirection.rtl,
         children: [
-          // NavigationRail (custom implementation)
+          // NavigationRail (custom implementation) - NOW SHOWN ON ALL SCREENS
           _buildCustomNavigationRail(context, isAdmin, authState),
 
           // Divider between rail and content
@@ -226,16 +206,16 @@ class _AppShellState extends ConsumerState<AppShell> {
                           ScreensNames.adminServiceRequests,
                           '/admin/service-requests'),
                     ),
-                    // FIXED: Add admin dashboard navigation
+                    // UPDATED: Admin dashboard navigation - now highlights properly
                     _buildNavItem(
                       context,
                       Icons.dashboard,
-                      "لوحة تحكم الإدارة",
+                      "لوحة الاحصائيات",
                       'adminDashboard', // Route name for admin dashboard
                       isActive:
                           location.startsWith('/secure-admin-784512/dashboard'),
                     ),
-                    // FIXED: Add user applications management
+                    // UPDATED: User applications management - now highlights properly
                     _buildNavItem(
                       context,
                       Icons.people,
@@ -255,7 +235,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ScreensNames.contactUs, ScreensNames.contactUsPath),
                   ),
 
-                  // FIXED: Only show trusted user dashboard if properly authenticated (no errors)
+                  // UPDATED: Trusted user dashboard - now highlights properly
                   if (authState.isAuthenticated &&
                       authState.isTrustedUser &&
                       !authState.isAdmin &&
@@ -266,8 +246,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                       Icons.dashboard,
                       "لوحة التحكم",
                       'trustedUserDashboard',
-                      isActive: location ==
-                          '/secure-trusted-895623/trusted-dashboard',
+                      isActive: location.startsWith(
+                          '/secure-trusted-895623/trusted-dashboard'),
                     ),
                   ],
                 ],
@@ -282,7 +262,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  // FIXED: Updated route checking logic to be more defensive
+  // UPDATED: Route checking logic - now properly handles secure routes
   bool _isRouteActive(String? currentRouteName, String location,
       String routeName, String routePath) {
     if (kDebugMode) {
@@ -290,12 +270,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       print('  - Current name: $currentRouteName');
       print('  - Current location: $location');
       print('  - Target path: $routePath');
-    }
-
-    // FIXED: Don't mark any items as active if on secure routes
-    if (location.startsWith('/secure-trusted-895623/') ||
-        location.startsWith('/secure-admin-784512/')) {
-      return false;
     }
 
     // Special case for home route
@@ -343,7 +317,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return false;
   }
 
-  // FIXED: Updated navigation method to be more defensive about auth errors
+  // Navigation method remains the same
   Widget _buildNavItem(
     BuildContext context,
     IconData icon,
@@ -588,7 +562,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  // FIXED: Updated logout button to handle auth errors properly
+  // Logout button remains the same
   Widget _buildLogoutButton({required AuthState authState}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),

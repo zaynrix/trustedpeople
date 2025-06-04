@@ -186,6 +186,9 @@ class _TrustedUserDashboardState extends ConsumerState<TrustedUserDashboard> {
         backgroundColor: getAppBarColor(),
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+            onPressed: () => context.go('/'),
+            icon: const Icon(Icons.arrow_back)),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),

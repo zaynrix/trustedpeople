@@ -149,11 +149,42 @@ class AnalyticsStateNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-class AdminDashboard extends ConsumerWidget {
+class AdminDashboard extends ConsumerStatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends ConsumerState<AdminDashboard> {
+  bool _hasInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load data after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
+    });
+  }
+
+  void _initializeData() {
+    if (_hasInitialized) return;
+
+    final isAdmin = ref.read(isAdminProvider);
+    debugPrint('Initializing data, isAdmin: $isAdmin');
+
+    if (isAdmin) {
+      _hasInitialized = true;
+      ref.read(analyticsStateProvider.notifier).loadData();
+    } else {
+      // Set loading to false if not admin
+      ref.read(isLoadingProvider.notifier).state = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Watch all state providers
     final isAdmin = ref.watch(isAdminProvider);
     final isLoading = ref.watch(isLoadingProvider);
@@ -172,7 +203,7 @@ class AdminDashboard extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('لوحة التحكم', style: GoogleFonts.cairo()),
+        title: Text('لوحة الاحصائيات', style: GoogleFonts.cairo()),
         actions: [
           if (isAdmin)
             IconButton(
@@ -541,8 +572,10 @@ class AdminDashboard extends ConsumerWidget {
               },
             ),
           ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         gridData: FlGridData(
           show: true,
@@ -656,7 +689,7 @@ class AdminDashboard extends ConsumerWidget {
         .toList(); // Filter out null markers
 
     return FlutterMap(
-      options: MapOptions(
+      options: const MapOptions(
         initialCenter: LatLng(25.0, 10.0),
         initialZoom: 2.0,
       ),

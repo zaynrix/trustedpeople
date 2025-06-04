@@ -1,6 +1,7 @@
 // lib/fetures/admin/screens/admin_service_requests_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
 import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
@@ -96,6 +97,9 @@ class _AdminServiceRequestsScreenState
       length: 4,
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+              onPressed: () => context.go('/'),
+              icon: const Icon(Icons.arrow_back)),
           backgroundColor: Colors.teal,
           title: Text(
             'إدارة طلبات الخدمات',
