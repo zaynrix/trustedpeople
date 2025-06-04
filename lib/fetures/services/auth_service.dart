@@ -107,9 +107,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     });
   }
-// Add these enhanced debug methods to your AuthNotifier class
-// Add this improved method to your AuthNotifier class
-// This will fix the existing broken user and create a proper one
 
   Future<void> fixAndCreateTrustedUser() async {
     try {
@@ -227,7 +224,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// Alternative: Create user with different email if the above doesn't work
   Future<void> createFreshTrustedUser() async {
     try {
       print('🆕 =================================');
@@ -582,7 +578,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final userRole = userData['role'] ?? '';
 
         // Check if it's a trusted user
-        final isTrustedUser = userRole == 'user' || userRole == 'trusted_user';
+        final isTrustedUser = userRole == 'trusted';
 
         // Get application data if available
         Map<String, dynamic>? applicationData;
@@ -674,7 +670,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// UPDATED: signInTrustedUser method - Remove context parameter
+// FIXED: Updated signInTrustedUser method
   Future<void> signInTrustedUser(String email, String password) async {
     try {
       print('🔐 =================================');
@@ -682,9 +678,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('🔐 =================================');
 
       state = state.copyWith(isLoading: true, error: null);
-      print('🔐 Initial state set to loading');
       print('🔐 Email: $email');
-      print('🔐 Password length: ${password.length}');
 
       // First, check if there's an application for this email
       print('🔍 Searching for application...');
@@ -692,9 +686,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .collection('user_applications')
           .where('email', isEqualTo: email.toLowerCase())
           .get();
-
-      print(
-          '🔍 Query completed. Found ${applicationQuery.docs.length} applications');
 
       if (applicationQuery.docs.isEmpty) {
         print('🔐 No application found for email: $email');
@@ -706,64 +697,75 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final applicationStatus = applicationData['status'] ?? '';
 
       print('🔍 Application found:');
-      print('  - Document ID: ${applicationDoc.id}');
       print('  - Status: "$applicationStatus"');
       print('  - Email: ${applicationData['email']}');
-      print('  - Full Name: ${applicationData['fullName']}');
+      print('  - Firebase UID: ${applicationData['firebaseUid']}');
 
       // Verify password matches the one in application
       if (applicationData['password'] != password) {
         print('🔐 PASSWORD MISMATCH!');
-        print('🔐 Stored: "${applicationData['password']}"');
-        print('🔐 Provided: "$password"');
         throw Exception('كلمة المرور غير صحيحة');
       }
 
       print('🔐 Password verification PASSED');
-      print('🔐 Application status: "$applicationStatus"');
 
-      // Handle APPROVED users with Firebase Auth
-      if (applicationStatus.toLowerCase() == 'approved') {
-        print('🔐 Status is APPROVED - attempting Firebase Auth');
+      // FIXED: Check if user has Firebase account (approved users should have one)
+      final firebaseUid = applicationData['firebaseUid'] ?? '';
+
+      if (firebaseUid.isNotEmpty &&
+          applicationStatus.toLowerCase() == 'approved') {
+        print(
+            '🔐 User is approved and has Firebase UID, attempting Firebase Auth...');
+
         try {
           final credential = await _auth.signInWithEmailAndPassword(
             email: email,
             password: password,
           );
 
-          print('🔐 Firebase Auth successful for approved user');
+          print('🔐 ✅ Firebase Auth successful for approved user');
           print('🔐 User UID: ${credential.user?.uid}');
 
-          // Let the auth state listener handle the rest via _fetchUserData
+          // The _fetchUserData method (via auth state listener) will handle the rest
           return;
-        } catch (e) {
-          print('🔐 Firebase Auth failed: $e');
-          if (e is FirebaseAuthException && e.code == 'user-not-found') {
-            print('🔐 User not found in Firebase Auth, creating account...');
-            // Approved but Firebase account not created yet - create it
-            await _createFirebaseAccountForApprovedUser(
-                applicationDoc.id, applicationData);
+        } catch (firebaseError) {
+          print('🔐 ❌ Firebase Auth failed: $firebaseError');
 
-            // Try login again
-            print('🔐 Attempting login again after account creation...');
-            final credential = await _auth.signInWithEmailAndPassword(
-              email: email,
-              password: password,
-            );
+          if (firebaseError is FirebaseAuthException) {
+            switch (firebaseError.code) {
+              case 'user-not-found':
+                print(
+                    '🔐 User not found in Firebase Auth, but should exist. Creating account...');
+                await _createFirebaseAccountForApprovedUser(
+                    applicationDoc.id, applicationData);
 
-            print('🔐 Second login attempt successful');
-            return; // Navigation handled by redirect
+                // Try login again
+                final credential = await _auth.signInWithEmailAndPassword(
+                  email: email,
+                  password: password,
+                );
+                print('🔐 ✅ Second login attempt successful');
+                return;
+
+              case 'wrong-password':
+                throw Exception('كلمة المرور غير صحيحة');
+              case 'invalid-email':
+                throw Exception('البريد الإلكتروني غير صحيح');
+              default:
+                throw Exception(
+                    'خطأ في تسجيل الدخول: ${firebaseError.message}');
+            }
           }
-          throw Exception('حدث خطأ في النظام، يرجى التواصل مع الإدارة');
+          throw firebaseError;
         }
       }
 
-      // Handle ALL OTHER STATUSES (pending, rejected, etc.) - Allow access but no Firebase Auth
-      print(
-          '🔐 Status is NOT approved - allowing dashboard access with status: $applicationStatus');
-      print('🔐 Preparing user state...');
+      // Handle non-approved users (pending, rejected, etc.)
+      print('🔐 User is not approved or has no Firebase account');
+      print('🔐 Status: $applicationStatus');
+      print('🔐 Allowing dashboard access with limited permissions...');
 
-      // Create user data from application - works for any status
+      // Create user data from application
       final userData = {
         'fullName': applicationData['fullName'],
         'email': applicationData['email'],
@@ -771,46 +773,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'additionalPhone': applicationData['additionalPhone'] ?? '',
         'serviceProvider': applicationData['serviceProvider'],
         'location': applicationData['location'],
-        'role': _getRoleFromStatus(applicationStatus),
+        'role': 'trusted',
         'status': applicationStatus,
         'adminComment': applicationData['adminComment'] ?? '',
       };
 
-      print('🔐 User data created:');
-      print('  - Full Name: ${userData['fullName']}');
-      print('  - Email: ${userData['email']}');
-      print('  - Status: ${userData['status']}');
-      print('  - Role: ${userData['role']}');
-
-      // Update state - ALL users get authenticated
+      // Update state for non-approved users
       state = state.copyWith(
         isLoading: false,
-        isAuthenticated: true, // ✅ ALWAYS authenticate if password is correct
+        isAuthenticated: true, // Allow authentication
         role: UserRole.trusted,
-        isTrustedUser: true, // ✅ ALWAYS mark as trusted user
-        isApproved: applicationStatus.toLowerCase() ==
-            'approved', // Only approved users get full access
+        isTrustedUser: true,
+        isApproved: applicationStatus.toLowerCase() == 'approved',
         userData: userData,
         applicationData: applicationData,
         userEmail: email,
         error: null,
       );
 
-      print('🔐 State AFTER update:');
-      print('  - isAuthenticated: ${state.isAuthenticated}'); // Should be true
-      print('  - isTrustedUser: ${state.isTrustedUser}'); // Should be true
-      print('  - isApproved: ${state.isApproved}'); // True only for approved
-      print('  - User status: ${userData['status']}');
-
-      print('🔐 =================================');
-      print('🔐 TRUSTED USER SIGN IN COMPLETED');
-      print('🔐 ✅ USER AUTHENTICATED - Dashboard access granted');
-      print('🔐 =================================');
+      print('🔐 ✅ Non-approved user authenticated with limited access');
+      print('🔐 Status: $applicationStatus');
     } catch (e, stackTrace) {
-      print('🔐 ❌ ERROR in signInTrustedUser:');
-      print('🔐 Error type: ${e.runtimeType}');
-      print('🔐 Error message: $e');
-
+      print('🔐 ❌ ERROR in signInTrustedUser: $e');
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),

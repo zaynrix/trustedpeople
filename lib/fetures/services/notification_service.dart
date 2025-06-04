@@ -58,11 +58,11 @@ class NotificationService {
       _useSecureStorage = testValue == 'test_value';
       _secureStorageChecked = true;
 
-      print('Secure storage available: $_useSecureStorage');
+      // print('Secure storage available: $_useSecureStorage');
       return _useSecureStorage;
     } catch (e) {
-      print(
-          'Secure storage not available, falling back to SharedPreferences: $e');
+      // print(
+      //     'Secure storage not available, falling back to SharedPreferences: $e');
       _useSecureStorage = false;
       _secureStorageChecked = true;
       return false;
@@ -193,7 +193,7 @@ class NotificationService {
       final phoneNumber = customNumber ?? contacts['whatsapp'];
 
       if (phoneNumber == null || phoneNumber.isEmpty) {
-        print('WhatsApp number not configured');
+        // print('WhatsApp number not configured');
         return;
       }
 
@@ -227,7 +227,7 @@ class NotificationService {
           botToken == null ||
           chatId.isEmpty ||
           botToken.isEmpty) {
-        print('Telegram credentials not configured');
+        // print('Telegram credentials not configured');
         return;
       }
 

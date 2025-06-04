@@ -36,7 +36,7 @@ class AnalyticsColumn extends StatelessWidget {
           color: Colors.green,
           subtext: '${percentChange.toStringAsFixed(1)}% عن أمس',
           onTap: () {
-            GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+            GoRouter.of(context).goNamed(ScreensNames.adminDashboardStatistics);
           },
         ),
         const SizedBox(height: 16),
@@ -47,7 +47,7 @@ class AnalyticsColumn extends StatelessWidget {
           color: Colors.blue,
           subtext: '$monthlyVisits زيارة هذا الشهر',
           onTap: () {
-            GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+            GoRouter.of(context).goNamed(ScreensNames.adminDashboardStatistics);
           },
         ),
         const SizedBox(height: 16),
@@ -58,7 +58,7 @@ class AnalyticsColumn extends StatelessWidget {
           color: Colors.orange,
           subtext: 'تحديث لحظي',
           onTap: () {
-            GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+            GoRouter.of(context).goNamed(ScreensNames.adminDashboardStatistics);
           },
         ),
       ],

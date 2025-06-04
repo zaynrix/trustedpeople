@@ -37,7 +37,8 @@ class AnalyticsRow extends StatelessWidget {
             color: Colors.green,
             subtext: '${percentChange.toStringAsFixed(1)}% عن أمس',
             onTap: () {
-              GoRouter.of(context).goNamed(ScreensNames.adminDashboard);
+              GoRouter.of(context)
+                  .goNamed(ScreensNames.adminDashboardStatistics);
             },
           ),
         ),
@@ -71,4 +72,3 @@ class AnalyticsRow extends StatelessWidget {
     );
   }
 }
-

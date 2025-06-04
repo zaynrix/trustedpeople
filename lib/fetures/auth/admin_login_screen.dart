@@ -17,7 +17,14 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isInitialLoading = true;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialAuthState();
+  }
 
   @override
   void dispose() {
@@ -26,57 +33,241 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     super.dispose();
   }
 
-  Future<void> _login() async {
-    if (_formKey.currentState?.validate() ?? false) {
+  Future<void> _checkInitialAuthState() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final authState = ref.read(authProvider);
+
+    // If user is authenticated but not admin, sign them out immediately
+    if (authState.isAuthenticated && !authState.isAdmin) {
+      await ref.read(authProvider.notifier).signOut();
+    }
+
+    // Only redirect if user is authenticated AND admin
+    if (authState.isAuthenticated && authState.isAdmin) {
+      if (mounted) {
+        context.go('/');
+        return;
+      }
+    }
+
+    if (mounted) {
       setState(() {
-        _isLoading = true;
-        _errorMessage = null;
+        _isInitialLoading = false;
       });
+    }
+  }
 
-      try {
-        final authNotifier = ref.read(authProvider.notifier);
-        await authNotifier.signIn(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-        // Check if login was successful and user is admin
-        final authState = ref.read(authProvider);
-        if (authState.isAuthenticated && authState.isAdmin) {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final authNotifier = ref.read(authProvider.notifier);
+
+      // Attempt to sign in with Firebase
+      await authNotifier.signIn(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      // Add a small delay to ensure state is updated
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Check authentication result
+      final authState = ref.read(authProvider);
+
+      // Debug: Print the current auth state
+      print(
+          'DEBUG: Auth State - isAuthenticated: ${authState.isAuthenticated}, isAdmin: ${authState.isAdmin}');
+
+      if (authState.isAuthenticated) {
+        // User is authenticated, now check if they're admin
+        if (authState.isAdmin) {
+          // Success: User is authenticated AND admin
+          print(
+              'DEBUG: User is authenticated and admin - proceeding to dashboard');
           if (mounted) {
-            context.go('/secure-admin-784512/dashboard');
-          }
-        } else if (authState.isAuthenticated && !authState.isAdmin) {
-          // User logged in but isn't an admin
-          setState(() {
-            _errorMessage = 'لا تملك صلاحيات المشرف المطلوبة';
-            _isLoading = false;
-          });
+            setState(() {
+              _isLoading = false;
+            });
 
-          // Sign out non-admin users
-          await authNotifier.signOut();
+            _showSuccessDialog();
+
+            await Future.delayed(const Duration(milliseconds: 1500));
+            if (mounted) {
+              context.go('/');
+            }
+          }
         } else {
+          // User is authenticated but NOT admin - sign them out
+          print('DEBUG: User is authenticated but not admin - signing out');
+          await authNotifier.signOut();
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'لا تملك صلاحيات المشرف المطلوبة';
+              _isLoading = false;
+            });
+          }
+        }
+      } else {
+        // Authentication failed but no exception was thrown
+        print('DEBUG: Authentication failed - user not authenticated');
+        if (mounted) {
           setState(() {
             _errorMessage = 'فشل تسجيل الدخول، يرجى التحقق من بياناتك';
             _isLoading = false;
           });
         }
-      } catch (e) {
+      }
+    } on Exception catch (e) {
+      // Handle Firebase authentication exceptions
+      if (mounted) {
         setState(() {
-          _errorMessage = 'حدث خطأ أثناء تسجيل الدخول: ${e.toString()}';
+          String errorMessage = 'حدث خطأ أثناء تسجيل الدخول';
+
+          String errorString = e.toString().toLowerCase();
+
+          if (errorString.contains('user-not-found') ||
+              errorString.contains('user not found')) {
+            errorMessage = 'المستخدم غير موجود';
+          } else if (errorString.contains('wrong-password') ||
+              errorString.contains('invalid-credential') ||
+              errorString.contains('invalid-login-credentials')) {
+            errorMessage = 'كلمة المرور غير صحيحة';
+          } else if (errorString.contains('invalid-email')) {
+            errorMessage = 'البريد الإلكتروني غير صحيح';
+          } else if (errorString.contains('user-disabled')) {
+            errorMessage = 'تم تعطيل هذا الحساب';
+          } else if (errorString.contains('too-many-requests')) {
+            errorMessage = 'محاولات كثيرة، يرجى المحاولة لاحقاً';
+          } else if (errorString.contains('network-request-failed')) {
+            errorMessage = 'خطأ في الاتصال، تحقق من الإنترنت';
+          } else if (errorString.contains('email-already-in-use')) {
+            errorMessage = 'البريد الإلكتروني مستخدم بالفعل';
+          } else if (errorString.contains('weak-password')) {
+            errorMessage = 'كلمة المرور ضعيفة جداً';
+          }
+
+          _errorMessage = errorMessage;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Handle any other errors
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى';
           _isLoading = false;
         });
       }
     }
   }
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    size: 40,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'تم تسجيل الدخول بنجاح',
+                  style: GoogleFonts.cairo(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'جاري التوجيه إلى لوحة التحكم...',
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInitialLoadingScreen() {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.green.shade700,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.admin_panel_settings,
+                size: 60,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 30),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'جاري التحقق من حالة تسجيل الدخول...',
+              style: GoogleFonts.cairo(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    if (_isInitialLoading) {
+      return _buildInitialLoadingScreen();
+    }
 
-    // Define breakpoints
+    final size = MediaQuery.of(context).size;
     final isMobile = size.width < 768;
-    final isTablet = size.width >= 768 && size.width < 1024;
     final isDesktop = size.width >= 1024;
 
     return Scaffold(
@@ -89,7 +280,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
   PreferredSizeWidget _buildAppBar(BuildContext context, bool isMobile) {
     if (isMobile) {
-      // Mobile: Minimal app bar for security
       return AppBar(
         title: Text(
           'تسجيل الدخول',
@@ -103,7 +293,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         centerTitle: true,
       );
     } else {
-      // Web: Even more minimal for security
       return AppBar(
         backgroundColor: Colors.grey.shade900,
         elevation: 0,
@@ -177,7 +366,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     );
   }
 
-  // Mobile-specific widgets
   Widget _buildMobileHeader() {
     return Column(
       children: [
@@ -254,7 +442,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     );
   }
 
-  // Web-specific widgets
   Widget _buildWebHeader(bool isDesktop) {
     return Column(
       children: [
@@ -314,17 +501,17 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     );
   }
 
-  // Shared form widgets
   Widget _buildEmailField(bool isMobile) {
     return TextFormField(
       controller: _emailController,
+      enabled: !_isLoading,
       decoration: InputDecoration(
         labelText: 'البريد الإلكتروني',
         labelStyle: GoogleFonts.cairo(),
         hintText: 'admin@example.com',
         prefixIcon: Icon(
           Icons.email_outlined,
-          color: Colors.grey.shade600,
+          color: _isLoading ? Colors.grey.shade400 : Colors.grey.shade600,
           size: isMobile ? 20 : 22,
         ),
         border: OutlineInputBorder(
@@ -335,14 +522,20 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade700, width: 2),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: 16,
           vertical: isMobile ? 16 : 18,
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: _isLoading ? Colors.grey.shade100 : Colors.grey.shade50,
       ),
-      style: GoogleFonts.cairo(),
+      style: GoogleFonts.cairo(
+        color: _isLoading ? Colors.grey.shade500 : Colors.black,
+      ),
       keyboardType: TextInputType.emailAddress,
       autocorrect: false,
       validator: (value) {
@@ -360,6 +553,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   Widget _buildPasswordField(bool isMobile) {
     return TextFormField(
       controller: _passwordController,
+      enabled: !_isLoading,
       obscureText: _obscurePassword,
       decoration: InputDecoration(
         labelText: 'كلمة المرور',
@@ -367,7 +561,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         hintText: '••••••••',
         prefixIcon: Icon(
           Icons.lock_outlined,
-          color: Colors.grey.shade600,
+          color: _isLoading ? Colors.grey.shade400 : Colors.grey.shade600,
           size: isMobile ? 20 : 22,
         ),
         suffixIcon: IconButton(
@@ -375,14 +569,16 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
             _obscurePassword
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined,
-            color: Colors.grey.shade600,
+            color: _isLoading ? Colors.grey.shade400 : Colors.grey.shade600,
             size: isMobile ? 20 : 22,
           ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
+          onPressed: _isLoading
+              ? null
+              : () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -392,14 +588,20 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.grey.shade700, width: 2),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: 16,
           vertical: isMobile ? 16 : 18,
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: _isLoading ? Colors.grey.shade100 : Colors.grey.shade50,
       ),
-      style: GoogleFonts.cairo(),
+      style: GoogleFonts.cairo(
+        color: _isLoading ? Colors.grey.shade500 : Colors.black,
+      ),
       autocorrect: false,
       enableSuggestions: false,
       validator: (value) {
@@ -448,7 +650,8 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     return ElevatedButton(
       onPressed: _isLoading ? null : _login,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.grey.shade800,
+        backgroundColor:
+            _isLoading ? Colors.grey.shade400 : Colors.grey.shade800,
         foregroundColor: Colors.white,
         disabledBackgroundColor: Colors.grey.shade400,
         padding: EdgeInsets.symmetric(
@@ -457,7 +660,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
-        elevation: 2,
+        elevation: _isLoading ? 0 : 2,
       ),
       child: _isLoading
           ? Row(

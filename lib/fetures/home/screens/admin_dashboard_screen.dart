@@ -8,7 +8,7 @@ import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/analytics_c
 import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/analytics_row.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/analytics/visitor_chart.dart';
 import 'package:trustedtallentsvalley/fetures/Home/widgets/cards/admin_action_card.dart';
-import 'package:trustedtallentsvalley/fetures/auth/admin_dashboard.dart';
+import 'package:trustedtallentsvalley/fetures/admin/adminDStatistcs/providers/dashboard_provider.dart';
 import 'package:trustedtallentsvalley/fetures/maintenance/widgets/maintenance_management_widget.dart';
 import 'package:trustedtallentsvalley/fetures/mouthoq/widgets/status_section_widget.dart';
 import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';

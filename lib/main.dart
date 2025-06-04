@@ -14,7 +14,6 @@ import 'package:trustedtallentsvalley/core/utils/notification_helper.dart';
 import 'package:trustedtallentsvalley/fetures/services/block_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analytics_provider.dart';
-import 'package:trustedtallentsvalley/providers/analytics_provider2.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 
@@ -63,31 +62,31 @@ void main() async {
   }
 
   // Only record analytics if user is not blocked
-  if (!isBlocked) {
-    try {
-      // Important: Record visit for ALL users (not just admins)
-      final analyticsService = container.read(visitorAnalyticsProvider);
-      final success = await analyticsService.recordUniqueVisit();
-      debugPrint('Visit recording success: $success');
-
-      // Initialize notification system for new visitors
-      if (success) {
-        try {
-          final notificationManager =
-              container.read(adminNotificationManagerProvider);
-          final visitorStats = await analyticsService.getVisitorStats();
-
-          // Send notification for new visitor
-          await notificationManager.notifyNewVisitor(visitorData: visitorStats);
-          debugPrint('New visitor notification sent');
-        } catch (e) {
-          debugPrint('Error sending new visitor notification: $e');
-        }
-      }
-    } catch (e) {
-      debugPrint('Error recording visit: $e');
-    }
-  }
+  // if (!isBlocked) {
+  //   try {
+  //     // Important: Record visit for ALL users (not just admins)
+  //     final analyticsService = container.read(visitorAnalyticsProvider);
+  //     final success = await analyticsService.recordUniqueVisit();
+  //     debugPrint('Visit recording success: $success');
+  //
+  //     // Initialize notification system for new visitors
+  //     if (success) {
+  //       try {
+  //         final notificationManager =
+  //             container.read(adminNotificationManagerProvider);
+  //         final visitorStats = await analyticsService.getVisitorStats();
+  //
+  //         // Send notification for new visitor
+  //         await notificationManager.notifyNewVisitor(visitorData: visitorStats);
+  //         debugPrint('New visitor notification sent');
+  //       } catch (e) {
+  //         debugPrint('Error sending new visitor notification: $e');
+  //       }
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Error recording visit: $e');
+  //   }
+  // }
 
   runApp(ProviderScope(parent: container, child: const TrustedGazianApp()));
   html.window.dispatchEvent(html.Event('flutter-initialized'));
@@ -138,27 +137,27 @@ class _TrustedGazianAppState extends ConsumerState<TrustedGazianApp>
 
     // Add listener to track route changes for ALL users
     router.routerDelegate.addListener(() {
-      final location = router.routeInformationProvider.value.location;
-      // Extract page title from path
-      final segments = location.split('/');
-      final title =
-          segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
+      // final location = router.routeInformationProvider.value.location;
+      // // Extract page title from path
+      // final segments = location.split('/');
+      // final title =
+      //     segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
 
       // Record page view for analytics
-      ref.read(visitorAnalyticsProvider).recordPageView(location, title);
-      debugPrint('Page view recorded: $location, title: $title');
+      // ref.read(visitorAnalyticsProvider).recordPageView(location, title);
+      // debugPrint('Page view recorded: $location, title: $title');
 
       // Send page view notification for admin monitoring
-      _notifyPageView(location, title);
+      // _notifyPageView(location, title);
     });
 
     // Record the initial page view
-    final initialLocation = router.routeInformationProvider.value.location;
-    final segments = initialLocation.split('/');
-    final title =
-        segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
-    ref.read(visitorAnalyticsProvider).recordPageView(initialLocation, title);
-    debugPrint('Initial page view recorded: $initialLocation');
+    // final initialLocation = router.routeInformationProvider.value.location;
+    // final segments = initialLocation.split('/');
+    // final title =
+    //     segments.isEmpty || segments.last.isEmpty ? 'home' : segments.last;
+    // ref.read(visitorAnalyticsProvider).recordPageView(initialLocation, title);
+    // debugPrint('Initial page view recorded: $initialLocation');
   }
 
   void _initializeNotificationSystem() {
