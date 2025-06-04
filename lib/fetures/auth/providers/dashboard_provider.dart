@@ -424,7 +424,7 @@ class DashboardSettings {
     this.compactMode = false,
     this.theme = 'system',
   });
-
+  //pr
   DashboardSettings copyWith({
     bool? autoRefresh,
     int? refreshInterval,
