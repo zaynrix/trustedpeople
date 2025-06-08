@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/shared/add_edit_tip_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/shared/delete_confirmation_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/shared/tip_details_dialog.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
 import '../../models/protection_tip.dart';
 

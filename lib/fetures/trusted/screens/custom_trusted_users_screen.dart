@@ -4,14 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/theme/app_colors.dart';
 import 'package:trustedtallentsvalley/core/widgets/footer_state_widget.dart';
-import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/desktop_users_view.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/mobile_users_view.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/sideBarWidget.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/tablet_users_view.dart';
+
+import '../../home/providers/home_notifier.dart';
 
 class UsersListScreen extends ConsumerWidget {
   final String title;

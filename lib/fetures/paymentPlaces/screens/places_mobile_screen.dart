@@ -8,7 +8,7 @@ import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/providers/payment_places_provider.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_detail_sidebar.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/place_mobile_tile.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 
 class PaymentPlacesMobileView extends ConsumerWidget {
   const PaymentPlacesMobileView({super.key});

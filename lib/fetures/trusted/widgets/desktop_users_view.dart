@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/theme/app_colors.dart';
 import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/pagination_controls_widget.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/sort_button.dart';
@@ -30,19 +30,36 @@ class DesktopUsersView extends ConsumerWidget {
     final isAdmin = ref.watch(isAdminProvider);
     final homeNotifier = ref.read(homeProvider.notifier);
 
-    // Apply pagination for desktop
-    List<UserModel> displayedUsers = filteredUsers;
+    // Apply local search filtering on the Firebase data
+    List<UserModel> searchFilteredUsers = filteredUsers;
+
+    if (searchQuery.isNotEmpty) {
+      searchFilteredUsers = filteredUsers.where((user) {
+        final query = searchQuery.toLowerCase().trim();
+
+        // Search in name, phone, and location
+        final nameMatch = user.aliasName.toLowerCase().contains(query) ?? false;
+        final phoneMatch = user.location.toLowerCase().contains(query) ?? false;
+        final locationMatch =
+            user.location.toLowerCase().contains(query) ?? false;
+
+        return nameMatch || phoneMatch || locationMatch;
+      }).toList();
+    }
+
+    // Apply pagination
+    List<UserModel> displayedUsers = searchFilteredUsers;
     int totalPages = 1;
 
-    if (filteredUsers.length > pageSize) {
-      totalPages = (filteredUsers.length / pageSize).ceil();
+    if (searchFilteredUsers.length > pageSize) {
+      totalPages = (searchFilteredUsers.length / pageSize).ceil();
       final startIndex = (currentPage - 1) * pageSize;
-      final endIndex = (startIndex + pageSize < filteredUsers.length)
+      final endIndex = (startIndex + pageSize < searchFilteredUsers.length)
           ? startIndex + pageSize
-          : filteredUsers.length;
+          : searchFilteredUsers.length;
 
-      if (startIndex < filteredUsers.length) {
-        displayedUsers = filteredUsers.sublist(startIndex, endIndex);
+      if (startIndex < searchFilteredUsers.length) {
+        displayedUsers = searchFilteredUsers.sublist(startIndex, endIndex);
       } else {
         displayedUsers = [];
         // Reset to first page if current page is out of range
@@ -62,6 +79,8 @@ class DesktopUsersView extends ConsumerWidget {
                 onChanged: (value) {
                   ref.read(trustedSearchQueryProvider.notifier).state = value;
                   homeNotifier.setSearchQuery(value);
+                  // Reset to first page when searching
+                  homeNotifier.setCurrentPage(1);
                 },
                 hintText: 'البحث بالاسم أو رقم الجوال أو الموقع',
               ),
@@ -80,7 +99,7 @@ class DesktopUsersView extends ConsumerWidget {
 
         const SizedBox(height: 16),
 
-        // Filter chips
+        // Filter chips (commented out in original)
         // FilterChipsRow(
         //   primaryColor:
         //       isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
@@ -93,7 +112,7 @@ class DesktopUsersView extends ConsumerWidget {
         Expanded(
           child: displayedUsers.isEmpty
               ? TrustedEmptyStateWidget(
-                  isFiltered: filteredUsers.isEmpty,
+                  isFiltered: searchFilteredUsers.isEmpty,
                   searchQuery: searchQuery,
                   filterMode: filterMode,
                 )
@@ -120,24 +139,23 @@ class DesktopUsersView extends ConsumerWidget {
         ),
 
         // Pagination
-        if (filteredUsers.length > pageSize)
+        if (searchFilteredUsers.length > pageSize)
           PaginationControls(
             currentPage: currentPage,
             totalPages: totalPages,
             pageSize: pageSize,
             primaryColor:
                 isTrusted ? AppColors.trustedColor : AppColors.unTrustedColor,
-            totalItems: filteredUsers.length,
+            totalItems: searchFilteredUsers.length,
           ),
       ],
     );
   }
 
   Widget _buildPredefinedUsersButton(BuildContext context, WidgetRef ref) {
-    ref.read(homeProvider.notifier);
-
     return ElevatedButton.icon(
       onPressed: () async {
+        // final homeNotifier = ref.read(homeProvider.notifier);
         // final success = await homeNotifier.batchAddPredefinedUsers(ref: ref);
         // if (success) {
         //   if (context.mounted) {

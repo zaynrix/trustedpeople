@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/config/app_constant.dart';
 import 'package:trustedtallentsvalley/config/app_utils.dart';
 import 'package:trustedtallentsvalley/fetures/admin/adminDStatistcs/widgets/dashboard_components.dart';
-import 'package:trustedtallentsvalley/fetures/auth/BlockedUsersScreen.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/screens/BlockedUsersScreen.dart';
 
 import '../providers/dashboard_provider.dart';
 import '../widgets/dashboard_widgets.dart';

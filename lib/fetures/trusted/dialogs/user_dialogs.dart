@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 
 // Dialog for adding a new user
@@ -465,10 +465,10 @@ class DeleteUserDialog {
                       children: [
                         Text(user.aliasName,
                             style:
-                            GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                                GoogleFonts.cairo(fontWeight: FontWeight.bold)),
                         Text(user.mobileNumber,
                             style:
-                            GoogleFonts.cairo(color: Colors.grey.shade700)),
+                                GoogleFonts.cairo(color: Colors.grey.shade700)),
                       ],
                     ),
                   ),
@@ -547,54 +547,51 @@ class ExportDialog {
             _buildExportOption(context,
                 title: 'Excel (XLSX)',
                 icon: Icons.table_chart,
-                color: primaryColor,
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await homeNotifier.exportData('xlsx');
-                  if (result != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('تم تصدير البيانات بنجاح',
-                            style: GoogleFonts.cairo()),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                }),
+                color: primaryColor, onTap: () async {
+              Navigator.pop(context);
+              final result = await homeNotifier.exportData('xlsx');
+              if (result != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }),
             _buildExportOption(context,
                 title: 'CSV',
                 icon: Icons.description,
-                color: primaryColor,
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await homeNotifier.exportData('csv');
-                  if (result != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('تم تصدير البيانات بنجاح',
-                            style: GoogleFonts.cairo()),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                }),
+                color: primaryColor, onTap: () async {
+              Navigator.pop(context);
+              final result = await homeNotifier.exportData('csv');
+              if (result != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }),
             _buildExportOption(context,
                 title: 'PDF',
                 icon: Icons.picture_as_pdf,
-                color: primaryColor,
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await homeNotifier.exportData('pdf');
-                  if (result != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('تم تصدير البيانات بنجاح',
-                            style: GoogleFonts.cairo()),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                }),
+                color: primaryColor, onTap: () async {
+              Navigator.pop(context);
+              final result = await homeNotifier.exportData('pdf');
+              if (result != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم تصدير البيانات بنجاح',
+                        style: GoogleFonts.cairo()),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }),
           ],
         ),
         actions: [
@@ -610,9 +607,9 @@ class ExportDialog {
 
   static Widget _buildExportOption(BuildContext context,
       {required String title,
-        required IconData icon,
-        required VoidCallback onTap,
-        required Color color}) {
+      required IconData icon,
+      required VoidCallback onTap,
+      required Color color}) {
     return ListTile(
       leading: Icon(icon, color: color),
       title: Text(title, style: GoogleFonts.cairo()),
@@ -728,38 +725,39 @@ class HelpDialog {
               _buildHelpSection(
                 title: 'البحث والتصفية',
                 content:
-                'يمكنك البحث باستخدام حقل البحث في الأعلى. البحث يشمل الاسم ورقم الجوال والموقع والخدمات المقدمة.',
+                    'يمكنك البحث باستخدام حقل البحث في الأعلى. البحث يشمل الاسم ورقم الجوال والموقع والخدمات المقدمة.',
               ),
               const SizedBox(height: 16),
               _buildHelpSection(
                 title: 'الترتيب',
                 content:
-                'يمكنك ترتيب النتائج حسب الاسم أو رقم الجوال أو الموقع أو التقييمات أو الحالة من خلال النقر على زر الترتيب.',
+                    'يمكنك ترتيب النتائج حسب الاسم أو رقم الجوال أو الموقع أو التقييمات أو الحالة من خلال النقر على زر الترتيب.',
               ),
               const SizedBox(height: 16),
               _buildHelpSection(
                 title: 'التصفية',
                 content:
-                'استخدم أزرار التصفية للعرض حسب معايير محددة مثل التقييمات أو الموقع أو حسابات تيليجرام.',
+                    'استخدم أزرار التصفية للعرض حسب معايير محددة مثل التقييمات أو الموقع أو حسابات تيليجرام.',
               ),
               const SizedBox(height: 16),
               _buildHelpSection(
                 title: 'عرض التفاصيل',
                 content:
-                'انقر على أي مستخدم لعرض كافة تفاصيله في الشريط الجانبي.',
+                    'انقر على أي مستخدم لعرض كافة تفاصيله في الشريط الجانبي.',
               ),
               const SizedBox(height: 16),
               _buildHelpSection(
                 title: 'رقم الجوال',
                 content:
-                'انقر على زر "اظهر رقم الجوال" لعرض الرقم. ثم يمكنك نسخه بالضغط عليه.',
+                    'انقر على زر "اظهر رقم الجوال" لعرض الرقم. ثم يمكنك نسخه بالضغط عليه.',
               ),
-              if (true) ... { // Replace with isAdmin check if needed
+              if (true) ...{
+                // Replace with isAdmin check if needed
                 const SizedBox(height: 16),
                 _buildHelpSection(
                   title: 'إدارة المستخدمين (للمشرفين)',
                   content:
-                  'يمكنك إضافة مستخدمين جدد أو تعديل المستخدمين الحاليين أو حذفهم. استخدم زر "+" لإضافة مستخدم جديد.',
+                      'يمكنك إضافة مستخدمين جدد أو تعديل المستخدمين الحاليين أو حذفهم. استخدم زر "+" لإضافة مستخدم جديد.',
                 ),
               },
             ],

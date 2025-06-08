@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/states/auth_state_admin.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_forget_pass.dart';
 
 // Fixed AuthNavigationListener - Replace in your login screen
 class AuthNavigationListener extends ConsumerWidget {
@@ -113,10 +115,7 @@ class _TrustedUserLoginScreenState
     super.dispose();
   }
 
-// Replace your _login method in TrustedUserLoginScreen with this:
   Future<void> _login() async {
-    // context.pushReplacement('/secure-trusted-895623/trusted-dashboard');
-
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
@@ -133,70 +132,77 @@ class _TrustedUserLoginScreenState
 
         // Perform the authentication
         await authNotifier.signInTrustedUser(
-            _emailController.text.trim(), _passwordController.text);
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
 
         print('🔐 signInTrustedUser completed');
 
-        // Check if widget is still mounted before proceeding
+        // Check if widget is still mounted
         if (!mounted) {
           print('🔐 Widget disposed after login attempt');
           return;
         }
 
-        // Check the auth state after login
+        // Get the current auth state
         final authState = ref.read(authProvider);
         print('🔐 Post-login auth state:');
         print('  - isAuthenticated: ${authState.isAuthenticated}');
         print('  - isTrustedUser: ${authState.isTrustedUser}');
+        print('  - isApproved: ${authState.isApproved}');
         print('  - isLoading: ${authState.isLoading}');
         print('  - error: ${authState.error}');
 
-        // Check for auth errors
+        // Check for authentication errors
         if (authState.error != null) {
           throw Exception(authState.error);
         }
 
-        // If authentication was successful, navigate immediately
-        if (authState.isAuthenticated) {
+        // Check if authentication was successful
+        if (authState.isAuthenticated && authState.isTrustedUser) {
           print('🔐 ✅ Login successful - navigating to dashboard');
 
-          // Update UI state
           setState(() {
             _isLoading = false;
           });
 
-          // Navigate to dashboard immediately (don't rely only on listener)
+          // Navigate to dashboard
           if (mounted) {
-            // Use a small delay to ensure the state is fully updated
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (mounted) {
-                print('🔐 🚀 Direct navigation to dashboard');
-                context.pushReplacement(
-                    '/secure-trusted-895623/trusted-dashboard');
-                print('🔐 ✅ Direct navigation completed');
-              }
-            });
+            print('🔐 🚀 Navigating to trusted dashboard');
+            context.pushReplacement('/secure-trusted-895623/trusted-dashboard');
+            print('🔐 ✅ Navigation completed');
           }
         } else {
           // Authentication failed
-          setState(() {
-            _errorMessage = 'فشل في تسجيل الدخول. تحقق من بيانات الاعتماد.';
-            _isLoading = false;
-          });
+          throw Exception('فشل في تسجيل الدخول. تحقق من بيانات الاعتماد.');
         }
       } catch (e) {
         print('🔐 ❌ LOGIN ERROR: $e');
 
-        // Only handle errors if widget is still mounted
         if (mounted) {
           setState(() {
-            _errorMessage = 'حدث خطأ أثناء تسجيل الدخول: ${e.toString()}';
+            _errorMessage = _parseErrorMessage(e.toString());
             _isLoading = false;
           });
-        } else {
-          print('🔐 Widget disposed during error handling');
         }
       }
+    }
+  }
+
+// 🆕 NEW: Helper method to parse error messages
+  String _parseErrorMessage(String error) {
+    if (error.contains('لا يوجد حساب مسجل')) {
+      return 'لا يوجد حساب مسجل بهذا البريد الإلكتروني';
+    } else if (error.contains('كلمة المرور غير صحيحة')) {
+      return 'كلمة المرور غير صحيحة';
+    } else if (error.contains('تم تعطيل هذا الحساب')) {
+      return 'تم تعطيل هذا الحساب. تواصل مع الإدارة';
+    } else if (error.contains('تم تجاوز عدد المحاولات')) {
+      return 'تم تجاوز عدد المحاولات المسموح. حاول مرة أخرى لاحقاً';
+    } else if (error.contains('البريد الإلكتروني غير صحيح')) {
+      return 'البريد الإلكتروني غير صحيح';
+    } else {
+      return 'حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى';
     }
   }
 
@@ -432,6 +438,8 @@ class _TrustedUserLoginScreenState
           ],
           const SizedBox(height: 24),
           _buildLoginButton(isMobile),
+          const SizedBox(height: 16),
+          const LoginScreenForgotPasswordLink(),
           const SizedBox(height: 16),
           _buildSecurityNotice(),
         ],
@@ -695,37 +703,37 @@ class _TrustedUserLoginScreenState
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _fixExistingUser(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(
-                        'إصلاح المستخدم الحالي',
-                        style: GoogleFonts.cairo(fontSize: 10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _createFreshUser(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.pink,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(
-                        'إنشاء مستخدم جديد',
-                        style: GoogleFonts.cairo(fontSize: 10),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              // Row(
+              //   children: [
+              //     Expanded(
+              //       child: ElevatedButton(
+              //         onPressed: () => _fixExistingUser(),
+              //         style: ElevatedButton.styleFrom(
+              //           backgroundColor: Colors.red,
+              //           foregroundColor: Colors.white,
+              //         ),
+              //         child: Text(
+              //           'إصلاح المستخدم الحالي',
+              //           style: GoogleFonts.cairo(fontSize: 10),
+              //         ),
+              //       ),
+              //     ),
+              //     const SizedBox(width: 8),
+              //     Expanded(
+              //       child: ElevatedButton(
+              //         onPressed: () => _createFreshUser(),
+              //         style: ElevatedButton.styleFrom(
+              //           backgroundColor: Colors.pink,
+              //           foregroundColor: Colors.white,
+              //         ),
+              //         child: Text(
+              //           'إنشاء مستخدم جديد',
+              //           style: GoogleFonts.cairo(fontSize: 10),
+              //         ),
+              //       ),
+              //     ),
+              //   ],
+              // ),
             ],
           ),
         ),
@@ -769,19 +777,19 @@ class _TrustedUserLoginScreenState
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _checkCurrentEmail(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(
-                        'فحص البريد المدخل',
-                        style: GoogleFonts.cairo(fontSize: 10),
-                      ),
-                    ),
-                  ),
+                  // Expanded(
+                  //   child: ElevatedButton(
+                  //     onPressed: () => _checkCurrentEmail(),
+                  //     style: ElevatedButton.styleFrom(
+                  //       backgroundColor: Colors.purple,
+                  //       foregroundColor: Colors.white,
+                  //     ),
+                  //     child: Text(
+                  //       'فحص البريد المدخل',
+                  //       style: GoogleFonts.cairo(fontSize: 10),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ],
@@ -850,67 +858,67 @@ class _TrustedUserLoginScreenState
   }
 
 // Add these methods to your login screen class
-  Future<void> _fixExistingUser() async {
-    try {
-      final authNotifier = ref.read(authProvider.notifier);
-      await authNotifier.fixAndCreateTrustedUser();
+//   Future<void> _fixExistingUser() async {
+//     try {
+//       final authNotifier = ref.read(authProvider.notifier);
+//       await authNotifier.fixAndCreateTrustedUser();
+//
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(
+//             content: Text(
+//               'تم إصلاح المستخدم!\nالبريد: trusteduser@example.com\nكلمة المرور: 123456',
+//               style: GoogleFonts.cairo(),
+//             ),
+//             backgroundColor: Colors.green,
+//             duration: const Duration(seconds: 5),
+//           ),
+//         );
+//       }
+//     } catch (e) {
+//       print('Error fixing user: $e');
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(
+//             content:
+//                 Text('خطأ في إصلاح المستخدم: $e', style: GoogleFonts.cairo()),
+//             backgroundColor: Colors.red,
+//           ),
+//         );
+//       }
+//     }
+//   }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'تم إصلاح المستخدم!\nالبريد: trusteduser@example.com\nكلمة المرور: 123456',
-              style: GoogleFonts.cairo(),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error fixing user: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('خطأ في إصلاح المستخدم: $e', style: GoogleFonts.cairo()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _createFreshUser() async {
-    try {
-      final authNotifier = ref.read(authProvider.notifier);
-      await authNotifier.createFreshTrustedUser();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'تم إنشاء مستخدم جديد!\nالبريد: newtrusteduser@example.com\nكلمة المرور: 123456',
-              style: GoogleFonts.cairo(),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error creating fresh user: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في إنشاء المستخدم الجديد: $e',
-                style: GoogleFonts.cairo()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  // Future<void> _createFreshUser() async {
+  //   try {
+  //     final authNotifier = ref.read(authProvider.notifier);
+  //     await authNotifier.createFreshTrustedUser();
+  //
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text(
+  //             'تم إنشاء مستخدم جديد!\nالبريد: newtrusteduser@example.com\nكلمة المرور: 123456',
+  //             style: GoogleFonts.cairo(),
+  //           ),
+  //           backgroundColor: Colors.green,
+  //           duration: const Duration(seconds: 5),
+  //         ),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print('Error creating fresh user: $e');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('خطأ في إنشاء المستخدم الجديد: $e',
+  //               style: GoogleFonts.cairo()),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
 
   Future<void> _testFixedUserLogin() async {
     _emailController.text = 'trusteduser@example.com';
@@ -944,51 +952,51 @@ class _TrustedUserLoginScreenState
     }
   }
 
-  Future<void> _checkCurrentEmail() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('أدخل بريد إلكتروني أولاً', style: GoogleFonts.cairo()),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    try {
-      final authNotifier = ref.read(authProvider.notifier);
-      final results = await authNotifier.checkEmailEverywhere(email);
-
-      String message = 'فحص $email:\n';
-      message +=
-          'Firebase Auth: ${results['firebase_auth'] == true ? '✅' : '❌'}\n';
-      message +=
-          'مجموعة الإدارة: ${results['admins_collection'] == true ? '✅' : '❌'}\n';
-      message +=
-          'مجموعة المستخدمين: ${results['users_collection'] == true ? '✅' : '❌'}\n';
-      message +=
-          'طلبات التسجيل: ${results['user_applications'] == true ? '✅' : '❌'}';
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('نتائج الفحص', style: GoogleFonts.cairo()),
-            content: Text(message, style: GoogleFonts.cairo()),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('حسناً', style: GoogleFonts.cairo()),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error checking email: $e');
-    }
-  }
+  // Future<void> _checkCurrentEmail() async {
+  //   final email = _emailController.text.trim();
+  //   if (email.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('أدخل بريد إلكتروني أولاً', style: GoogleFonts.cairo()),
+  //         backgroundColor: Colors.orange,
+  //       ),
+  //     );
+  //     return;
+  //   }
+  //
+  //   try {
+  //     final authNotifier = ref.read(authProvider.notifier);
+  //     final results = await authNotifier.checkEmailEverywhere(email);
+  //
+  //     String message = 'فحص $email:\n';
+  //     message +=
+  //         'Firebase Auth: ${results['firebase_auth'] == true ? '✅' : '❌'}\n';
+  //     message +=
+  //         'مجموعة الإدارة: ${results['admins_collection'] == true ? '✅' : '❌'}\n';
+  //     message +=
+  //         'مجموعة المستخدمين: ${results['users_collection'] == true ? '✅' : '❌'}\n';
+  //     message +=
+  //         'طلبات التسجيل: ${results['user_applications'] == true ? '✅' : '❌'}';
+  //
+  //     if (mounted) {
+  //       showDialog(
+  //         context: context,
+  //         builder: (context) => AlertDialog(
+  //           title: Text('نتائج الفحص', style: GoogleFonts.cairo()),
+  //           content: Text(message, style: GoogleFonts.cairo()),
+  //           actions: [
+  //             TextButton(
+  //               onPressed: () => Navigator.pop(context),
+  //               child: Text('حسناً', style: GoogleFonts.cairo()),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print('Error checking email: $e');
+  //   }
+  // }
 
   Widget _buildNavigationLinks() {
     return Column(

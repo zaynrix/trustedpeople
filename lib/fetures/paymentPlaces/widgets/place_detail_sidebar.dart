@@ -2,11 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/core/widgets/user_info_card.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/models/payment_place_model.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/widgets/payment_method_chip.dart';
-import 'package:trustedtallentsvalley/core/widgets/user_info_card.dart';
-
-import '../../../fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 
 class PlaceDetailSidebar extends ConsumerWidget {
   final PaymentPlaceModel place;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/dialogs/user_dialogs.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/phone_number_section.dart';
@@ -213,8 +213,8 @@ class UserTable extends ConsumerWidget {
                 child: Center(
                   child: user.reviews.isNotEmpty
                       ? Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Icon(Icons.star,
@@ -225,7 +225,7 @@ class UserTable extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis),
                             ],
                           ),
-                      )
+                        )
                       : Text('لا يوجد',
                           style: GoogleFonts.cairo(
                               color: Colors.grey.shade500, fontSize: 12)),
@@ -235,24 +235,27 @@ class UserTable extends ConsumerWidget {
               // Telegram
               Expanded(
                 flex: 1,
-                child: Center(child:  user.telegramAccount.isNotEmpty
-                    ? Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.telegram,
-                                size: 16, color: Colors.blue),
-                            const SizedBox(width: 4),
-                            Text('متوفر',
-                                style: GoogleFonts.cairo(
-                                    color: Colors.blue.shade600, fontSize: 12)),
-                          ],
-                        ),
-                    )
-                    : Text('غير متوفر',
-                        style: GoogleFonts.cairo(
-                            color: Colors.grey.shade500, fontSize: 12)),
-              ),),
+                child: Center(
+                  child: user.telegramAccount.isNotEmpty
+                      ? Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.telegram,
+                                  size: 16, color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Text('متوفر',
+                                  style: GoogleFonts.cairo(
+                                      color: Colors.blue.shade600,
+                                      fontSize: 12)),
+                            ],
+                          ),
+                        )
+                      : Text('غير متوفر',
+                          style: GoogleFonts.cairo(
+                              color: Colors.grey.shade500, fontSize: 12)),
+                ),
+              ),
 
               // Admin columns or actions
               if (isAdmin) ...[

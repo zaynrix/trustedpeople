@@ -7,8 +7,8 @@ import 'package:trustedtallentsvalley/fetures/PaymentPlaces/providers/payment_pl
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_desktop_view.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_tablet_view.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/places_mobile_screen.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/paymentPlaces/widgets/places_help_idalog.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
 class PaymentPlacesScreen extends ConsumerWidget {
   const PaymentPlacesScreen({super.key});

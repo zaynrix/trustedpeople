@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:trustedtallentsvalley/config/firebase_constant.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/ActivityUpdate.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 
 class UserData {

@@ -17,7 +17,7 @@ import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analyt
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 import 'package:trustedtallentsvalley/service_locator.dart';
 
-import 'fetures/auth/blocked_screen.dart';
+import 'fetures/auth/admin/screens/blocked_screen.dart';
 
 // Add a state provider for blocked status
 final isUserBlockedProvider = StateProvider<bool>((ref) => false);

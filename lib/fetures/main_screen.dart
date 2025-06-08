@@ -5,7 +5,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/states/auth_state_admin.dart';
 import 'package:trustedtallentsvalley/routs/route_generator.dart';
 
 /// Main shell that provides a consistent layout with NavigationRail for all screens
@@ -30,40 +31,17 @@ class _AppShellState extends ConsumerState<AppShell> {
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 768;
 
-    // FIXED: Get auth state carefully - don't trigger navigation on errors
+    // Watch auth state and handle errors gracefully
     final authState = ref.watch(authProvider);
+    final isLoading = ref.watch(authLoadingProvider);
 
-    // CRITICAL: Check if there's an auth error - if so, don't change navigation
-    if (authState.error != null) {
-      if (kDebugMode) {
-        print('🚨 AppShell: Auth error detected, maintaining current layout');
-        print('🚨 Error: ${authState.error}');
-      }
-
-      // Keep current layout when there's an auth error
-      if (isMobile) {
-        return Scaffold(
-          drawer: const AppDrawer(),
-          body: widget.child,
-        );
-      }
-
-      return Scaffold(
-        body: Row(
-          textDirection: TextDirection.rtl,
-          children: [
-            _buildCustomNavigationRail(context, false,
-                authState), // Don't show admin features on error
-            const VerticalDivider(thickness: 1, width: 1),
-            Expanded(child: widget.child),
-          ],
-        ),
-      );
-    }
-
-    // FIXED: Only check admin status if no auth error exists
-    final isAdmin =
-        authState.error == null ? ref.watch(isAdminProvider) : false;
+    // Get auth status safely
+    final isAuthenticated =
+        authState.isAuthenticated && authState.error == null;
+    final isAdmin = isAuthenticated ? ref.watch(isAdminProvider) : false;
+    final isTrustedUser =
+        isAuthenticated ? ref.watch(isTrustedUserProvider) : false;
+    final isApproved = isAuthenticated ? ref.watch(isApprovedProvider) : false;
 
     // Get current location for context
     final currentLocation = GoRouterState.of(context).matchedLocation;
@@ -76,8 +54,17 @@ class _AppShellState extends ConsumerState<AppShell> {
       print('  - Current location: $currentLocation');
       print('  - Is secure route: $isOnSecureRoute');
       print(
-          '  - Auth state: isAuth=${authState.isAuthenticated}, isTrusted=${authState.isTrustedUser}, hasError=${authState.error != null}');
-      print('  - Is admin: $isAdmin');
+          '  - Auth state: isAuth=$isAuthenticated, isTrusted=$isTrustedUser, isAdmin=$isAdmin, isApproved=$isApproved');
+      print('  - Loading: $isLoading, Error: ${authState.error}');
+    }
+
+    // Show loading indicator during auth state changes
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     // If on mobile, use standard scaffold with drawer
@@ -91,7 +78,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
     }
 
-    // For desktop/tablet, use layout with custom navigation rail (NOW SHOWS ON ALL SCREENS)
+    // For desktop/tablet, use layout with custom navigation rail
     if (kDebugMode) {
       print('🏗️ AppShell: Using desktop layout with navigation rail');
     }
@@ -99,8 +86,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: Row(
         textDirection: TextDirection.rtl,
         children: [
-          // NavigationRail (custom implementation) - NOW SHOWN ON ALL SCREENS
-          _buildCustomNavigationRail(context, isAdmin, authState),
+          // NavigationRail (custom implementation)
+          _buildCustomNavigationRail(
+              context, isAdmin, isTrustedUser, isApproved, authState),
 
           // Divider between rail and content
           const VerticalDivider(thickness: 1, width: 1),
@@ -115,6 +103,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _buildCustomNavigationRail(
     BuildContext context,
     bool isAdmin,
+    bool isTrustedUser,
+    bool isApproved,
     AuthState authState,
   ) {
     // Get current route info for highlighting active item
@@ -127,15 +117,15 @@ class _AppShellState extends ConsumerState<AppShell> {
       color: Colors.grey.shade200,
       child: Column(
         children: [
-          // Header with logo and admin info
-          _buildRailHeader(isAdmin, authState),
+          // Header with logo and user info
+          _buildRailHeader(isAdmin, isTrustedUser, isApproved, authState),
 
           // Navigation items
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Using exact route names and paths from ScreensNames
+                  // Public navigation items (always shown)
                   _buildNavItem(
                     context,
                     Icons.home,
@@ -185,60 +175,57 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ScreensNames.services, '/services'),
                   ),
 
-                  // FIXED: Only show admin items if no auth error and user is actually admin
+                  // Admin navigation items (only for admins)
                   if (isAdmin && authState.error == null) ...[
-                    _buildNavItem(
-                      context,
-                      Icons.admin_panel_settings,
-                      "إدارة الخدمات",
-                      ScreensNames.adminServices,
-                      isActive: _isRouteActive(currentRouteName, location,
-                          ScreensNames.adminServices, '/admin/services'),
-                    ),
-                    _buildNavItem(
-                      context,
-                      Icons.support_agent,
-                      "طلبات الخدمات",
-                      ScreensNames.adminServiceRequests,
-                      isActive: _isRouteActive(
-                          currentRouteName,
-                          location,
-                          ScreensNames.adminServiceRequests,
-                          '/admin/service-requests'),
-                    ),
-                    // UPDATED: Admin dashboard navigation - now highlights properly
+                    const Divider(),
                     _buildNavItem(
                       context,
                       Icons.dashboard,
                       "لوحة الاحصائيات",
-                      'adminDashboard', // Route name for admin dashboard
+                      'adminDashboard',
                       isActive:
                           location.startsWith('/secure-admin-784512/dashboard'),
                     ),
-                    // UPDATED: User applications management - now highlights properly
                     _buildNavItem(
                       context,
                       Icons.people,
                       "إدارة طلبات المستخدمين",
                       ScreensNames.adminUserApplications,
                       isActive: location.startsWith(
-                          '/secure-trusted-895623/user-applications'),
+                              '/secure-admin-784512/user-applications') ||
+                          location.startsWith(
+                              '/secure-trusted-895623/user-applications'),
+                    ),
+                    _buildNavItem(
+                      context,
+                      Icons.admin_panel_settings,
+                      "إدارة الخدمات",
+                      ScreensNames.adminServices,
+                      isActive: location
+                              .startsWith('/secure-admin-784512/services') ||
+                          _isRouteActive(currentRouteName, location,
+                              ScreensNames.adminServices, '/admin/services'),
+                    ),
+                    _buildNavItem(
+                      context,
+                      Icons.support_agent,
+                      "طلبات الخدمات",
+                      ScreensNames.adminServiceRequests,
+                      isActive: location.startsWith(
+                              '/secure-admin-784512/service-requests') ||
+                          _isRouteActive(
+                              currentRouteName,
+                              location,
+                              ScreensNames.adminServiceRequests,
+                              '/admin/service-requests'),
                     ),
                   ],
 
-                  _buildNavItem(
-                    context,
-                    Icons.contact_mail,
-                    "تواصل للاستفسارات",
-                    ScreensNames.contactUs,
-                    isActive: _isRouteActive(currentRouteName, location,
-                        ScreensNames.contactUs, ScreensNames.contactUsPath),
-                  ),
-
-                  // UPDATED: Trusted user dashboard - now highlights properly
-                  if (authState.isAuthenticated &&
-                      authState.isTrustedUser &&
-                      !authState.isAdmin &&
+                  // Trusted user navigation items (only for approved trusted users)
+                  if (!isTrustedUser &&
+                      !isApproved &&
+                      !isAdmin &&
+                      authState.isAuthenticated &&
                       authState.error == null) ...[
                     const Divider(),
                     _buildNavItem(
@@ -249,20 +236,55 @@ class _AppShellState extends ConsumerState<AppShell> {
                       isActive: location.startsWith(
                           '/secure-trusted-895623/trusted-dashboard'),
                     ),
+                    _buildNavItem(
+                      context,
+                      Icons.person,
+                      "إدارة الملف الشخصي",
+                      'trustedUserProfile',
+                      isActive:
+                          location.startsWith('/secure-trusted-895623/profile'),
+                    ),
                   ],
+
+                  // Pending user items (for users waiting approval)
+                  if (isTrustedUser &&
+                      !isApproved &&
+                      !isAdmin &&
+                      authState.error == null) ...[
+                    const Divider(),
+                    _buildNavItem(
+                      context,
+                      Icons.pending,
+                      "حالة الطلب",
+                      'pendingUserStatus',
+                      isActive: location
+                          .startsWith('/secure-trusted-895623/pending-status'),
+                    ),
+                  ],
+
+                  // Contact us (always shown)
+                  const Divider(),
+                  _buildNavItem(
+                    context,
+                    Icons.contact_mail,
+                    "تواصل للاستفسارات",
+                    ScreensNames.contactUs,
+                    isActive: _isRouteActive(currentRouteName, location,
+                        ScreensNames.contactUs, ScreensNames.contactUsPath),
+                  ),
                 ],
               ),
             ),
           ),
 
           // Footer with expand/collapse button and logout
-          _buildLogoutButton(authState: authState),
+          _buildFooter(authState),
         ],
       ),
     );
   }
 
-  // UPDATED: Route checking logic - now properly handles secure routes
+  // Improved route checking logic
   bool _isRouteActive(String? currentRouteName, String location,
       String routeName, String routePath) {
     if (kDebugMode) {
@@ -300,7 +322,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     // For nested routes, check if location starts with path
-    // BUT exclude root path to prevent false matches
     if (routePath != '/' &&
         routePath.length > 1 &&
         location.startsWith(routePath)) {
@@ -317,7 +338,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return false;
   }
 
-  // Navigation method remains the same
+  // Improved navigation with better error handling
   Widget _buildNavItem(
     BuildContext context,
     IconData icon,
@@ -330,17 +351,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: InkWell(
         onTap: () async {
           try {
-            // CRITICAL: Check auth state before allowing navigation
+            // Check auth state before allowing navigation
             final authState = ref.read(authProvider);
-            if (authState.error != null) {
-              if (kDebugMode) {
-                print(
-                    '🚨 Navigation blocked due to auth error: ${authState.error}');
-              }
-              // Don't navigate if there's an auth error
-              return;
-            }
-
             final currentLocation = GoRouterState.of(context).matchedLocation;
             final currentRouteName = GoRouterState.of(context).name;
 
@@ -348,6 +360,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               print('🔄 Navigation attempt:');
               print('  - From: $currentLocation (name: $currentRouteName)');
               print('  - To: $route');
+              print('  - Auth error: ${authState.error}');
             }
 
             // Skip navigation if already on target route
@@ -368,15 +381,23 @@ class _AppShellState extends ConsumerState<AppShell> {
 
             // Perform navigation
             if (mounted && context.mounted) {
-              // FIXED: Use goNamed for route names, go for direct paths
-              if (route.startsWith('/')) {
-                context.go(route);
-              } else {
-                context.goNamed(route);
-              }
+              try {
+                // Use goNamed for route names, go for direct paths
+                if (route.startsWith('/')) {
+                  context.go(route);
+                } else {
+                  context.goNamed(route);
+                }
 
-              if (kDebugMode) {
-                print('  ✅ Navigation completed successfully');
+                if (kDebugMode) {
+                  print('  ✅ Navigation completed successfully');
+                }
+              } catch (navigationError) {
+                if (kDebugMode) {
+                  print('  ❌ Navigation failed: $navigationError');
+                }
+                // Fallback to home if navigation fails
+                context.go('/');
               }
             }
           } catch (e, stackTrace) {
@@ -447,10 +468,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  Widget _buildRailHeader(bool isAdmin, AuthState authState) {
+  Widget _buildRailHeader(
+      bool isAdmin, bool isTrustedUser, bool isApproved, AuthState authState) {
     return Column(
       children: [
-        SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
+        SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+
         // Logo
         SvgPicture.asset(
           'assets/images/logo.svg',
@@ -470,7 +493,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         const SizedBox(height: 8),
 
-        // FIXED: Only show admin badge if no auth error
+        // Admin badge
         if (isAdmin && authState.error == null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -492,66 +515,76 @@ class _AppShellState extends ConsumerState<AppShell> {
                     color: Colors.green, size: 18),
           ),
 
-        // FIXED: Show user info for trusted users only if no auth error
-        if (authState.isAuthenticated &&
+        // Trusted user badge
+        if (isTrustedUser &&
             !isAdmin &&
-            authState.isTrustedUser &&
             authState.error == null &&
             _isRailExpanded) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
+              color: isApproved
+                  ? Colors.blue.withOpacity(0.2)
+                  : Colors.orange.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              border: Border.all(
+                color: isApproved
+                    ? Colors.blue.withOpacity(0.3)
+                    : Colors.orange.withOpacity(0.3),
+              ),
             ),
             child: Text(
-              'مستخدم موثوق',
+              isApproved ? 'مستخدم موثوق' : 'في انتظار الموافقة',
               style: GoogleFonts.cairo(
                 fontSize: 12,
-                color: Colors.blue.shade800,
+                color:
+                    isApproved ? Colors.blue.shade800 : Colors.orange.shade800,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              authState.userData?['fullName'] ?? 'مستخدم',
-              style: GoogleFonts.cairo(
-                fontSize: 11,
-                color: Colors.black87,
+
+          // User name
+          if (authState.userData?['fullName'] != null ||
+              authState.userData?['profile']?['fullName'] != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+              child: Text(
+                authState.userData?['fullName'] ??
+                    authState.userData?['profile']?['fullName'] ??
+                    'مستخدم',
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  color: Colors.black87,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
-          ),
         ],
 
-        // Email badge if expanded and admin (no auth error)
-        if (isAdmin && authState.error == null && _isRailExpanded) ...[
+        // Show auth error if present
+        if (authState.error != null && _isRailExpanded) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: Colors.red.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(color: Colors.red.withOpacity(0.3)),
             ),
             child: Text(
-              'البريد: ${authState.user?.email ?? ""}',
+              'خطأ في المصادقة',
               style: GoogleFonts.cairo(
                 fontSize: 11,
-                color: Colors.black,
+                color: Colors.red.shade800,
               ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
             ),
           ),
         ],
@@ -562,14 +595,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  // Logout button remains the same
-  Widget _buildLogoutButton({required AuthState authState}) {
+  Widget _buildFooter(AuthState authState) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Divider(),
+
+          // Expand/collapse button
           IconButton(
             icon: Icon(
                 _isRailExpanded ? Icons.chevron_left : Icons.chevron_right),
@@ -581,17 +615,24 @@ class _AppShellState extends ConsumerState<AppShell> {
             tooltip: _isRailExpanded ? 'تصغير' : 'توسيع',
           ),
 
-          // FIXED: Show logout for authenticated users (but not during auth errors)
+          // Logout button for authenticated users
           if (authState.isAuthenticated && authState.error == null) ...[
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.red),
               tooltip: 'تسجيل الخروج',
-              onPressed: () {
-                ref.read(authProvider.notifier).signOut();
-                context.go(ScreensNames.homePath);
+              onPressed: () async {
+                try {
+                  await ref.read(authProvider.notifier).signOut();
+                  if (mounted && context.mounted) {
+                    context.go(ScreensNames.homePath);
+                  }
+                } catch (e) {
+                  if (kDebugMode) {
+                    print('Logout error: $e');
+                  }
+                }
               },
             ),
-            const SizedBox(height: 20),
             if (_isRailExpanded)
               Text(
                 'تسجيل الخروج',
@@ -599,7 +640,27 @@ class _AppShellState extends ConsumerState<AppShell> {
                   color: Colors.red,
                   fontSize: 12,
                 ),
-              )
+              ),
+          ],
+
+          // Login button for non-authenticated users
+          if (!authState.isAuthenticated && authState.error == null) ...[
+            IconButton(
+              icon: const Icon(Icons.login, color: Colors.green),
+              tooltip: 'تسجيل الدخول',
+              onPressed: () {
+                // Navigate to login page
+                context.go('/login'); // Adjust path as needed
+              },
+            ),
+            if (_isRailExpanded)
+              Text(
+                'تسجيل الدخول',
+                style: GoogleFonts.cairo(
+                  color: Colors.green,
+                  fontSize: 12,
+                ),
+              ),
           ],
         ],
       ),

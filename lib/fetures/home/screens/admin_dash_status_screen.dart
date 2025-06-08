@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/notifiers/auth_notifier_admin.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 
 // Provider for managing user applications
 final userApplicationsProvider = StateNotifierProvider<UserApplicationsNotifier,
@@ -11,6 +13,7 @@ final userApplicationsProvider = StateNotifierProvider<UserApplicationsNotifier,
   return UserApplicationsNotifier(auth);
 });
 
+// 🆕 NEW: Enhanced UserApplicationsNotifier to work with trusted users
 class UserApplicationsNotifier
     extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
   final AuthNotifier _authNotifier;
@@ -30,13 +33,204 @@ class UserApplicationsNotifier
     }
   }
 
+// 🆕 NEW: Get users with application data from 'users' collection
+  Future<List<Map<String, dynamic>>> _getAllUsersWithApplicationData() async {
+    try {
+      final usersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return usersSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'documentId': doc.id,
+          'uid': data['uid'],
+          'fullName': data['profile']['fullName'] ??
+              data['profile']['firstName'] +
+                  ' ' +
+                  (data['profile']['lastName'] ?? ''),
+          'email': data['email'],
+          'phoneNumber': data['profile']['phone'],
+          'additionalPhone': data['profile']['additionalPhone'] ?? '',
+          'serviceProvider': data['profile']['serviceProvider'],
+          'location': data['profile']['location'],
+          'telegramAccount': data['profile']['telegramAccount'] ?? '',
+          'description': data['profile']['bio'] ?? '',
+          'workingHours': data['profile']['workingHours'] ?? '',
+          'status': data['status'], // pending|approved|rejected|suspended
+          'createdAt': data['createdAt'],
+          'updatedAt': data['updatedAt'],
+          'adminComment': data['application']['rejectionReason'] ?? '',
+          'submittedAt': data['application']['submittedAt'],
+          'reviewedAt': data['application']['reviewedAt'],
+          'reviewedBy': data['application']['reviewedBy'],
+          'canEditProfile': data['permissions']['canEditProfile'] ?? false,
+        };
+      }).toList();
+    } catch (e) {
+      print('Error loading users: $e');
+      return [];
+    }
+  }
+
+// 🆕 UPDATED: Enhanced approval method
   Future<void> updateApplicationStatus(String userId, String status,
       {String? comment}) async {
     try {
-      await _authNotifier.updateUserApplicationStatus(userId, status,
-          comment: comment);
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Step 1: Update user document
+      final userRef =
+          FirebaseFirestore.instance.collection('users').doc(userId);
+      batch.update(userRef, {
+        'status': status,
+        'permissions.canEditProfile': status.toLowerCase() == 'approved',
+        'application.reviewedAt': FieldValue.serverTimestamp(),
+        'application.reviewedBy': 'admin_uid', // Get from current admin
+        'application.rejectionReason': comment ?? '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (status.toLowerCase() == 'approved') {
+        // Step 2: Create trusted_users document
+        final userDoc = await userRef.get();
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          final trustedUserRef = FirebaseFirestore.instance
+              .collection('trusted_users')
+              .doc(userId);
+
+          batch.set(trustedUserRef, {
+            'uid': userId,
+            'publicProfile': {
+              'displayName': userData['profile']['fullName'],
+              'bio': userData['profile']['bio'] ?? '',
+              'profileImageUrl': userData['profile']['profileImageUrl'] ?? '',
+              'serviceProvider': userData['profile']['serviceProvider'],
+              'location': userData['profile']['location'],
+              'workingHours': userData['profile']['workingHours'] ?? '',
+              'showPhone': true,
+              'showEmail': false,
+              'showAddress': true,
+              'phone': userData['profile']['phone'],
+              'email': userData['email'],
+              'city': userData['profile']['location'],
+              'state': '',
+            },
+            'verificationBadges': [
+              if (userData['verification']['emailVerified'] == true)
+                'email_verified',
+              if (userData['verification']['phoneVerified'] == true)
+                'phone_verified',
+            ],
+            'statistics': {
+              'rating': 0.0,
+              'totalReviews': 0,
+              'joinedDate': FieldValue.serverTimestamp(),
+            },
+            'isVisible': true,
+            'addedToTrustedAt': FieldValue.serverTimestamp(),
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        }
+      } else if (status.toLowerCase() == 'rejected') {
+        // Step 3: Remove from trusted_users if rejected
+        final trustedUserRef =
+            FirebaseFirestore.instance.collection('trusted_users').doc(userId);
+        batch.delete(trustedUserRef);
+      }
+
+      await batch.commit();
       await loadApplications();
     } catch (error) {
+      rethrow;
+    }
+  }
+
+// 🆕 UPDATED: Get trusted users count from new collection
+  Future<int> getTrustedUsersCount() async {
+    try {
+      final trustedSnapshot = await FirebaseFirestore.instance
+          .collection('trusted_users')
+          .where('isVisible', isEqualTo: true)
+          .get();
+      return trustedSnapshot.docs.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // 🆕 UPDATED: Sync method for new structure
+  Future<void> syncApprovedUsersToTrustedTable() async {
+    try {
+      print('🔄 Starting sync of approved users to trusted_users...');
+
+      // Get all approved users who don't have trusted_users entry
+      final approvedUsersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('status', isEqualTo: 'approved')
+          .get();
+
+      int synced = 0;
+      int errors = 0;
+
+      for (final userDoc in approvedUsersSnapshot.docs) {
+        try {
+          final userId = userDoc.id;
+          final userData = userDoc.data();
+
+          // Check if already exists in trusted_users
+          final trustedUserDoc = await FirebaseFirestore.instance
+              .collection('trusted_users')
+              .doc(userId)
+              .get();
+
+          if (!trustedUserDoc.exists) {
+            // Create trusted_users entry
+            await FirebaseFirestore.instance
+                .collection('trusted_users')
+                .doc(userId)
+                .set({
+              'uid': userId,
+              'publicProfile': {
+                'displayName': userData['profile']['fullName'],
+                'bio': userData['profile']['bio'] ?? '',
+                'profileImageUrl': userData['profile']['profileImageUrl'] ?? '',
+                'serviceProvider': userData['profile']['serviceProvider'],
+                'location': userData['profile']['location'],
+                'workingHours': userData['profile']['workingHours'] ?? '',
+                'showPhone': true,
+                'showEmail': false,
+                'showAddress': true,
+                'phone': userData['profile']['phone'],
+                'email': userData['email'],
+                'city': userData['profile']['location'],
+                'state': '',
+              },
+              'verificationBadges': ['email_verified'],
+              'statistics': {
+                'rating': 0.0,
+                'totalReviews': 0,
+                'joinedDate': FieldValue.serverTimestamp(),
+              },
+              'isVisible': true,
+              'addedToTrustedAt': FieldValue.serverTimestamp(),
+              'lastUpdated': FieldValue.serverTimestamp(),
+            });
+
+            synced++;
+            print('🔄 Synced user: ${userData['email']}');
+          }
+        } catch (e) {
+          errors++;
+          print('🔄 Error syncing user: $e');
+        }
+      }
+
+      print('🔄 Sync completed: $synced synced, $errors errors');
+    } catch (e) {
+      print('🔄 Error during sync: $e');
       rethrow;
     }
   }
@@ -75,6 +269,255 @@ class _AdminDashboardStatusScreenState
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+// 🆕 NEW: Enhanced admin statistics widget
+  Widget _buildEnhancedStatsSection() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getEnhancedStats(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const CircularProgressIndicator();
+        }
+
+        final stats = snapshot.data!;
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'إحصائيات شاملة',
+                style: GoogleFonts.cairo(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Main stats grid
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 4,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                children: [
+                  _buildStatCard(
+                    'إجمالي الطلبات',
+                    stats['totalApplications'].toString(),
+                    Icons.folder_copy,
+                    Colors.blue,
+                  ),
+                  _buildStatCard(
+                    'في الانتظار',
+                    stats['pendingApplications'].toString(),
+                    Icons.pending,
+                    Colors.orange,
+                  ),
+                  _buildStatCard(
+                    'المقبولة',
+                    stats['approvedApplications'].toString(),
+                    Icons.check_circle,
+                    Colors.green,
+                  ),
+                  _buildStatCard(
+                    'الموثوقين النشطين',
+                    stats['activeTrustedUsers'].toString(),
+                    Icons.verified_user,
+                    Colors.purple,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Sync button for admin
+              if (stats['needsSync'] == true) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.yellow.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sync_problem, color: Colors.yellow.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'مزامنة مطلوبة',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.yellow.shade800,
+                              ),
+                            ),
+                            Text(
+                              'هناك مستخدمين مقبولين لم يتم إضافتهم لقائمة الموثوقين',
+                              style: GoogleFonts.cairo(
+                                fontSize: 12,
+                                color: Colors.yellow.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => _performSync(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.yellow.shade700,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text('مزامنة', style: GoogleFonts.cairo()),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+// 🆕 NEW: Get enhanced statistics
+  Future<Map<String, dynamic>> _getEnhancedStats() async {
+    try {
+      // Get application stats
+      final appStats =
+          await ref.read(authProvider.notifier).getApplicationStatistics();
+
+      // Get trusted users count
+      final trustedCount = await ref
+          .read(userApplicationsProvider.notifier)
+          .getTrustedUsersCount();
+
+      // Check if sync is needed
+      final approvedCount = appStats['approved'] ?? 0;
+      final needsSync = approvedCount > trustedCount;
+
+      return {
+        'totalApplications': appStats['total'] ?? 0,
+        'pendingApplications':
+            (appStats['in_progress'] ?? 0) + (appStats['needs_review'] ?? 0),
+        'approvedApplications': approvedCount,
+        'rejectedApplications': appStats['rejected'] ?? 0,
+        'activeTrustedUsers': trustedCount,
+        'needsSync': needsSync,
+      };
+    } catch (e) {
+      return {
+        'totalApplications': 0,
+        'pendingApplications': 0,
+        'approvedApplications': 0,
+        'rejectedApplications': 0,
+        'activeTrustedUsers': 0,
+        'needsSync': false,
+      };
+    }
+  }
+
+// 🆕 NEW: Stat card widget
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: GoogleFonts.cairo(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+// 🆕 NEW: Perform sync operation
+  Future<void> _performSync() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text('جاري المزامنة...', style: GoogleFonts.cairo()),
+            ],
+          ),
+        ),
+      );
+
+      // Perform sync
+      await ref
+          .read(userApplicationsProvider.notifier)
+          .syncApprovedUsersToTrustedTable();
+
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تمت المزامنة بنجاح', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
+      // Refresh data
+      ref.invalidate(userApplicationsProvider);
+    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في المزامنة: ${e.toString()}',
+                style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -188,6 +631,7 @@ class _AdminDashboardStatusScreenState
       List<Map<String, dynamic>> applications, bool isMobile, bool isTablet) {
     return Column(
       children: [
+        _buildEnhancedStatsSection(),
         if (isMobile) _buildMobileHeader(applications),
         if (isMobile) _buildMobileFilterChips(applications),
         _buildSearchBar(isMobile),
@@ -1003,6 +1447,7 @@ class _AdminDashboardStatusScreenState
               throw Exception('Document ID not found');
             }
 
+            // 🆕 ENHANCED: Use the new method that handles trusted users integration
             await ref
                 .read(userApplicationsProvider.notifier)
                 .updateApplicationStatus(
@@ -1012,14 +1457,29 @@ class _AdminDashboardStatusScreenState
                 );
 
             if (mounted) {
+              // Show appropriate success message based on status
+              String successMessage = 'تم تحديث الحالة بنجاح';
+
+              if (status.toLowerCase() == 'approved') {
+                successMessage =
+                    'تم قبول الطلب وإضافة المستخدم إلى قائمة الموثوقين بنجاح';
+              } else if (status.toLowerCase() == 'rejected') {
+                successMessage =
+                    'تم رفض الطلب وإزالة المستخدم من قائمة الموثوقين';
+              }
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content:
-                      Text('تم تحديث الحالة بنجاح', style: GoogleFonts.cairo()),
-                  backgroundColor: Colors.green,
+                  content: Text(successMessage, style: GoogleFonts.cairo()),
+                  backgroundColor: status.toLowerCase() == 'approved'
+                      ? Colors.green
+                      : status.toLowerCase() == 'rejected'
+                          ? Colors.red
+                          : Colors.blue,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
+                  duration: const Duration(seconds: 4),
                 ),
               );
             }

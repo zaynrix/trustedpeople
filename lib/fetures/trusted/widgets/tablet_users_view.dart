@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trustedtallentsvalley/core/widgets/search_bar.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/model/user_model.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/pagination_controls_widget.dart';
 import 'package:trustedtallentsvalley/fetures/trusted/widgets/sort_button.dart';

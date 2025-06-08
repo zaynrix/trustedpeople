@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/mobile/mobile_fab.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/mobile/mobile_header.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/mobile/mobile_tip_card.dart';
@@ -10,7 +11,6 @@ import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/shar
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/shared/loading_state.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/web/web_header.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/web/web_tips_grid.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
 import '../models/protection_tip.dart';
 import '../providers/protection_tips_provider.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
   const RegistrationScreen({Key? key}) : super(key: key);
@@ -41,7 +41,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     super.dispose();
   }
 
-  // FIXED: Updated register method that handles navigation properly
   Future<void> _register() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
@@ -59,8 +58,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
         final authNotifier = ref.read(authProvider.notifier);
 
-        // Call the registerUser method WITHOUT context parameter
-        // We'll handle navigation manually here
         await authNotifier.registerUser(
           fullName: _fullNameController.text.trim(),
           email: _emailController.text.trim(),
@@ -77,14 +74,15 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
         if (mounted) {
           setState(() {
-            _successMessage = 'تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول';
+            _successMessage =
+                'تم التسجيل بنجاح! طلبك قيد المراجعة من قبل الإدارة';
             _isLoading = false;
           });
 
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول'),
+              content:
+                  Text('تم التسجيل بنجاح! طلبك قيد المراجعة من قبل الإدارة'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 3),
             ),
@@ -101,7 +99,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           _serviceProviderController.clear();
           _locationController.clear();
 
-          // Navigate to login screen after a short delay
+          // Navigate to login screen
           Future.delayed(const Duration(seconds: 2), () {
             if (mounted) {
               print('📝 🚀 Navigating to login screen...');
@@ -119,7 +117,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             _isLoading = false;
           });
 
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('حدث خطأ أثناء التسجيل: ${e.toString()}'),

@@ -8,9 +8,10 @@ import 'package:trustedtallentsvalley/fetures/Home/uis/home_screen.dart';
 import 'package:trustedtallentsvalley/fetures/PaymentPlaces/screens/payment_places_screen.dart';
 import 'package:trustedtallentsvalley/fetures/admin/adminDStatistcs/screens/statistics_dashboard.dart';
 import 'package:trustedtallentsvalley/fetures/admin/screens/admin_services_screen.dart';
-import 'package:trustedtallentsvalley/fetures/auth/BlockedUsersScreen.dart';
-import 'package:trustedtallentsvalley/fetures/auth/admin_login_screen.dart';
-import 'package:trustedtallentsvalley/fetures/auth/unauthorized_screen.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/screens/BlockedUsersScreen.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/screens/admin_login_screen.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/screens/unauthorized_screen.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/screens/protection_guide_screen.dart';
 import 'package:trustedtallentsvalley/fetures/home/screens/admin_dash_status_screen.dart';
 import 'package:trustedtallentsvalley/fetures/main_screen.dart';
@@ -18,9 +19,9 @@ import 'package:trustedtallentsvalley/fetures/maintenance/maintenance_service.da
 import 'package:trustedtallentsvalley/fetures/maintenance/screens/maintenance_screen.dart';
 import 'package:trustedtallentsvalley/fetures/mouthoq/screens/application_status.dart';
 import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_dashboard.dart';
+import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_forget_pass.dart';
 import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_login.dart';
 import 'package:trustedtallentsvalley/fetures/mouthoq/screens/trusted_user_register.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/service_detail_screen.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/service_request_screen.dart';
 import 'package:trustedtallentsvalley/fetures/services/screens/services_screen.dart';
@@ -333,7 +334,25 @@ final routerProvider = Provider<GoRouter>((ref) {
               return const RegistrationScreen();
             },
           ),
-
+          GoRoute(
+            path: '/secure-trusted-895623/forgot-password',
+            builder: (context, state) => const ForgotPasswordScreen(),
+          ),
+          GoRoute(
+            path: '/secure-trusted-895623/verify-reset-code',
+            builder: (context, state) {
+              final email = state.uri.queryParameters['email'] ?? '';
+              return VerifyResetCodeScreen(email: email);
+            },
+          ),
+          GoRoute(
+            path: '/secure-trusted-895623/reset-password',
+            builder: (context, state) {
+              final email = state.uri.queryParameters['email'] ?? '';
+              final code = state.uri.queryParameters['code'] ?? '';
+              return ResetPasswordScreen(email: email, code: code);
+            },
+          ),
           // CRITICAL FIX: Protected trusted user dashboard
           GoRoute(
             path: '/secure-trusted-895623/trusted-dashboard',

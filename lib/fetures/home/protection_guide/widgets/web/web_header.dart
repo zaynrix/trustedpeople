@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/shared/add_edit_tip_dialog.dart';
 import 'package:trustedtallentsvalley/fetures/home/protection_guide/widgets/web/web_ab.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
 
 Widget buildWebHeader(
     BuildContext context, WidgetRef ref, int tipsCount, bool isDesktop) {

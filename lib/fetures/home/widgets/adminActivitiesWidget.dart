@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:trustedtallentsvalley/fetures/Home/models/ActivityUpdate.dart';
 import 'package:trustedtallentsvalley/fetures/Home/providers/home_notifier.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 
 class AdminActivityWidget extends ConsumerWidget {
   const AdminActivityWidget({Key? key}) : super(key: key);

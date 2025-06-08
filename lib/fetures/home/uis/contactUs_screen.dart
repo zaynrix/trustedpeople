@@ -12,7 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:trustedtallentsvalley/core/widgets/app_drawer.dart';
-import 'package:trustedtallentsvalley/fetures/services/auth_service.dart';
+import 'package:trustedtallentsvalley/fetures/auth/admin/providers/auth_provider_admin.dart';
 import 'package:trustedtallentsvalley/fetures/services/notification_service.dart';
 import 'package:trustedtallentsvalley/fetures/services/providers/enhanced_analytics_provider.dart';
 
